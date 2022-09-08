@@ -25,7 +25,7 @@ from .macaroon import load_macaroon
 
 
 class LndRestWallet(Wallet):
-    """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
+    """https://api.lightning.community/#lnd-rest-api-reference"""
 
     __node_cls__ = LndRestNode
 
