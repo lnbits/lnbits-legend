@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import codecs
 import hashlib
 import json
 from os import getenv
@@ -22,7 +23,7 @@ from .macaroon import AESCipher, load_macaroon
 
 
 class LndRestWallet(Wallet):
-    """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
+    """https://api.lightning.community/#lnd-rest-api-reference"""
 
     def __init__(self):
         endpoint = getenv("LND_REST_ENDPOINT")
@@ -107,6 +108,75 @@ class LndRestWallet(Wallet):
         checking_id = payment_hash
 
         return InvoiceResponse(True, checking_id, payment_request, None)
+
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        hash: bytes,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        data: Dict = {"value": amount, "private": True, "hash": base64.b64encode(hash).decode("ascii")}
+        if description_hash:
+            data["description_hash"] = base64.b64encode(description_hash).decode(
+                "ascii"
+            )
+        elif unhashed_description:
+            data["description_hash"] = base64.b64encode(
+                hashlib.sha256(unhashed_description).digest()
+            ).decode("ascii")
+        else:
+            data["memo"] = memo or ""
+
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/hodl", headers=self.auth, json=data
+            )
+
+        if r.is_error:
+            error_message = r.text
+            try:
+                error_message = r.json()["error"]
+            except Exception:
+                pass
+            return InvoiceResponse(False, None, None, error_message)
+
+        data = r.json()
+        payment_request = data["payment_request"]
+        payment_hash = base64.b64encode(hash).decode("ascii")
+        checking_id = payment_hash
+
+        return InvoiceResponse(True, checking_id, payment_request, None)
+
+    async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            data: Dict = {"preimage": base64.b64encode(preimage).decode("ascii")}
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/settle",
+                headers=self.auth,
+                json=data,
+            )
+
+        if r.is_error or r.json().get("payment_error"):
+            return False
+
+        return True
+
+    async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            data: Dict = {"payment_hash": base64.b64encode(payment_hash).decode("ascii")}
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/cancel",
+                headers=self.auth,
+                json=data,
+            )
+
+        if r.is_error or r.json().get("payment_error"):
+            return False
+
+        return True
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
@@ -218,3 +288,38 @@ class LndRestWallet(Wallet):
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def hold_invoices_stream(self, payment_hash: str, webhook: str):
+        try:
+            hex = codecs.decode(payment_hash, 'hex')
+            rhash = base64.urlsafe_b64encode(hex)
+            url = f"{self.endpoint}/v2/invoices/subscribe/{rhash.decode()}"
+            async with httpx.AsyncClient(
+                timeout=None, headers=self.auth, verify=self.cert
+            ) as client:
+                async with client.stream("GET", url) as r:
+                    async for line in r.aiter_lines():
+                        try:
+                            inv = json.loads(line)["result"]
+                            if inv["state"] != 'ACCEPTED' and inv["state"] != 'CANCELED':
+                                continue
+                        except:
+                            continue
+
+                        # dispatch webhook
+                        inv['payment_hash'] = payment_hash
+                        await LndRestWallet.dispatch_hold_webhook(webhook, inv)
+
+        except Exception as exc:
+            logger.error(
+                f"lost connection to lnd hold invoices stream: '{exc}', retrying in 5 seconds"
+            )
+            await asyncio.sleep(5)
+
+    async def dispatch_hold_webhook(webhook, inv):
+        async with httpx.AsyncClient() as client:
+            try:
+                logger.debug("sending hold webhook", webhook, str(inv))
+                await client.post(webhook, json=inv, timeout=40)  # type: ignore
+            except (httpx.ConnectError, httpx.RequestError):
+                logger.debug("error sending hold webhook")

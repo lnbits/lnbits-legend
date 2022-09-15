@@ -50,6 +50,10 @@ from ..services import (
     PaymentFailure,
     check_transaction_status,
     create_invoice,
+    create_hold_invoice,
+    settle_hold_invoice,
+    cancel_hold_invoice,
+    subscribe_hold_invoice,
     pay_invoice,
     perform_lnurlauth,
 )
@@ -139,6 +143,7 @@ class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
     amount: float = Query(None, ge=0)
     memo: Optional[str] = None
+    hash: Optional[str] = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
@@ -240,6 +245,126 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         "lnurl_response": lnurl_response,
     }
 
+async def api_payments_create_hold_invoice(data: CreateInvoiceData, wallet: Wallet):
+    if data.description_hash:
+        description_hash = binascii.unhexlify(data.description_hash)
+        memo = ""
+    else:
+        description_hash = b""
+        memo = data.memo or LNBITS_SITE_TITLE
+    if data.unit == "sat":
+        amount = int(data.amount)
+    else:
+        price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
+        amount = price_in_sats
+    if data.hash:
+        hash = binascii.unhexlify(data.hash)
+    async with db.connect() as conn:
+        try:
+            payment_hash, payment_request = await create_hold_invoice(
+                wallet_id=wallet.id,
+                amount=amount,
+                hash=hash,
+                memo=memo,
+                description_hash=description_hash,
+                extra=data.extra,
+                webhook=data.webhook,
+                conn=conn,
+            )
+        except InvoiceFailure as e:
+            raise HTTPException(status_code=520, detail=str(e))
+        except Exception as exc:
+            raise exc
+
+    invoice = bolt11.decode(payment_request)
+
+    await api_payments_subscribe_invoice(wallet=wallet, payment_hash=data.hash)
+
+    lnurl_response: Union[None, bool, str] = None
+    if data.lnurl_callback:
+        if "lnurl_balance_check" in data:
+            save_balance_check(wallet.id, data.lnurl_balance_check)
+
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.get(
+                    data.lnurl_callback,
+                    params={
+                        "pr": payment_request,
+                        "balanceNotify": url_for(
+                            f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
+                            external=True,
+                            wal=wallet.id,
+                        ),
+                    },
+                    timeout=10,
+                )
+                if r.is_error:
+                    lnurl_response = r.text
+                else:
+                    resp = json.loads(r.text)
+                    if resp["status"] != "OK":
+                        lnurl_response = resp["reason"]
+                    else:
+                        lnurl_response = True
+            except (httpx.ConnectError, httpx.RequestError):
+                lnurl_response = False
+
+    return {
+        "payment_hash": invoice.payment_hash,
+        "payment_request": payment_request,
+        # maintain backwards compatibility with API clients:
+        "checking_id": invoice.payment_hash,
+        "lnurl_response": lnurl_response,
+    }
+
+async def api_payments_settle_invoice(preimage: str, wallet: Wallet):
+    try:
+        settle_result = await settle_hold_invoice(wallet_id=wallet.id, preimage=binascii.unhexlify(preimage))
+    except ValueError as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
+    except PaymentFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
+
+    return {
+        "settle_result": str(settle_result),
+    }
+
+async def api_payments_cancel_invoice(payment_hash: str, wallet: Wallet):
+    try:
+        cancel_result = await cancel_hold_invoice(wallet_id=wallet.id, payment_hash=binascii.unhexlify(payment_hash))
+    except ValueError as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
+    except PaymentFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
+
+    return {
+        "cancel_result": str(cancel_result),
+    }
+
+async def api_payments_subscribe_invoice(payment_hash: str, wallet: Wallet):
+    try:
+        subscribe_result = await subscribe_hold_invoice(wallet_id=wallet.id, payment_hash=payment_hash)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
+    except PaymentFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
+
+    return {
+        "subscribe_result": str(subscribe_result),
+    }
 
 async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     try:
@@ -294,6 +419,51 @@ class CreateLNURLData(BaseModel):
     comment: Optional[str] = None
     description: Optional[str] = None
 
+@core_app.post(
+    "/api/v1/payments/hold",
+    status_code=HTTPStatus.CREATED,
+)
+async def api_payments_hold_create(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    invoiceData: CreateInvoiceData = Body(...),
+):
+    if wallet.wallet_type < 0 or wallet.wallet_type > 2:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
+
+    # invoice key
+    return await api_payments_create_hold_invoice(invoiceData, wallet.wallet)
+
+class SettleInvoice(BaseModel):
+    preimage: str
+
+@core_app.post("/api/v1/payments/settle")
+async def api_payments_settle(
+    data: SettleInvoice, wallet: WalletTypeInfo = Depends(require_invoice_key),
+):
+    if wallet.wallet_type > -1 and wallet.wallet_type < 2:
+        # invoice or admin key
+        return await api_payments_settle_invoice(data.preimage, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
+        )
+
+class CancelInvoice(BaseModel):
+    payment_hash: str
+
+@core_app.post("/api/v1/payments/cancel")
+async def api_payments_cancel(
+    data: CancelInvoice, wallet: WalletTypeInfo = Depends(require_invoice_key),
+):
+    if wallet.wallet_type == 0:
+        # admin key
+        return await api_payments_cancel_invoice(data.payment_hash, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Admin key required.",
+        )
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(

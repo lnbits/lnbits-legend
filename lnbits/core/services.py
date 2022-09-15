@@ -1,4 +1,5 @@
 import asyncio
+from distutils.log import error
 import json
 from binascii import unhexlify
 from io import BytesIO
@@ -29,6 +30,7 @@ from .crud import (
     check_internal,
     create_payment,
     delete_payment,
+    get_standalone_payment,
     get_wallet,
     get_wallet_payment,
     update_payment_details,
@@ -93,6 +95,82 @@ async def create_invoice(
 
     return invoice.payment_hash, payment_request
 
+async def create_hold_invoice(
+    *,
+    wallet_id: str,
+    amount: int,  # in satoshis
+    memo: str,
+    hash: Optional[bytes] = None,
+    description_hash: Optional[bytes] = None,
+    extra: Optional[Dict] = None,
+    webhook: Optional[str] = None,
+    conn: Optional[Connection] = None,
+) -> Tuple[str, str]:
+    invoice_memo = None if description_hash else memo
+
+    ok, checking_id, payment_request, error_message = await WALLET.create_hold_invoice(
+        amount=amount, memo=invoice_memo, hash=hash, description_hash=description_hash
+    )
+    if not ok:
+        raise InvoiceFailure(error_message or "Unexpected backend error.")
+
+    invoice = bolt11.decode(payment_request)
+
+    amount_msat = amount * 1000
+    await create_payment(
+        wallet_id=wallet_id,
+        checking_id=checking_id,
+        payment_request=payment_request,
+        payment_hash=invoice.payment_hash,
+        amount=amount_msat,
+        memo=memo,
+        extra=extra,
+        webhook=webhook,
+        conn=conn,
+    )
+
+    return invoice.payment_hash, payment_request
+
+async def settle_hold_invoice(
+    *,
+    wallet_id: str,
+    preimage: bytes,
+    conn: Optional[Connection] = None,
+) -> bool:
+    ok = await WALLET.settle_hold_invoice(
+        preimage=preimage
+    )
+    if not ok:
+        raise InvoiceFailure("Unexpected backend error.")
+
+    return True
+
+async def cancel_hold_invoice(
+    *,
+    wallet_id: str,
+    payment_hash: bytes,
+    conn: Optional[Connection] = None,
+) -> bool:
+    ok = await WALLET.cancel_hold_invoice(
+        payment_hash=payment_hash
+    )
+    if not ok:
+        raise InvoiceFailure("Unexpected backend error.")
+
+    return True
+
+async def subscribe_hold_invoice(
+    *,
+    wallet_id: str,
+    payment_hash: bytes,
+    conn: Optional[Connection] = None,
+) -> bool:
+    payment = await get_standalone_payment(payment_hash, incoming=True)
+    asyncio.create_task(WALLET.hold_invoices_stream(
+        payment_hash=payment_hash, webhook=payment.webhook
+    ))
+
+    return True
 
 async def pay_invoice(
     *,
