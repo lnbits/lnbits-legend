@@ -35,6 +35,18 @@ window.LNbits = {
         bolt11: bolt11
       })
     },
+    payKeysend: function (
+      wallet,
+      pubkey,
+      amount,
+      comment = ''
+    ) {
+      return this.request('post', '/api/v1/payments/keysend', wallet.adminkey, {
+        pubkey,
+        amount,
+        comment,
+      })
+    },
     payLnurl: function (
       wallet,
       callback,

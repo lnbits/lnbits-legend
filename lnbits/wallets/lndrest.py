@@ -10,6 +10,7 @@ from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
+from lnbits.helpers import b64_hex_transform, b64_transform
 
 from .base import (
     InvoiceResponse,
@@ -220,3 +221,43 @@ class LndRestWallet(Wallet):
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def pay_with_keysend(self, public_key: str, pre_image: str, payment_hash: str, amount: int, fee_limit_msat: int, message: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            # set the fee limit for the payment
+            lnrpcFeeLimit = dict()
+            lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
+
+            # Base 64 encoded destination bytes
+            dest = b64_hex_transform(public_key)
+
+            # The record 5482373484 is special: it carries the pre_image to
+            # the destination so it can be compared with the hash we pass
+            # via the payment_hash
+            dest_custom_records = {
+                5482373484: b64_hex_transform(pre_image),
+                34349334: b64_transform(message),
+            }
+
+            r = await client.post(
+                url=f"{self.endpoint}/v1/channels/transactions",
+                headers=self.auth,
+                json={
+                    "dest": dest,
+                    "amt_msat": amount,
+                    "payment_hash": b64_hex_transform(payment_hash),
+                    "dest_custom_records": dest_custom_records,
+                    "fee_limit": lnrpcFeeLimit
+                },
+                timeout=None,
+            )
+
+        if r.is_error or r.json().get("payment_error"):
+            error_message = r.json().get("payment_error") or r.text
+            return PaymentResponse(False, None, None, None, error_message)
+
+        data = r.json()
+        checking_id = base64.b64decode(data["payment_hash"]).hex()
+        fee_msat = int(data["payment_route"]["total_fees_msat"])
+        preimage = base64.b64decode(data["payment_preimage"]).hex()
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)

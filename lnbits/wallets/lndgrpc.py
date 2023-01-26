@@ -305,3 +305,61 @@ class LndWallet(Wallet):
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def pay_with_keysend(self, public_key: str, pre_image: str, payment_hash: str, amount: int, fee_limit_msat: int, message: str) -> PaymentResponse:
+        # The record 5482373484 is special: it carries the pre_image to
+        # the destination so it can be compared with the hash we pass
+        # via the payment_hash
+        dest_custom_records = {
+            5482373484: bytes.fromhex(pre_image),
+            34349334: message.encode(),
+        }
+
+        req = router.SendPaymentRequest(
+            dest=bytes.fromhex(public_key),
+            amt_msat=amount,
+            payment_hash=bytes.fromhex(payment_hash),
+            dest_custom_records=dest_custom_records,
+            fee_limit_msat=fee_limit_msat,
+            timeout_seconds=30,
+            no_inflight_updates=True,
+        )
+        try:
+            resp = await self.routerpc.SendPaymentV2(req).read()
+        except RpcError as exc:
+            return PaymentResponse(False, None, None, None, exc._details)
+        except Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
+
+        # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
+        statuses = {
+            0: None,  # NON_EXISTENT
+            1: None,  # IN_FLIGHT
+            2: True,  # SUCCEEDED
+            3: False,  # FAILED
+        }
+
+        failure_reasons = {
+            0: "No error given.",
+            1: "Payment timed out.",
+            2: "No route to destination.",
+            3: "Error.",
+            4: "Incorrect payment details.",
+            5: "Insufficient balance.",
+        }
+
+        fee_msat = None
+        preimage = None
+        error_message = None
+        checking_id = None
+
+        if statuses[resp.status] == True:  # SUCCEEDED
+            fee_msat = -resp.htlcs[-1].route.total_fees_msat
+            preimage = resp.payment_preimage
+            checking_id = resp.payment_hash
+        elif statuses[resp.status] == False:
+            error_message = failure_reasons[resp.failure_reason]
+
+        return PaymentResponse(
+            statuses[resp.status], checking_id, fee_msat, preimage, error_message
+        )

@@ -3,6 +3,8 @@ import json
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
+from secrets import token_hex
+from hashlib import sha256
 
 import httpx
 from fastapi import Depends, WebSocket
@@ -12,8 +14,13 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.decorators import (
+    WalletTypeInfo,
+    get_key_type,
+    require_admin_key,
+    require_invoice_key,
+)
+from lnbits.helpers import url_for, urlsafe_short_hash, b64_hex_transform
 from lnbits.requestvars import g
 from lnbits.settings import (
     FAKE_WALLET,
@@ -244,6 +251,152 @@ async def pay_invoice(
 
     return invoice.payment_hash
 
+async def pay_with_keysend(
+    wallet_id: str,
+    public_key: str,
+    amount_msat: int,
+    description: str = "",
+    extra: Optional[Dict] = None,
+    conn: Optional[Connection] = None,
+) -> str:
+    """
+    Send a Keysend payment.
+    First, we create a temporary payment in the database with fees set to the reserve fee.
+    We then check whether the balance of the payer would go negative.
+    We then attempt to pay the invoice through the backend.
+    If the payment is successful, we update the payment in the database with the payment details.
+    If the payment is unsuccessful, we delete the temporary payment.
+    If the payment is still in flight, we hope that some other process will regularly check for the payment.
+    """
+    # Base 64 encoded destination bytes
+    dest = b64_hex_transform(public_key)
+    # We generate a random 32 byte Hex pre_image here.
+    pre_image = token_hex(32)
+    # This is the hash of the pre-image
+    payment_hash = sha256(bytes.fromhex(pre_image)).hexdigest()
+    fee_reserve_msat = fee_reserve(amount_msat)
+
+    async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+        temp_id = payment_hash #invoice.payment_hash
+        internal_id = f"internal_{payment_hash}"
+
+        if amount_msat == 0:
+            raise ValueError("Amountless payments not supported.")
+
+        # put all parameters that don't change here
+        class PaymentKwargs(TypedDict):
+            wallet_id: str
+            payment_hash: str
+            amount: int
+            memo: str
+            extra: Optional[Dict]
+
+        payment_kwargs: PaymentKwargs = PaymentKwargs(
+            wallet_id=wallet_id,
+            payment_request="",
+            payment_hash=payment_hash,
+            amount=-amount_msat,
+            memo=description or "",
+            extra=extra,
+        )
+
+        # check_internal() returns the checking_id of the payment we're waiting for
+        internal_checking_id = await check_internal(payment_hash, conn=conn)
+        if internal_checking_id:
+            logger.debug(f"creating temporary internal payment with id {internal_id}")
+            # create a new payment from this wallet
+            await create_payment(
+                checking_id=internal_id,
+                fee=0,
+                pending=False,
+                conn=conn,
+                **payment_kwargs,
+            )
+        else:
+            logger.debug(f"creating temporary payment with id {temp_id}")
+            # create a temporary payment here so we can check if
+            # the balance is enough in the next step
+            await create_payment(
+                checking_id=temp_id,
+                fee=-fee_reserve_msat,
+                conn=conn,
+                **payment_kwargs,
+            )
+
+        # do the balance check
+        wallet = await get_wallet(wallet_id, conn=conn)
+        assert wallet
+        if wallet.balance_msat < 0:
+            logger.debug("balance is too low, deleting temporary payment")
+            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+                raise PaymentFailure(
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                )
+            raise PermissionError("Insufficient balance.")
+
+    if internal_checking_id:
+        logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
+        # mark the invoice from the other side as not pending anymore
+        # so the other side only has access to his new money when we are sure
+        # the payer has enough to deduct from
+        async with db.connect() as conn:
+            await update_payment_status(
+                checking_id=internal_checking_id, pending=False, conn=conn
+            )
+
+        # notify receiver asynchronously
+        from lnbits.tasks import internal_invoice_queue
+
+        logger.debug(f"enqueuing internal invoice {internal_checking_id}")
+        await internal_invoice_queue.put(internal_checking_id)
+    else:
+        logger.debug(f"backend: sending payment {temp_id}")
+        # actually pay with keysend
+        WALLET = get_wallet_class()
+        payment: PaymentResponse = await WALLET.pay_with_keysend(
+            public_key,
+            pre_image,
+            payment_hash,
+            amount_msat,
+            fee_reserve_msat,
+            description,
+        )
+
+        if payment.checking_id and payment.checking_id != temp_id:
+            logger.warning(
+                f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
+            )
+
+        logger.debug(f"backend: pay_with_keysend finished {temp_id}")
+        if payment.checking_id and payment.ok != False:
+            # payment.ok can be True (paid) or None (pending)!
+            logger.debug(f"updating payment {temp_id}")
+            async with db.connect() as conn:
+                await update_payment_details(
+                    checking_id=temp_id,
+                    pending=payment.ok != True,
+                    fee=payment.fee_msat,
+                    preimage=payment.preimage,
+                    new_checking_id=payment.checking_id,
+                    conn=conn,
+                )
+                logger.debug(f"payment successful {payment.checking_id}")
+        elif payment.checking_id is None and payment.ok == False:
+            # payment failed
+            logger.warning(f"backend sent payment failure")
+            async with db.connect() as conn:
+                logger.debug(f"deleting temporary payment {temp_id}")
+                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
+            raise PaymentFailure(
+                f"Payment failed: {payment.error_message}"
+                or "Payment failed, but backend didn't give us an error message."
+            )
+        else:
+            logger.warning(
+                f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
+            )
+
+    return payment_hash
 
 async def redeem_lnurl_withdraw(
     wallet_id: str,

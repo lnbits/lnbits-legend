@@ -75,6 +75,7 @@ from ..services import (
     check_transaction_status,
     create_invoice,
     pay_invoice,
+    pay_with_keysend,
     perform_lnurlauth,
     websocketManager,
     websocketUpdater,
@@ -289,13 +290,32 @@ async def api_payments_create(
         )
 
 
+class CreateKeysendData(BaseModel):
+    pubkey: str
+    amount: int
+    comment: Optional[str] = None
+
+@core_app.post("/api/v1/payments/keysend")
+async def api_payments_pay_keysend(
+    data: CreateKeysendData, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+    payment_hash = await pay_with_keysend(
+        wallet_id=wallet.wallet.id,
+        public_key=data.pubkey,
+        amount_msat=data.amount,
+        description=data.comment,
+    )
+
+    return {
+        "payment_hash": payment_hash,
+    }
+
 class CreateLNURLData(BaseModel):
     description_hash: str
     callback: str
     amount: int
     comment: Optional[str] = None
     description: Optional[str] = None
-
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(

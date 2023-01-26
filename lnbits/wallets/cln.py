@@ -14,6 +14,7 @@ from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
+from lnbits.helpers import b64_hex_transform, b64_transform
 
 from .base import (
     InvoiceResponse,
@@ -39,9 +40,11 @@ def async_wrap(func):
 def _pay_invoice(ln, payload):
     return ln.call("pay", payload)
 
-
 def _paid_invoices_stream(ln, last_pay_index):
     return ln.waitanyinvoice(last_pay_index)
+
+def _pay_keysend(ln, payload):
+    return ln.call("keysend", payload)
 
 
 class CoreLightningWallet(Wallet):
@@ -201,3 +204,48 @@ class CoreLightningWallet(Wallet):
                     f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def pay_with_keysend(self, public_key: str, pre_image: str, payment_hash: str, amount_msat: int, fee_limit_msat: int, message: str) -> PaymentResponse:
+        # The record 5482373484 is special: it carries the pre_image to
+        # the destination so it can be compared with the hash we pass
+        # via the payment_hash
+
+        # custom tvl's are possible with cln > 0.11.1,
+        # this means we'll have checking_id mismatch
+        dest_custom_records = {
+            5482373484: b64_hex_transform(pre_image),
+            34349334: b64_transform(message),
+        }
+
+        fee_limit_percent = fee_limit_msat / amount_msat * 100
+
+        # needs update with cln/pyln 0.12
+        # umbrel defaults to 0.11.0 now
+        payload = {
+            "destination": public_key,
+            # renamed to "amount_msat" with pyln 0.12
+            "msatoshi": amount_msat,
+            "label": message,
+            "maxfeepercent": "{:.11}".format(fee_limit_percent),
+            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
+            # requires cln > 0.11.1, unsupported earlier
+            # "extratlvs": dest_custom_records,
+            "retry_for": 30,
+        }
+
+        try:
+            wrapped = async_wrap(_pay_keysend)
+            r = await wrapped(self.ln, payload)
+        except RpcError as exc:
+            try:
+                error_message = exc.error["attempts"][-1]["fail_reason"]
+            except:
+                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+            return PaymentResponse(False, None, None, None, error_message)
+        except Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
+
+        fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
+        return PaymentResponse(
+            True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+        )

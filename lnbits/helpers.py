@@ -1,6 +1,7 @@
 import glob
 import os
-from typing import Any, List, Optional
+import base64
+from typing import Any, List, NamedTuple, Optional
 
 import jinja2
 import shortuuid  # type: ignore
@@ -147,3 +148,12 @@ def get_current_extension_name() -> str:
     except:
         ext_name = extension_director_name
     return ext_name
+
+def b64_hex_transform(plain_str: str) -> str:
+    """Returns the b64 transformed version of a hex string"""
+    a_string = bytes.fromhex(plain_str)
+    return base64.b64encode(a_string).decode()
+
+def b64_transform(plain_str: str) -> str:
+    """Returns the b64 transformed version of a string"""
+    return base64.b64encode(plain_str.encode()).decode()

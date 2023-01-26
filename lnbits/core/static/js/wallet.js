@@ -466,6 +466,20 @@ new Vue({
         return
       }
 
+      // keysend
+      if (
+        !this.parse.data.request.match(/^ln(?:bc|tb|bcrt)[\w.+-~_]+/) && (
+          this.parse.data.request.toLowerCase().startsWith('keysend:') ||
+          this.parse.data.request.match(/[\w.+-~_]+/)
+        )
+      ) {
+        this.parse.keysend = {
+          pubkey: Object.freeze(this.parse.data.request),
+        };
+        this.$forceUpdate();
+        return;
+      }
+
       let invoice
       try {
         invoice = decode(this.parse.data.request)
@@ -528,6 +542,45 @@ new Vue({
                   this.parse.show = false
                   clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
+                  this.fetchPayments()
+                  this.fetchBalance()
+                }
+              })
+          }, 2000)
+        })
+        .catch(err => {
+          dismissPaymentMsg()
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    payKeysend: function() {
+      let dismissPaymentMsg = this.$q.notify({
+        timeout: 0,
+        message: 'Processing payment...'
+      })
+
+      LNbits.api
+        .payKeysend(
+          this.g.wallet,
+          this.parse.keysend.pubkey,
+          this.parse.data.amount * 1000,
+          this.parse.data.comment
+        )
+        .then(response => {
+          this.parse.show = false
+
+          clearInterval(this.parse.paymentChecker)
+          setTimeout(() => {
+            clearInterval(this.parse.paymentChecker)
+          }, 40000)
+          this.parse.paymentChecker = setInterval(() => {
+            LNbits.api
+              .getPayment(this.g.wallet, response.data.payment_hash)
+              .then(res => {
+                this.parse.keysend = false;
+                if (res.data.paid) {
+                  dismissPaymentMsg()
+                  clearInterval(this.parse.paymentChecker)
                   this.fetchPayments()
                   this.fetchBalance()
                 }

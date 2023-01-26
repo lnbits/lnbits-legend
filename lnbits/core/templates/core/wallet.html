@@ -664,6 +664,48 @@
             </q-form>
             {% endraw %}
           </div>
+          <div v-else-if="parse.keysend">
+            {% raw %}
+            <q-form @submit="payKeysend" class="q-gutter-md">
+              <p class="q-my-none text-h6 text-center">
+                Keysend to <b>{{ parse.keysend.pubkey }}</b>
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <div class="row">
+                <div class="col">
+                  {% endraw %}
+                  <q-input
+                    filled
+                    dense
+                    v-model.number="parse.data.amount"
+                    type="number"
+                    label="Amount ({{LNBITS_DENOMINATION}}) *"
+                  ></q-input>
+                  {% raw %}
+                </div>
+                <div class="col-8 q-pl-md">
+                  <q-input
+                    filled
+                    dense
+                    v-model="parse.data.comment"
+                    type="textarea"
+                    label="Comment (optional)"
+                  ></q-input>
+                </div>
+              </div>
+              {% endraw %}
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit"
+                  >Send {{LNBITS_DENOMINATION}}</q-btn
+                >
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                  >Cancel</q-btn
+                >
+              </div>
+              {% raw %}
+            </q-form>
+            {% endraw %}
+          </div>
           <div v-else>
             <q-form
               v-if="!parse.camera.show"
