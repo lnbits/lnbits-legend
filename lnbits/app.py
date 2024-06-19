@@ -26,6 +26,7 @@ from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
 )
+from lnbits.core.views.websocket_api import enable_ws_tunnel_for_routers
 from lnbits.exceptions import register_exception_handlers
 from lnbits.settings import settings
 from lnbits.tasks import (
@@ -42,7 +43,7 @@ from lnbits.utils.logger import (
 from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
-from .core import enable_ws_tunnel_for_routers, init_core_routers
+from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.extension_api import add_installed_extension

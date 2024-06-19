@@ -44,39 +44,3 @@ def init_core_routers() -> APIRouter:
     all_routers.include_router(users_router)
 
     return all_routers
-
-
-def enable_ws_tunnel_for_routers(routers: APIRouter):
-    @routers.websocket("/api/v1/tunnel/{item_id}")
-    async def websocket_connect(websocket: WebSocket, item_id: str):
-        await websocket_manager.connect(websocket, item_id)
-        try:
-            while True:
-
-                await websocket.receive_text()
-
-                async def receive(message: Optional[Any] = None):
-                    print("### receive", message)
-                    return message
-
-                async def send(message: Optional[Any] = None):
-                    print("### send", message)
-                    return message
-
-                scope = {
-                    "type": "http",
-                    "method": "GET",
-                    "path": "/api/v1/wallet",
-                    "query_string": "",  # todo: test value
-                    "headers": [(b"x-api-key", item_id.encode("utf-8"))],
-                }
-                #  b"65f14a3501624bb09279744b1865bffe"
-                try:
-                    await routers(scope, receive, send)
-                    print("#### !!!")
-                except WebSocketDisconnect:
-                    websocket_manager.disconnect(websocket)
-                except Exception as ex:
-                    print("### ex2", ex)
-        except WebSocketDisconnect:
-            websocket_manager.disconnect(websocket)
