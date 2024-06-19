@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from urllib.parse import urlencode
 
@@ -6,6 +7,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from loguru import logger
 
 from lnbits.settings import settings
 
@@ -45,29 +47,28 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": False, "data": data}
 
 
+# sample request
+# {
+#     "method": "GET",
+#     "path": "/api/v1/wallet",
+#     "headers": {"x-api-key": "65f14a3501624bb09279744b1865bffe"},
+# }
+
+
 def enable_ws_tunnel_for_routers(routers: APIRouter):
-    @routers.websocket("/api/v1/tunnel/{item_id}")
-    async def websocket_tunnel(websocket: WebSocket, item_id: str):
-        await websocket_manager.connect(websocket, item_id)
+    @routers.websocket("/api/v1/tunnel")
+    async def websocket_tunnel(websocket: WebSocket):
         try:
+            await websocket.accept()
+
             while settings.lnbits_running:
-
-                await websocket.receive_text()
-
+                req = await websocket.receive_text()
                 ws_call = WebsocketCall(routers)
-                resp = await ws_call(
-                    {
-                        "method": "GET",
-                        "path": "/api/v1/wallet",
-                        "headers": {"x-api-key": item_id, "x": None},
-                    }
-                )
-                #  b"65f14a3501624bb09279744b1865bffe"
+                resp = await ws_call(req)
 
-                print("#### ws_call.response", resp)
-
-        except WebSocketDisconnect:
-            websocket_manager.disconnect(websocket)
+                await websocket.send_text(json.dumps(resp))
+        except WebSocketDisconnect as exc:
+            logger.warning(exc)
 
 
 class WebsocketCall:
@@ -76,13 +77,15 @@ class WebsocketCall:
         self._routers = routers
         self._response: dict = {}
 
-    async def __call__(self, scope: dict) -> dict:
+    async def __call__(self, request_json: str) -> dict:
         try:
-            scope = self._normalize_request(scope)
+            request = json.loads(request_json)
+            scope = self._normalize_request(request)
             await self._routers(scope, self._receive, self._send)
             return self._normalize_response(self._response)
-        except Exception as ex:
-            return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(ex)}
+        except Exception as exc:
+            logger.warning(exc)
+            return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(exc)}
 
     def _normalize_request(self, req: dict) -> dict:
         scope = {"type": "http"}
