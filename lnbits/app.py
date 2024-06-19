@@ -42,7 +42,7 @@ from lnbits.utils.logger import (
 from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
-from .core import init_core_routers
+from .core import enable_ws_tunnel_for_routers, init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.extension_api import add_installed_extension
@@ -91,7 +91,11 @@ async def startup(app: FastAPI):
     await check_funding_source()
 
     # register core routes
-    init_core_routers(app)
+    all_routers = init_core_routers()
+    if settings.lnbits_ws_tunnel_enabled:
+        # todo: filter by tag
+        enable_ws_tunnel_for_routers(all_routers)
+    app.include_router(all_routers)
 
     # check extensions after restart
     if not settings.lnbits_extensions_deactivate_all:

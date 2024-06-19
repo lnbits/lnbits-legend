@@ -146,6 +146,7 @@ class SecuritySettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
         )
     )
+    lnbits_ws_tunnel_enabled: bool = Field(default=True)  # todo: default to false
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
