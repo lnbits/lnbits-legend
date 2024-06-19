@@ -1,3 +1,6 @@
+from http import HTTPStatus
+from urllib.parse import urlencode
+
 from fastapi import (
     APIRouter,
     WebSocket,
@@ -51,22 +54,18 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
 
                 await websocket.receive_text()
 
-                try:
-                    ws_call = WebsocketCall(routers)
-                    await ws_call(
-                        {
-                            "type": "http",
-                            "method": "GET",
-                            "path": "/api/v1/wallet",
-                            "query_string": "",  # todo: test value
-                            "headers": [(b"x-api-key", item_id.encode("utf-8"))],
-                        }
-                    )
-                    #  b"65f14a3501624bb09279744b1865bffe"
+                ws_call = WebsocketCall(routers)
+                resp = await ws_call(
+                    {
+                        "method": "GET",
+                        "path": "/api/v1/wallet",
+                        "headers": {"x-api-key": item_id, "x": None},
+                    }
+                )
+                #  b"65f14a3501624bb09279744b1865bffe"
 
-                    print("#### ws_call.response", ws_call.response)
-                except Exception as ex:
-                    print("### ex2", ex)
+                print("#### ws_call.response", resp)
+
         except WebSocketDisconnect:
             websocket_manager.disconnect(websocket)
 
@@ -74,19 +73,50 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
 class WebsocketCall:
 
     def __init__(self, routers: APIRouter):
-        self.routers = routers
-        self.response = {}
+        self._routers = routers
+        self._response: dict = {}
 
-    async def __call__(self, scope: dict):
-        await self.routers(scope, self.receive, self.send)
+    async def __call__(self, scope: dict) -> dict:
+        try:
+            scope = self._normalize_request(scope)
+            await self._routers(scope, self._receive, self._send)
+            return self._normalize_response(self._response)
+        except Exception as ex:
+            return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(ex)}
+
+    def _normalize_request(self, req: dict) -> dict:
+        scope = {"type": "http"}
+        scope["headers"] = (
+            [
+                (k.encode("utf-8"), v and v.encode("utf-8"))
+                for k, v in req["headers"].items()
+            ]
+            if "headers" in req
+            else None
+        )
+        scope["query_string"] = urlencode(req["params"]) if "params" in req else None
+
+        return {**req, **scope}
+
+    def _normalize_response(self, resp: dict) -> dict:
+        response = {"status": resp["status"] if "status" in resp else 502}
+        if resp.get("headers"):
+            response["headers"] = {}
+            for header in resp["headers"]:
+                key = header[0].decode("utf-8") if header[0] else None
+                value = header[1].decode("utf-8") if header[1] else None
+                response["headers"][key] = value
+
+        if "body" in resp:
+            response["body"] = resp["body"].decode("utf-8") if resp["body"] else None
+
+        return response
 
     # todo: fix typing
-    async def receive(self, message):
-        print("### receive", message)
+    async def _receive(self, message):
         return message
 
     # todo: fix typing
-    async def send(self, message):
-        print("### send", message)
-        self.response = {**self.response, **message}
+    async def _send(self, message):
+        self._response = {**self._response, **message}
         return message
