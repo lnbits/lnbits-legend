@@ -179,6 +179,7 @@ class HTTPInternalCall:
     def __init__(self, routers: APIRouter):
         self._routers = routers
         self._response: dict = {}
+        self._body: Optional[str] = None
 
     async def __call__(self, request_json: str) -> dict:
         try:
@@ -206,6 +207,8 @@ class HTTPInternalCall:
             urlencode(reqest["params"]) if "params" in reqest else None
         )
 
+        self._body = reqest["body"] if "body" in reqest else None
+
         return {**reqest, **_req}
 
     def _normalize_response(self, response: dict) -> dict:
@@ -225,8 +228,14 @@ class HTTPInternalCall:
         return _resp
 
     # todo: fix typing
-    async def _receive(self, message):
-        return message
+    async def _receive(self):
+        if not self._body:
+            return None
+        return {
+            "type": "http.request",
+            "body": self._body.encode("utf-8"),
+            "more_body": False,
+        }
 
     # todo: fix typing
     async def _send(self, message):
