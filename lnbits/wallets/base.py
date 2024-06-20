@@ -3,12 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
 
-from lnbits.utils.gateway import HTTPTunnelClient
-
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
-
-http_tunnel_client = HTTPTunnelClient()
 
 
 class StatusResponse(NamedTuple):

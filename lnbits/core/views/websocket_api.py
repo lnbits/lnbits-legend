@@ -8,8 +8,7 @@ from fastapi import (
 from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.utils.gateway import HTTPInternalCall
-from lnbits.wallets.base import http_tunnel_client
+from lnbits.utils.gateway import HTTPInternalCall, websocket_tunnel
 
 from ..services import (
     websocket_manager,
@@ -49,7 +48,7 @@ async def websocket_update_get(item_id: str, data: str):
 
 def enable_ws_tunnel_for_routers(routers: APIRouter):
     @routers.websocket("/api/v1/tunnel")
-    async def websocket_tunnel(websocket: WebSocket):
+    async def websocket_temp(websocket: WebSocket):
         try:
             await websocket.accept()
 
@@ -64,16 +63,4 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
 
     @routers.websocket("/api/v1/feeder")
     async def websocket_feeder(websocket: WebSocket):
-        try:
-            await websocket.accept()
-
-            async def _send_fn(resp):
-                await websocket.send_text(json.dumps(resp))
-
-            async def _receive_fn():
-                return await websocket.receive_text()
-
-            await http_tunnel_client.connect(_send_fn, _receive_fn)
-
-        except WebSocketDisconnect as exc:
-            logger.warning(exc)
+        await websocket_tunnel(websocket)

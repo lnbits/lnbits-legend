@@ -1,9 +1,9 @@
-from json import dumps
 from http import HTTPStatus
+from json import dumps, loads
 from typing import Any, Awaitable, Mapping, Optional
 from urllib.parse import urlencode
 
-from fastapi import HTTPException
+from fastapi import HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.routing import APIRouter
 from loguru import logger
 
@@ -224,7 +224,7 @@ class HTTPInternalCall:
 
     async def __call__(self, request_json: str) -> dict:
         try:
-            request = json.loads(request_json)
+            request = loads(request_json)
             scope = self._normalize_request(request)
             await self._routers(scope, self._receive, self._send)
             return self._normalize_response(self._response)
@@ -282,3 +282,26 @@ class HTTPInternalCall:
     async def _send(self, message):
         self._response = {**self._response, **message}
         return message
+
+
+# todo: extrct models?
+http_tunnel_client = HTTPTunnelClient()
+
+
+async def websocket_tunnel(websocket: WebSocket):
+    try:
+        await websocket.accept()
+
+        async def _send_fn(resp):
+            await websocket.send_json(resp)
+
+        async def _receive_fn():
+            return await websocket.receive_json()
+
+        await http_tunnel_client.connect(_send_fn, _receive_fn)
+
+    except WebSocketDisconnect as exc:
+        logger.warning(exc)
+    except Exception as exc:
+        logger.warning(exc)
+        raise exc
