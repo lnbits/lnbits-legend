@@ -241,6 +241,86 @@
 
                 <q-separator></q-separator>
                 {% include "core/_api_docs.html" %}
+                <q-separator></q-separator>
+                <q-expansion-item
+                  group="extras"
+                  icon="cloud"
+                  label="Reverse funding source"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col">
+                          <p>
+                            Use this wallet as a funding source for a public
+                            LNbits instance.
+                          </p>
+                          <p>
+                            The remote LNbits instance must have a
+                            <strong>LNbits Reverse</strong> funding source
+                            configred.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div class="row">
+                        <div class="col">
+                          <q-select
+                            dense
+                            size="sm"
+                            style="min-width: 200px"
+                            filled
+                            :options="reverseFundingOptions"
+                            v-model="reverseFundingConfig.access"
+                            class="col-auto"
+                          ></q-select>
+                        </div>
+                      </div>
+
+                      <div class="row q-mt-md">
+                        <div class="col">
+                          <q-input
+                            v-model="reverseFundingConfig.url"
+                            filled
+                            label="Websocket Address"
+                            placeholder="wss://myinstance.com"
+                            hint="wss://myinstance.com"
+                            dense
+                          />
+                        </div>
+                      </div>
+                      <div class="row q-mt-md">
+                        <div class="col">
+                          <q-input
+                            v-model="reverseFundingConfig.secret"
+                            filled
+                            type="password"
+                            label="Secret"
+                            hint="Must be the same as the secret on the remote LNbits instance."
+                            dense
+                          />
+                        </div>
+                      </div>
+                      <div class="row q-mt-md">
+                        <div class="col">
+                          <q-btn
+                            unelevated
+                            outline
+                            class="float-left"
+                            color="grey"
+                            label="Test Connection"
+                          ></q-btn>
+                          <q-btn
+                            unelevated
+                            class="float-right"
+                            color="primary"
+                            label="Update"
+                          ></q-btn>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
               </q-list>
             </q-card-section>
           </q-card>

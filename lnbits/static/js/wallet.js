@@ -56,6 +56,16 @@ new Vue({
       update: {
         name: null,
         currency: null
+      },
+      reverseFundingOptions: [
+        {label: 'Disabled', value: 'none'},
+        {label: 'Allow Receive Only', value: 'inkey'},
+        {label: 'Allow Receive and Spend ', value: 'adminkey'}
+      ],
+      reverseFundingConfig: {
+        access: {label: 'Disabled', value: 'none'},
+        url: '',
+        secret: ''
       }
     }
   },
