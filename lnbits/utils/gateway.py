@@ -1,10 +1,177 @@
 import json
 from http import HTTPStatus
+from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
 from fastapi import HTTPException
 from fastapi.routing import APIRouter
 from loguru import logger
+
+
+class HTTPTunnelClient:
+
+    def __init__(self):
+        pass
+
+    async def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        data: Optional[dict] = None,
+        json: Optional[dict] = None,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        pass
+
+    async def get(
+        self,
+        url: str,
+        *,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "GET",
+            url,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def options(
+        self,
+        url: str,
+        *,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "OPTIONS",
+            url,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def head(
+        self,
+        url: str,
+        *,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "HEAD",
+            url,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def post(
+        self,
+        url: str,
+        *,
+        data: Optional[dict] = None,
+        json: Optional[dict] = None,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "POST",
+            url,
+            data=data,
+            json=json,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def put(
+        self,
+        url: str,
+        *,
+        data: Optional[dict] = None,
+        json: Optional[dict] = None,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "PUT",
+            url,
+            data=data,
+            json=json,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def patch(
+        self,
+        url: str,
+        *,
+        data: Optional[dict] = None,
+        json: Optional[dict] = None,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "PATCH",
+            url,
+            data=data,
+            json=json,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def delete(
+        self,
+        url: str,
+        *,
+        params: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> "HTTPTunnelResponse":
+        return await self.request(
+            "DELETE",
+            url,
+            params=params,
+            headers=headers,
+            timeout=timeout,
+        )
+
+    async def aclose(self) -> None:
+        pass
+
+
+class HTTPTunnelResponse:
+
+    def __init__(self):
+        pass
+
+    @property
+    def is_error(self) -> bool:
+        pass
+
+    @property
+    def text(self) -> str:
+        pass
+
+    def raise_for_status(self) -> "HTTPTunnelResponse":
+        pass
+
+    def json(self, **kwargs: Any) -> Any:
+        pass
 
 
 class HTTPInternalCall:
