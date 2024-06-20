@@ -2,6 +2,7 @@ import json
 from http import HTTPStatus
 from urllib.parse import urlencode
 
+from fastapi import HTTPException
 from fastapi.routing import APIRouter
 from loguru import logger
 
@@ -17,8 +18,9 @@ class HTTPInternalCall:
             request = json.loads(request_json)
             scope = self._normalize_request(request)
             await self._routers(scope, self._receive, self._send)
-            print("### self._response", self._response)
             return self._normalize_response(self._response)
+        except HTTPException as exc:
+            return {"status": int(exc.status_code), "detail": exc.detail}
         except Exception as exc:
             logger.warning(exc)
             return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(exc)}
