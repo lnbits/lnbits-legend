@@ -87,33 +87,37 @@ class HTTPInternalCall:
             logger.warning(exc)
             return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(exc)}
 
-    def _normalize_request(self, req: dict) -> dict:
-        scope = {"type": "http"}
-        scope["headers"] = (
+    def _normalize_request(self, reqest: dict) -> dict:
+        _req = {"type": "http"}
+        _req["headers"] = (
             [
                 (k and k.encode("utf-8"), v and v.encode("utf-8"))
-                for k, v in req["headers"].items()
+                for k, v in reqest["headers"].items()
             ]
-            if "headers" in req
+            if "headers" in reqest
             else None
         )
-        scope["query_string"] = urlencode(req["params"]) if "params" in req else None
+        _req["query_string"] = (
+            urlencode(reqest["params"]) if "params" in reqest else None
+        )
 
-        return {**req, **scope}
+        return {**reqest, **_req}
 
-    def _normalize_response(self, resp: dict) -> dict:
-        response = {"status": resp["status"] if "status" in resp else 502}
-        if resp.get("headers"):
-            response["headers"] = {}
-            for header in resp["headers"]:
+    def _normalize_response(self, response: dict) -> dict:
+        _resp = {"status": response.get("status", int(HTTPStatus.BAD_GATEWAY))}
+        if response.get("headers"):
+            _resp["headers"] = {}
+            for header in response["headers"]:
                 key = header[0].decode("utf-8") if header[0] else None
                 value = header[1].decode("utf-8") if header[1] else None
-                response["headers"][key] = value
+                _resp["headers"][key] = value
 
-        if "body" in resp:
-            response["body"] = resp["body"].decode("utf-8") if resp["body"] else None
+        if "body" in response:
+            _resp["body"] = (
+                response["body"].decode("utf-8") if response["body"] else None
+            )
 
-        return response
+        return _resp
 
     # todo: fix typing
     async def _receive(self, message):
