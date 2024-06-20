@@ -1,3 +1,4 @@
+import uuid
 from http import HTTPStatus
 from json import dumps, loads
 from typing import Any, Awaitable, Mapping, Optional
@@ -50,12 +51,13 @@ class HTTPTunnelClient:
     ) -> "HTTPTunnelResponse":
         try:
             assert self.connected, "Tunnel connection not established."
+            request_id = uuid.uuid4().hex
             body = data
             if json:
                 body = dumps(json)
             await self._send_fn(
                 {
-                    "request_id": "abc-123",
+                    "request_id": request_id,
                     "method": method,
                     "url": url,
                     "body": body,
