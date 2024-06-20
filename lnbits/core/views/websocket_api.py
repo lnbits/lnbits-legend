@@ -63,15 +63,15 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
 
             while settings.lnbits_running:
                 req = await websocket.receive_text()
-                ws_call = WebsocketCall(routers)
-                resp = await ws_call(req)
+
+                resp = await HTTPInternalCall(routers)(req)
 
                 await websocket.send_text(json.dumps(resp))
         except WebSocketDisconnect as exc:
             logger.warning(exc)
 
 
-class WebsocketCall:
+class HTTPInternalCall:
 
     def __init__(self, routers: APIRouter):
         self._routers = routers
@@ -91,7 +91,7 @@ class WebsocketCall:
         scope = {"type": "http"}
         scope["headers"] = (
             [
-                (k.encode("utf-8"), v and v.encode("utf-8"))
+                (k and k.encode("utf-8"), v and v.encode("utf-8"))
                 for k, v in req["headers"].items()
             ]
             if "headers" in req
