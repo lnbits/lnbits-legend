@@ -9,6 +9,7 @@ from loguru import logger
 
 from lnbits.settings import settings
 from lnbits.utils.gateway import HTTPInternalCall
+from lnbits.wallets.base import http_tunnel_client
 
 from ..services import (
     websocket_manager,
@@ -61,17 +62,18 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
         except WebSocketDisconnect as exc:
             logger.warning(exc)
 
-
     @routers.websocket("/api/v1/feeder")
     async def websocket_feeder(websocket: WebSocket):
         try:
             await websocket.accept()
 
-            while settings.lnbits_running:
-                req = await websocket.receive_text()
-
-                resp = await HTTPInternalCall(routers)(req)
-
+            async def _send_fn(resp):
                 await websocket.send_text(json.dumps(resp))
+
+            async def _receive_fn():
+                return await websocket.receive_text()
+
+            await http_tunnel_client.connect(_send_fn, _receive_fn)
+
         except WebSocketDisconnect as exc:
             logger.warning(exc)

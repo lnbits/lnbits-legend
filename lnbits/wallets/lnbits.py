@@ -49,7 +49,7 @@ class LNbitsWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            if not self.client.ws:
+            if not self.client.connected:
                 return StatusResponse(None, 333)
 
             r = await self.client.get(url="/api/v1/wallet", timeout=15)

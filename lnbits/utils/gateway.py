@@ -1,20 +1,41 @@
-import json
+from json import dumps
 from http import HTTPStatus
-from typing import Any, Mapping, Optional
+from typing import Any, Awaitable, Mapping, Optional
 from urllib.parse import urlencode
 
-from fastapi import HTTPException, WebSocket
+from fastapi import HTTPException
 from fastapi.routing import APIRouter
 from loguru import logger
+
+from lnbits.settings import settings
 
 
 class HTTPTunnelClient:
 
-    def __init__(self, websocket: Optional[WebSocket] = None):
-        self.ws = websocket
+    # todo: add typings
+    def __init__(
+        self,
+        send_fn: Optional[Awaitable] = None,
+        receive_fn: Optional[Awaitable] = None,
+    ):
+        self._send_fn = send_fn
+        self._receive_fn = receive_fn
 
-    def reconect_ws(self, websocket: WebSocket):
-        self.ws = websocket
+    async def connect(self, send_fn: Awaitable, receive_fn: Awaitable):
+        self._send_fn = send_fn
+        self._receive_fn = receive_fn
+
+        while settings.lnbits_running:
+            req = await self._receive_fn()
+            print("### req", req)
+
+    def disconnect(self):
+        self._send_fn = None
+        self._receive_fn = None
+
+    @property
+    def connected(self) -> bool:
+        return self._send_fn and self._receive_fn
 
     async def request(
         self,
@@ -28,11 +49,11 @@ class HTTPTunnelClient:
         timeout: Optional[int] = None,
     ) -> "HTTPTunnelResponse":
         try:
-            assert self.ws, "Websocket connection not established."
+            assert self.connected, "Tunnel connection not established."
             body = data
             if json:
-                body = json.dumps(json)
-            self.ws.send_json(
+                body = dumps(json)
+            await self._send_fn(
                 {
                     "request_id": "abc-123",
                     "method": method,
@@ -170,8 +191,7 @@ class HTTPTunnelClient:
         )
 
     async def aclose(self) -> None:
-        if self.ws:
-            self.ws.close()
+        print("### todo close fn")
 
 
 class HTTPTunnelResponse:
