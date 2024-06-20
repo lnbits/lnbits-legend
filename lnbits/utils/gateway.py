@@ -3,15 +3,15 @@ from http import HTTPStatus
 from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
-from fastapi import HTTPException
+from fastapi import HTTPException, WebSocket
 from fastapi.routing import APIRouter
 from loguru import logger
 
 
 class HTTPTunnelClient:
 
-    def __init__(self):
-        pass
+    def __init__(self, websocket: WebSocket):
+        self.ws = websocket
 
     async def request(
         self,
