@@ -16,6 +16,7 @@ from .base import (
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
+    http_tunnel_client,
 )
 
 
@@ -37,7 +38,8 @@ class LNbitsWallet(Wallet):
             )
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        # self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        self.client = http_tunnel_client
 
     async def cleanup(self):
         try:
@@ -47,6 +49,9 @@ class LNbitsWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
+            if not self.client.ws:
+                return StatusResponse(None, 333)
+
             r = await self.client.get(url="/api/v1/wallet", timeout=15)
             r.raise_for_status()
             data = r.json()

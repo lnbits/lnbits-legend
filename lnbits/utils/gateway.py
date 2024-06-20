@@ -10,7 +10,7 @@ from loguru import logger
 
 class HTTPTunnelClient:
 
-    def __init__(self, websocket: WebSocket):
+    def __init__(self, websocket: Optional[WebSocket] = None):
         self.ws = websocket
 
     def reconect_ws(self, websocket: WebSocket):
@@ -28,11 +28,13 @@ class HTTPTunnelClient:
         timeout: Optional[int] = None,
     ) -> "HTTPTunnelResponse":
         try:
+            assert self.ws, "Websocket connection not established."
             body = data
             if json:
                 body = json.dumps(json)
             self.ws.send_json(
                 {
+                    "request_id": "abc-123",
                     "method": method,
                     "url": url,
                     "body": body,
@@ -168,11 +170,13 @@ class HTTPTunnelClient:
         )
 
     async def aclose(self) -> None:
-        pass
+        if self.ws:
+            self.ws.close()
 
 
 class HTTPTunnelResponse:
 
+    # status code, detail
     def __init__(self):
         pass
 

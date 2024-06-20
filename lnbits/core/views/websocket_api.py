@@ -60,3 +60,18 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
                 await websocket.send_text(json.dumps(resp))
         except WebSocketDisconnect as exc:
             logger.warning(exc)
+
+
+    @routers.websocket("/api/v1/feeder")
+    async def websocket_feeder(websocket: WebSocket):
+        try:
+            await websocket.accept()
+
+            while settings.lnbits_running:
+                req = await websocket.receive_text()
+
+                resp = await HTTPInternalCall(routers)(req)
+
+                await websocket.send_text(json.dumps(resp))
+        except WebSocketDisconnect as exc:
+            logger.warning(exc)
