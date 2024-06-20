@@ -13,18 +13,35 @@ class HTTPTunnelClient:
     def __init__(self, websocket: WebSocket):
         self.ws = websocket
 
+    def reconect_ws(self, websocket: WebSocket):
+        self.ws = websocket
+
     async def request(
         self,
         method: str,
         url: str,
         *,
-        data: Optional[dict] = None,
+        data: Optional[str] = None,
         json: Optional[dict] = None,
         params: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
         timeout: Optional[int] = None,
     ) -> "HTTPTunnelResponse":
-        pass
+        try:
+            body = data
+            if json:
+                body = json.dumps(json)
+            self.ws.send_json(
+                {
+                    "method": method,
+                    "url": url,
+                    "body": body,
+                    "params": params,
+                    "headers": headers,
+                }
+            )
+        except Exception as exc:
+            logger.warning(exc)
 
     async def get(
         self,
