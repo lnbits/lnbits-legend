@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
+from urllib.parse import urlparse
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -25,6 +26,16 @@ class WalletConfig(BaseModel):
     reverse_funding_access: Optional[str] = ""
     reverse_funding_url: Optional[str] = None
     reverse_funding_secret: Optional[str] = None
+
+    def reverse_funding_ws_url(self):
+
+        try:
+            ws_url = f"{self.reverse_funding_url}/${self.reverse_funding_secret}"
+            result = urlparse(ws_url)
+            assert result.scheme in ["ws", "wss"]
+            return ws_url
+        except Exception as exc:
+            raise ValueError("Invalid websocket URL.") from exc
 
 
 class BaseWallet(BaseModel):

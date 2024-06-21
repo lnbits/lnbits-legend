@@ -9,16 +9,18 @@ from lnbits.core.crud import (
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
-from lnbits.core.models import Payment
+from lnbits.core.models import Payment, Wallet
 from lnbits.core.services import (
+    feed_reverse_funding_source,
     get_balance_delta,
     send_payment_notification,
     switch_to_voidwallet,
 )
 from lnbits.settings import get_funding_source, settings
-from lnbits.tasks import send_push_notification
+from lnbits.tasks import create_unique_task, send_push_notification
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
+reverse_funding_wallets: asyncio.Queue[Wallet] = asyncio.Queue()
 
 
 async def killswitch_task():
@@ -157,3 +159,37 @@ async def send_payment_push_notification(payment: Payment):
                 f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )
             await send_push_notification(subscription, title, body, url)
+
+
+async def register_reverse_funding_sources():
+    while settings.lnbits_running:
+        try:
+            print("### x")
+
+            wallet = await reverse_funding_wallets.get()
+
+            print("### resp", wallet)
+            # await feed_reverse_funding_source(wallet)
+
+            def _feed_reverse_funding_source(wallet):
+                print("### y")
+
+                async def _coro():
+                    print("### z")
+                    await feed_reverse_funding_source(wallet)
+
+                return _coro
+
+            coro = _feed_reverse_funding_source(wallet)
+            create_unique_task(
+                f"reverse_funding_wallet_{wallet.id}",
+                coro(),
+            )
+            print("### out")
+
+        except Exception as exc:
+            logger.warning(exc)
+            await asyncio.sleep(60)
+
+
+# get all active reverse wallets

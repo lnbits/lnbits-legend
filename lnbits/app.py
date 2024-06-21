@@ -24,6 +24,7 @@ from lnbits.core.crud import (
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
+    register_reverse_funding_sources,
     wait_for_paid_invoices,
 )
 from lnbits.core.views.websocket_api import enable_ws_tunnel_for_routers
@@ -426,6 +427,7 @@ def register_async_tasks():
     # TODO: implement watchdog properly
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
+    create_permanent_task(register_reverse_funding_sources)
 
     # server logs for websocket
     if settings.lnbits_admin_ui:

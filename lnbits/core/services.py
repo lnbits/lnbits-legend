@@ -14,6 +14,7 @@ from fastapi import Depends, WebSocket
 from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
+from websocket import WebSocketApp
 
 from lnbits.core.db import db
 from lnbits.db import Connection
@@ -816,3 +817,42 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
+
+
+async def feed_reverse_funding_source(w: Wallet):
+    print("### feed_reverse_funding_source", w)
+    if not w.reverse_funding_enabled:
+        return
+
+    def _on_open(_):
+        logger.info(f"[Wallet: {w.id}] Connected to {w.config.reverse_funding_url}.")
+
+    def _on_close(_, status_code, message):
+        logger.info(
+            f"[Wallet: {w.id}] Disconnected from {w.config.reverse_funding_url}."
+        )
+
+    def _on_message(_, message: str):
+        print("### _on_message", message)
+        logger.trace(
+            f"[Wallet: {w.id}] Received message from "
+            f"{w.config.reverse_funding_url}."
+        )
+
+    def _on_error(_, error):
+        logger.warning(
+            f"[Wallet: {w.id}] Error from {w.config.reverse_funding_url}. "
+            f"Error: '{error!s}'."
+        )
+
+    ws_client = WebSocketApp(
+        w.config.reverse_funding_ws_url(),
+        on_open=_on_open,
+        on_message=_on_message,
+        on_error=_on_error,
+        on_close=_on_close,
+    )
+
+    # ws_client.run_forever(ping_interval=3)
+
+    await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
