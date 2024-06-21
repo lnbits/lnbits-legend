@@ -10,6 +10,7 @@ from lnbits.core.models import (
     CreateWallet,
     KeyType,
     Wallet,
+    WalletConfig,
 )
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -54,9 +55,10 @@ async def api_update_wallet_name(
 async def api_update_wallet(
     name: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
+    config: Optional[WalletConfig] = Body(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    return await update_wallet(wallet.wallet.id, name, currency)
+    return await update_wallet(wallet.wallet.id, name, currency, config=config)
 
 
 @wallet_router.delete("")

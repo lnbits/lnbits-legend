@@ -270,8 +270,10 @@
                             size="sm"
                             style="min-width: 200px"
                             filled
+                            emit-value
+                            map-options
                             :options="reverseFundingOptions"
-                            v-model="reverseFundingConfig.access"
+                            v-model="update.config.reverse_funding_access"
                             class="col-auto"
                           ></q-select>
                         </div>
@@ -280,7 +282,7 @@
                       <div class="row q-mt-md">
                         <div class="col">
                           <q-input
-                            v-model="reverseFundingConfig.url"
+                            v-model="update.config.reverse_funding_url"
                             filled
                             label="Websocket Address"
                             placeholder="wss://myinstance.com"
@@ -292,7 +294,7 @@
                       <div class="row q-mt-md">
                         <div class="col">
                           <q-input
-                            v-model="reverseFundingConfig.secret"
+                            v-model="update.config.reverse_funding_secret"
                             filled
                             type="password"
                             label="Secret"
@@ -311,6 +313,7 @@
                             label="Test Connection"
                           ></q-btn>
                           <q-btn
+                            @click="updateWallet({ config: update.config })"
                             unelevated
                             class="float-right"
                             color="primary"

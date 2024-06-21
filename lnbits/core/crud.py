@@ -35,6 +35,7 @@ from .models import (
     User,
     UserConfig,
     Wallet,
+    WalletConfig,
     WebPushSubscription,
 )
 
@@ -348,7 +349,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         extensions=[
             e for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],
-        wallets=[Wallet(**w) for w in wallets],
+        wallets=[Wallet.from_row(w) for w in wallets],
         admin=user["id"] == settings.super_user
         or user["id"] in settings.lnbits_admin_users,
         super_user=user["id"] == settings.super_user,
@@ -584,6 +585,7 @@ async def update_wallet(
     wallet_id: str,
     name: Optional[str] = None,
     currency: Optional[str] = None,
+    config: Optional[WalletConfig] = None,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     set_clause = []
@@ -597,6 +599,11 @@ async def update_wallet(
     if currency is not None:
         set_clause.append("currency = ?")
         values.append(currency)
+    if config is not None:
+        set_clause.append("extra = ?")
+        values.append(json.dumps(dict(config)))
+        set_clause.append("reverse_funding_enabled = ?")
+        values.append(config.reverse_funding_access in ["inkey", "adminkey"])
     values.append(wallet_id)
     await (conn or db).execute(
         f"""
@@ -688,7 +695,7 @@ async def get_wallet(
         (wallet_id,),
     )
 
-    return Wallet(**row) if row else None
+    return Wallet.from_row(row) if row else None
 
 
 async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[Wallet]:
@@ -700,7 +707,7 @@ async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[W
         (user_id,),
     )
 
-    return [Wallet(**row) for row in rows]
+    return [Wallet.from_row(row) for row in rows]
 
 
 async def get_wallet_for_key(

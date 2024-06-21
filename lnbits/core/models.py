@@ -21,6 +21,12 @@ from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 
 
+class WalletConfig(BaseModel):
+    reverse_funding_access: Optional[str] = ""
+    reverse_funding_url: Optional[str] = None
+    reverse_funding_secret: Optional[str] = None
+
+
 class BaseWallet(BaseModel):
     id: str
     name: str
@@ -33,8 +39,10 @@ class Wallet(BaseWallet):
     user: str
     currency: Optional[str]
     deleted: bool
+    reverse_funding_enabled: bool
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
+    config: WalletConfig = WalletConfig()
 
     @property
     def balance(self) -> int:
@@ -66,6 +74,13 @@ class Wallet(BaseWallet):
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
+
+    @classmethod
+    def from_row(cls, row: Row):
+        wallet = cls(**dict(row))
+        if row["extra"]:
+            wallet.config = WalletConfig(**json.loads(row["extra"]))
+        return wallet
 
 
 class KeyType(Enum):

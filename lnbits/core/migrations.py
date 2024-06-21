@@ -515,8 +515,19 @@ async def m019_balances_view_based_on_wallets(db):
     )
 
 
-async def m020_add_column_column_to_user_extensions(db):
+async def m020_add_column_extra_to_user_extensions(db):
     """
     Adds extra column to user extensions.
     """
     await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")
+
+
+async def m021_add_column_extra_to_wallets(db):
+    """
+    Adds extra column to user extensions.
+    """
+    await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
+    await db.execute(
+        "ALTER TABLE wallets "
+        "ADD COLUMN reverse_funding_enabled BOOLEAN NOT NULL DEFAULT false"
+    )

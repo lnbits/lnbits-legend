@@ -58,15 +58,10 @@ new Vue({
         currency: null
       },
       reverseFundingOptions: [
-        {label: 'Disabled', value: 'none'},
+        {label: 'Disabled', value: ''},
         {label: 'Allow Receive Only', value: 'inkey'},
         {label: 'Allow Receive and Spend ', value: 'adminkey'}
-      ],
-      reverseFundingConfig: {
-        access: {label: 'Disabled', value: 'none'},
-        url: '',
-        secret: ''
-      }
+      ]
     }
   },
   computed: {
@@ -569,6 +564,7 @@ new Vue({
     }
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
+    this.update.config = this.g.wallet.config
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
   },
