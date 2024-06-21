@@ -61,6 +61,7 @@ def enable_ws_tunnel_for_routers(routers: APIRouter):
         except WebSocketDisconnect as exc:
             logger.warning(exc)
 
-    @routers.websocket("/api/v1/feeder")
-    async def websocket_feeder(websocket: WebSocket):
+    @routers.websocket("/api/v1/feeder/{secret}")
+    async def websocket_feeder(websocket: WebSocket, secret: str):
+        print("###  websocket_feeder secret", secret)
         await websocket_tunnel(websocket)
