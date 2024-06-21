@@ -56,9 +56,10 @@ class HTTPTunnelClient:
         headers: Optional[Mapping[str, str]] = None,
         timeout: Optional[int],
     ) -> "HTTPTunnelResponse":
+        request_id = uuid.uuid4().hex
         try:
             assert self.connected, "Tunnel connection not established."
-            request_id = uuid.uuid4().hex
+
             self._req_resp[request_id] = Queue()
             body = data
             if json:
