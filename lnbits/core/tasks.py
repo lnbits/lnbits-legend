@@ -92,6 +92,10 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
+        # reverse funding sources
+        active_reverse_wallet = reverse_funding_wallets.get(payment.wallet_id)
+        if active_reverse_wallet:
+            active_reverse_wallet.notify_payment(payment.payment_hash)
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
