@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
-from fastapi import Depends, WebSocket
+from fastapi import APIRouter, Depends, WebSocket
 from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
@@ -34,6 +34,7 @@ from lnbits.settings import (
     settings,
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
+from lnbits.utils.gateway import HTTPInternalCall
 from lnbits.wallets import fake_wallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import (
     PaymentPendingStatus,
@@ -819,6 +820,7 @@ async def get_balance_delta() -> BalanceDelta:
     )
 
 
+# async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
 async def feed_reverse_funding_source(w: Wallet):
     print("### feed_reverse_funding_source", w)
     if not w.reverse_funding_enabled:
@@ -832,12 +834,15 @@ async def feed_reverse_funding_source(w: Wallet):
             f"[Wallet: {w.id}] Disconnected from {w.config.reverse_funding_url}."
         )
 
-    def _on_message(_, message: str):
-        print("### _on_message", message)
+    def _on_message(_, req: str):
+        print("### _on_message req", req)
         logger.trace(
             f"[Wallet: {w.id}] Received message from "
             f"{w.config.reverse_funding_url}."
         )
+        # internal_call = HTTPInternalCall(routers)
+        # resp = asyncio.run(internal_call(req))
+        # print("### _on_message resp", resp)
 
     def _on_error(_, error):
         logger.warning(
@@ -856,3 +861,4 @@ async def feed_reverse_funding_source(w: Wallet):
     # ws_client.run_forever(ping_interval=3)
 
     await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
+    print("### feed_reverse_funding_source: done")
