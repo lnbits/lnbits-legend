@@ -39,7 +39,6 @@ class WalletConfig(BaseModel):
                 f"Invalid websocket URL: {self.reverse_funding_url}"
             ) from exc
 
-
 class BaseWallet(BaseModel):
     id: str
     name: str

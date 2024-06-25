@@ -61,7 +61,6 @@ class HTTPTunnelClient:
         try:
             assert self.connected, "Tunnel connection not established."
 
-
             body = data
             if json:
                 body = dumps(json)
@@ -279,9 +278,11 @@ class HTTPTunnelResponse:
 
 class HTTPInternalCall:
 
-    def __init__(self, routers: APIRouter):
-        self._request_id: Optional[str] = None
+    def __init__(self, routers: APIRouter, x_api_key: str):
         self._routers = routers
+        self._x_api_key = x_api_key
+
+        self._request_id: Optional[str] = None
         self._response: dict = {}
         self._body: Optional[str] = None
 
@@ -314,6 +315,9 @@ class HTTPInternalCall:
             ]
             if reqest.get("headers")
             else []
+        )
+        _req["headers"].append(
+            (b"x-api-key", self._x_api_key.encode("utf-8"))
         )
         _req["query_string"] = (
             urlencode(reqest["params"]) if reqest.get("params") else None
