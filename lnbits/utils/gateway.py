@@ -230,7 +230,7 @@ class HTTPTunnelClient:
         if request_id:
             await self._handle_request_id(resp, request_id)
         else:
-            self._handle_streaming(resp)
+            await self._handle_streaming(resp)
 
     async def _handle_request_id(self, resp, request_id):
         awaiting_req = self._req_resp.get(request_id)
@@ -239,9 +239,9 @@ class HTTPTunnelClient:
         else:
             logger.warning(f"Unknown request id: '{request_id}'. Possible timeout!")
 
-    def _handle_streaming(self, data: dict):
+    async def _handle_streaming(self, data: dict):
         print("### handle streaming here", data)
-        self._chunks.put(data)
+        await self._chunks.put(data)
 
 
 class HTTPTunnelResponse:
