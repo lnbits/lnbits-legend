@@ -28,7 +28,6 @@ class WalletConfig(BaseModel):
     reverse_funding_secret: Optional[str] = None
 
     def reverse_funding_ws_url(self):
-
         try:
             ws_url = f"{self.reverse_funding_url}/${self.reverse_funding_secret}"
             result = urlparse(ws_url)

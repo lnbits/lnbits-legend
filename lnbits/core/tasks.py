@@ -163,7 +163,47 @@ async def send_payment_push_notification(payment: Payment):
             await send_push_notification(subscription, title, body, url)
 
 
-def feed_reverse_funding_source(wallet: Wallet, routers: APIRouter):
+async def register_reverse_funding_sources(routers: APIRouter):
+    while settings.lnbits_running:
+        try:
+            wallet = await reverse_funding_wallets_ids.get()
+            wallet_api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
+
+            active_reverse_wallet = reverse_funding_wallets.get(wallet.id)
+            if active_reverse_wallet:
+                active_reverse_wallet.api_key = wallet_api_key
+
+                if not wallet.reverse_funding_enabled:
+                    active_reverse_wallet.disconnect()
+                    reverse_funding_wallets.__delitem__(wallet.id)
+                    continue
+
+                if (
+                    wallet.config.reverse_funding_ws_url
+                    != active_reverse_wallet.reverse_funding_ws_url
+                ):
+                    active_reverse_wallet.disconnect()
+                    reverse_funding_wallets.__delitem__(wallet.id)
+
+            if not wallet.reverse_funding_enabled:
+                continue
+
+            coro = _feed_reverse_funding_source(wallet, routers)
+            create_unique_task(
+                f"reverse_wallet_{wallet.id}",
+                coro(),
+            )
+            print("### out")
+
+        except Exception as exc:
+            logger.warning(exc)
+            await asyncio.sleep(60)
+
+
+# get all active reverse wallets
+
+
+def _feed_reverse_funding_source(wallet: Wallet, routers: APIRouter):
     print("### y")
 
     async def _coro():
@@ -176,39 +216,7 @@ def feed_reverse_funding_source(wallet: Wallet, routers: APIRouter):
             wallet.config.reverse_funding_ws_url(),
             routers,
         )
+        reverse_funding_wallets[wallet.id] = reverse_wallet
         await reverse_wallet()
 
     return _coro
-
-
-async def register_reverse_funding_sources(routers: APIRouter):
-    while settings.lnbits_running:
-        try:
-            wallet = await reverse_funding_wallets_ids.get()
-
-            active_reverse_wallet = reverse_funding_wallets.get(wallet.id)
-            if wallet.reverse_funding_enabled and active_reverse_wallet:
-                # check if different url
-                # update apy key, make public
-                active_reverse_wallet._api_key = getattr(
-                    wallet, wallet.config.reverse_funding_access, ""
-                )
-
-            if not wallet.reverse_funding_enabled and active_reverse_wallet:
-                active_reverse_wallet.disconnect()
-                reverse_funding_wallets.__delitem__(wallet.id)
-                continue
-
-            coro = feed_reverse_funding_source(wallet, routers)
-            create_unique_task(
-                f"reverse_funding_wallet_{wallet.id}",
-                coro(),
-            )
-            print("### out")
-
-        except Exception as exc:
-            logger.warning(exc)
-            await asyncio.sleep(60)
-
-
-# get all active reverse wallets

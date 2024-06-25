@@ -368,18 +368,22 @@ class HTTPInternalCall:
 class WebSocketReverseWallet:
 
     def __init__(
-        self, wallet_id: str, api_key: str, reverse_funding_url: str, routers: APIRouter
+        self,
+        wallet_id: str,
+        api_key: str,
+        reverse_funding_ws_url: str,
+        routers: APIRouter,
     ):
-        self._wallet_id = wallet_id
-        self._api_key = api_key
-        self._reverse_funding_url = reverse_funding_url
+        self.wallet_id = wallet_id
+        self.api_key = api_key
+        self.reverse_funding_ws_url = reverse_funding_ws_url
         self._routers = routers
         self._ws_client: Optional[WebSocketApp] = None
 
     async def __call__(self):
         try:
             self._ws_client = WebSocketApp(
-                self._reverse_funding_url,
+                self.reverse_funding_ws_url,
                 on_open=self._on_open,
                 on_message=self._on_message,
                 on_error=self._on_error,
@@ -387,34 +391,34 @@ class WebSocketReverseWallet:
             )
 
             await asyncio.to_thread(self._ws_client.run_forever, ping_interval=30)
-            logger.info(f"[Wallet: {self._wallet_id}] Closed connection.")
+            logger.info(f"[Wallet: {self.wallet_id}] Closed connection.")
         except Exception as exc:
             logger.warning(exc)
 
     def disconnect(self):
         if self._ws_client:
-            logger.info(f"[Wallet: {self._wallet_id}] Diconnectig...")
+            logger.info(f"[Wallet: {self.wallet_id}] Diconnectig...")
             self._ws_client.close()
 
     def _on_open(self, _):
-        logger.info(f"[Wallet: {self._wallet_id}] Connected.")
+        logger.info(f"[Wallet: {self.wallet_id}] Connected.")
 
     def _on_close(self, _, status_code, message):
         logger.info(
-            f"[Wallet: {self._wallet_id}] disconnected: {status_code}, {message}"
+            f"[Wallet: {self.wallet_id}] disconnected: {status_code}, {message}"
         )
 
     def _on_message(self, _ws: WebSocketApp, req: str):
         print("### _on_message _ws", _ws)
         print("### _on_message req", req)
 
-        internal_call = HTTPInternalCall(self._routers, self._api_key)
+        internal_call = HTTPInternalCall(self._routers, self.api_key)
         resp = asyncio.run(internal_call(req))
         _ws.send(dumps(resp))
         print("### _on_message resp", resp)
 
     def _on_error(self, _, error):
-        logger.warning(f"[Wallet: {self._wallet_id}] Error: '{error!s}'.")
+        logger.warning(f"[Wallet: {self.wallet_id}] Error: '{error!s}'.")
 
 
 # todo: extrct models?
