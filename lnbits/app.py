@@ -427,7 +427,8 @@ def register_async_tasks():
     # TODO: implement watchdog properly
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
-    create_permanent_task(register_reverse_funding_sources)
+    all_routers = init_core_routers()
+    create_permanent_task(lambda: register_reverse_funding_sources(all_routers))
 
     # server logs for websocket
     if settings.lnbits_admin_ui:

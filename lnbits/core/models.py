@@ -35,7 +35,9 @@ class WalletConfig(BaseModel):
             assert result.scheme in ["ws", "wss"]
             return ws_url
         except Exception as exc:
-            raise ValueError("Invalid websocket URL.") from exc
+            raise ValueError(
+                f"Invalid websocket URL: {self.reverse_funding_url}"
+            ) from exc
 
 
 class BaseWallet(BaseModel):

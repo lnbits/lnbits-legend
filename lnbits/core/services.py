@@ -820,8 +820,8 @@ async def get_balance_delta() -> BalanceDelta:
     )
 
 
-# async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
-async def feed_reverse_funding_source(w: Wallet):
+async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
+    # async def feed_reverse_funding_source(w: Wallet):
     print("### feed_reverse_funding_source", w)
     if not w.reverse_funding_enabled:
         return
@@ -834,15 +834,16 @@ async def feed_reverse_funding_source(w: Wallet):
             f"[Wallet: {w.id}] Disconnected from {w.config.reverse_funding_url}."
         )
 
-    def _on_message(_, req: str):
+    def _on_message(_ws, req: str):
+        print("### _on_message _ws", _ws)
         print("### _on_message req", req)
         logger.trace(
             f"[Wallet: {w.id}] Received message from "
             f"{w.config.reverse_funding_url}."
         )
-        # internal_call = HTTPInternalCall(routers)
-        # resp = asyncio.run(internal_call(req))
-        # print("### _on_message resp", resp)
+        internal_call = HTTPInternalCall(routers)
+        resp = asyncio.run(internal_call(req))
+        print("### _on_message resp", resp)
 
     def _on_error(_, error):
         logger.warning(
@@ -850,15 +851,18 @@ async def feed_reverse_funding_source(w: Wallet):
             f"Error: '{error!s}'."
         )
 
-    ws_client = WebSocketApp(
-        w.config.reverse_funding_ws_url(),
-        on_open=_on_open,
-        on_message=_on_message,
-        on_error=_on_error,
-        on_close=_on_close,
-    )
+    try:
+        ws_client = WebSocketApp(
+            w.config.reverse_funding_ws_url(),
+            on_open=_on_open,
+            on_message=_on_message,
+            on_error=_on_error,
+            on_close=_on_close,
+        )
 
-    # ws_client.run_forever(ping_interval=3)
+        # ws_client.run_forever(ping_interval=3)
 
-    await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
-    print("### feed_reverse_funding_source: done")
+        await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
+        print("### feed_reverse_funding_source: done")
+    except Exception as exc:
+        logger.warning(exc)

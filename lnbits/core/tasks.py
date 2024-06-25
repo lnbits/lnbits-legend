@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict
 
 import httpx
+from fastapi.routing import APIRouter
 from loguru import logger
 
 from lnbits.core.crud import (
@@ -161,22 +162,21 @@ async def send_payment_push_notification(payment: Payment):
             await send_push_notification(subscription, title, body, url)
 
 
-async def register_reverse_funding_sources():
+async def register_reverse_funding_sources(routers: APIRouter):
     while settings.lnbits_running:
         try:
-            print("### x")
+            print("### x", routers)
 
             wallet = await reverse_funding_wallets.get()
 
             print("### resp", wallet)
-            # await feed_reverse_funding_source(wallet)
 
             def _feed_reverse_funding_source(wallet):
                 print("### y")
 
                 async def _coro():
                     print("### z")
-                    await feed_reverse_funding_source(wallet)
+                    await feed_reverse_funding_source(wallet, routers)
 
                 return _coro
 

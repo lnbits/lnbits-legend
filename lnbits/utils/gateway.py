@@ -303,7 +303,7 @@ class HTTPInternalCall:
                 (k and k.encode("utf-8"), v and v.encode("utf-8"))
                 for k, v in reqest["headers"].items()
             ]
-            if "headers" in reqest
+            if reqest.get("headers")
             else None
         )
         _req["query_string"] = (
