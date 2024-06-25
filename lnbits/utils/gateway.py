@@ -304,13 +304,16 @@ class HTTPInternalCall:
                 for k, v in reqest["headers"].items()
             ]
             if reqest.get("headers")
-            else None
+            else []
         )
         _req["query_string"] = (
-            urlencode(reqest["params"]) if "params" in reqest else None
+            urlencode(reqest["params"]) if reqest.get("params") else None
         )
 
-        self._body = reqest["body"] if "body" in reqest else None
+        # todo: normalize if domaine present
+        _req["path"] = reqest["url"] if reqest.get("url") else None
+
+        self._body = reqest["body"] if reqest.get("body") else None
 
         return {**reqest, **_req}
 

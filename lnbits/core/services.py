@@ -834,7 +834,7 @@ async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
             f"[Wallet: {w.id}] Disconnected from {w.config.reverse_funding_url}."
         )
 
-    def _on_message(_ws, req: str):
+    def _on_message(_ws: WebSocketApp, req: str):
         print("### _on_message _ws", _ws)
         print("### _on_message req", req)
         logger.trace(
@@ -843,6 +843,7 @@ async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
         )
         internal_call = HTTPInternalCall(routers)
         resp = asyncio.run(internal_call(req))
+        _ws.send(json.dumps(resp))
         print("### _on_message resp", resp)
 
     def _on_error(_, error):
