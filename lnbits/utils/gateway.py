@@ -251,7 +251,7 @@ class HTTPTunnelResponse:
 
     @property
     def is_success(self) -> bool:
-        status = self._resp.get("status", 500)
+        status = int(self._resp.get("status", 500))
         return 200 <= status <= 299
 
     @property
@@ -266,6 +266,7 @@ class HTTPTunnelResponse:
                 "Cannot call `raise_for_status` as the response "
                 "instance has not been set on this response."
             )
+        print("### self.is_success", self.is_success, self._resp)
         if self.is_success:
             return self
 
