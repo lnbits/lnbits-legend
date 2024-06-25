@@ -37,7 +37,7 @@ class HTTPTunnelClient:
 
         while settings.lnbits_running and self.connected:
             resp = await self._receive_fn()
-            print("### resp", resp)
+            print("### receive resp", resp)
 
             await self._handle_response(resp)
 
@@ -77,7 +77,7 @@ class HTTPTunnelClient:
             resp = await asyncio.wait_for(
                 self._req_resp[request_id].get(), timeout or 30
             )
-            print("### resp", resp)
+            print("### req-resp", resp)
 
             del self._req_resp[request_id]
         except TimeoutError as exc:
@@ -292,10 +292,18 @@ class HTTPInternalCall:
             await self._routers(scope, self._receive, self._send)
             return self._normalize_response(self._response)
         except HTTPException as exc:
-            return {"status": int(exc.status_code), "detail": exc.detail}
+            return {
+                "request_id": self._request_id,
+                "status": int(exc.status_code),
+                "detail": exc.detail,
+            }
         except Exception as exc:
             logger.warning(exc)
-            return {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(exc)}
+            return {
+                "request_id": self._request_id,
+                "status": int(HTTPStatus.INTERNAL_SERVER_ERROR),
+                "detail": str(exc),
+            }
 
     def _normalize_request(self, reqest: dict) -> dict:
         _req = {"type": "http"}
