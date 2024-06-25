@@ -841,6 +841,7 @@ async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
             f"[Wallet: {w.id}] Received message from "
             f"{w.config.reverse_funding_url}."
         )
+
         internal_call = HTTPInternalCall(routers)
         resp = asyncio.run(internal_call(req))
         _ws.send(json.dumps(resp))

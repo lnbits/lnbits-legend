@@ -280,6 +280,7 @@ class HTTPTunnelResponse:
 class HTTPInternalCall:
 
     def __init__(self, routers: APIRouter):
+        self._request_id: Optional[str] = None
         self._routers = routers
         self._response: dict = {}
         self._body: Optional[str] = None
@@ -314,11 +315,15 @@ class HTTPInternalCall:
         _req["path"] = reqest["url"] if reqest.get("url") else None
 
         self._body = reqest["body"] if reqest.get("body") else None
+        self._request_id = reqest.get("request_id")
 
         return {**reqest, **_req}
 
     def _normalize_response(self, response: dict) -> dict:
-        _resp = {"status": response.get("status", int(HTTPStatus.BAD_GATEWAY))}
+        _resp = {
+            "request_id": self._request_id,
+            "status": response.get("status", int(HTTPStatus.BAD_GATEWAY)),
+        }
         if response.get("headers"):
             _resp["headers"] = {}
             for header in response["headers"]:
