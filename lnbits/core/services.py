@@ -10,11 +10,10 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
-from fastapi import APIRouter, Depends, WebSocket
+from fastapi import Depends, WebSocket
 from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
-from websocket import WebSocketApp
 
 from lnbits.core.db import db
 from lnbits.db import Connection
@@ -34,7 +33,6 @@ from lnbits.settings import (
     settings,
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
-from lnbits.utils.gateway import HTTPInternalCall
 from lnbits.wallets import fake_wallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import (
     PaymentPendingStatus,
@@ -818,58 +816,3 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
-
-
-class XXX:
-
-    def __init__(self, wallet: Wallet, routers: APIRouter):
-        self._w = wallet
-        self._routers = routers
-
-    def _on_open(self, _):
-        logger.info(
-            f"[Wallet: {self._w.id}] Connected to {self._w.config.reverse_funding_url}."
-        )
-
-    def _on_close(self, _, status_code, message):
-        logger.info(
-            f"[Wallet: {self._w.id}] Disconnected from "
-            f"{self._w.config.reverse_funding_url}."
-        )
-
-    def _on_message(self, _ws: WebSocketApp, req: str):
-        print("### _on_message _ws", _ws)
-        print("### _on_message req", req)
-        logger.trace(
-            f"[Wallet: {self._w.id}] Received message from "
-            f"{self._w.config.reverse_funding_url}."
-        )
-
-        internal_call = HTTPInternalCall(self._routers, self._reverse_x_api_key())
-        resp = asyncio.run(internal_call(req))
-        _ws.send(json.dumps(resp))
-        print("### _on_message resp", resp)
-
-    def _on_error(self, _, error):
-        logger.warning(
-            f"[Wallet: {self._w.id}] Error from {self._w.config.reverse_funding_url}. "
-            f"Error: '{error!s}'."
-        )
-
-    def _reverse_x_api_key(self):
-        return getattr(self._w, self._w.config.reverse_funding_access, "")
-
-    async def __call__(self):
-        try:
-            ws_client = WebSocketApp(
-                self._w.config.reverse_funding_ws_url(),
-                on_open=self._on_open,
-                on_message=self._on_message,
-                on_error=self._on_error,
-                on_close=self._on_close,
-            )
-
-            await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
-            print("### feed_reverse_funding_source: done")
-        except Exception as exc:
-            logger.warning(exc)

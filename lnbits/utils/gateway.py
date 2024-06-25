@@ -10,6 +10,7 @@ import httpx
 from fastapi import HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.routing import APIRouter
 from loguru import logger
+from websocket import WebSocketApp
 
 from lnbits.settings import settings
 
@@ -362,6 +363,58 @@ class HTTPInternalCall:
     async def _send(self, message):
         self._response = {**self._response, **message}
         return message
+
+
+class WebSocketReverseWallet:
+
+    def __init__(
+        self, wallet_id: str, api_key: str, reverse_funding_url: str, routers: APIRouter
+    ):
+        self._wallet_id = wallet_id
+        self._api_key = api_key
+        self._reverse_funding_url = reverse_funding_url
+        self._routers = routers
+
+    def _on_open(self, _):
+        logger.info(
+            f"[Wallet: {self._wallet_id}] Connected to {self._reverse_funding_url}."
+        )
+
+    def _on_close(self, _, status_code, message):
+        logger.info(
+            f"[Wallet: {self._wallet_id}] disconnected: {status_code}, {message}"
+        )
+
+    def _on_message(self, _ws: WebSocketApp, req: str):
+        print("### _on_message _ws", _ws)
+        print("### _on_message req", req)
+        logger.trace(
+            f"[Wallet: {self._wallet_id}] Received message from "
+            f"{self._reverse_funding_url}."
+        )
+
+        internal_call = HTTPInternalCall(self._routers, self._api_key)
+        resp = asyncio.run(internal_call(req))
+        _ws.send(dumps(resp))
+        print("### _on_message resp", resp)
+
+    def _on_error(self, _, error):
+        logger.warning(f"[Wallet: {self._wallet_id}] Error: '{error!s}'.")
+
+    async def __call__(self):
+        try:
+            ws_client = WebSocketApp(
+                self._reverse_funding_url,
+                on_open=self._on_open,
+                on_message=self._on_message,
+                on_error=self._on_error,
+                on_close=self._on_close,
+            )
+
+            await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
+            print("### feed_reverse_funding_source: done")
+        except Exception as exc:
+            logger.warning(exc)
 
 
 # todo: extrct models?

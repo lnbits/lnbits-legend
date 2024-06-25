@@ -12,13 +12,13 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Payment, Wallet
 from lnbits.core.services import (
-    XXX,
     get_balance_delta,
     send_payment_notification,
     switch_to_voidwallet,
 )
 from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import create_unique_task, send_push_notification
+from lnbits.utils.gateway import WebSocketReverseWallet
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
 reverse_funding_wallets: asyncio.Queue[Wallet] = asyncio.Queue()
@@ -174,13 +174,20 @@ async def register_reverse_funding_sources(routers: APIRouter):
             if not wallet.reverse_funding_enabled:
                 print("### clean-up")
 
-            def _feed_reverse_funding_source(wallet):
+            def _feed_reverse_funding_source(wallet: Wallet):
                 print("### y")
 
                 async def _coro():
                     print("### z")
-                    xxx = XXX(wallet, routers)
-                    await xxx()
+                    api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
+
+                    reverse_wallet = WebSocketReverseWallet(
+                        wallet.id,
+                        api_key,
+                        wallet.config.reverse_funding_ws_url(),
+                        routers,
+                    )
+                    await reverse_wallet()
 
                 return _coro
 
