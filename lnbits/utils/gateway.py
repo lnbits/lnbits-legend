@@ -401,7 +401,7 @@ class WebSocketReverseWallet:
             self._ws_client.close()
 
     def _on_open(self, _):
-        logger.info(f"[Wallet: {self.wallet_id}] Connected.")
+        logger.info(f"[Wallet: {self.wallet_id}] Connected as reverse funding source.")
 
     def _on_close(self, _, status_code, message):
         logger.info(

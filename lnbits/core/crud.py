@@ -710,6 +710,18 @@ async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[W
     return [Wallet.from_row(row) for row in rows]
 
 
+async def get_reverse_wallets(conn: Optional[Connection] = None) -> List[Wallet]:
+    rows = await (conn or db).fetchall(
+        """
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE reverse_funding_enabled = true
+        """,
+        (),
+    )
+
+    return [Wallet.from_row(row) for row in rows]
+
+
 async def get_wallet_for_key(
     key: str,
     conn: Optional[Connection] = None,

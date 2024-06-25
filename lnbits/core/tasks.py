@@ -6,6 +6,7 @@ from fastapi.routing import APIRouter
 from loguru import logger
 
 from lnbits.core.crud import (
+    get_reverse_wallets,
     get_wallet,
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
@@ -164,6 +165,9 @@ async def send_payment_push_notification(payment: Payment):
 
 
 async def register_reverse_funding_sources(routers: APIRouter):
+    for w in await get_reverse_wallets():
+        await reverse_funding_wallets_ids.put(w)
+
     while settings.lnbits_running:
         try:
             wallet = await reverse_funding_wallets_ids.get()
