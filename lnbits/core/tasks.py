@@ -21,7 +21,8 @@ from lnbits.tasks import create_unique_task, send_push_notification
 from lnbits.utils.gateway import WebSocketReverseWallet
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
-reverse_funding_wallets: asyncio.Queue[Wallet] = asyncio.Queue()
+reverse_funding_wallets_ids: asyncio.Queue[Wallet] = asyncio.Queue()
+reverse_funding_wallets: Dict[str, WebSocketReverseWallet] = {}
 
 
 async def killswitch_task():
@@ -162,36 +163,43 @@ async def send_payment_push_notification(payment: Payment):
             await send_push_notification(subscription, title, body, url)
 
 
+def feed_reverse_funding_source(wallet: Wallet, routers: APIRouter):
+    print("### y")
+
+    async def _coro():
+        print("### z")
+        api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
+
+        reverse_wallet = WebSocketReverseWallet(
+            wallet.id,
+            api_key,
+            wallet.config.reverse_funding_ws_url(),
+            routers,
+        )
+        await reverse_wallet()
+
+    return _coro
+
+
 async def register_reverse_funding_sources(routers: APIRouter):
     while settings.lnbits_running:
         try:
-            print("### x", routers)
+            wallet = await reverse_funding_wallets_ids.get()
 
-            wallet = await reverse_funding_wallets.get()
+            active_reverse_wallet = reverse_funding_wallets.get(wallet.id)
+            if wallet.reverse_funding_enabled and active_reverse_wallet:
+                # check if different url
+                # update apy key, make public
+                active_reverse_wallet._api_key = getattr(
+                    wallet, wallet.config.reverse_funding_access, ""
+                )
 
-            print("### resp", wallet)
+            if not wallet.reverse_funding_enabled and active_reverse_wallet:
+                active_reverse_wallet.disconnect()
+                reverse_funding_wallets.__delitem__(wallet.id)
+                continue
 
-            if not wallet.reverse_funding_enabled:
-                print("### clean-up")
-
-            def _feed_reverse_funding_source(wallet: Wallet):
-                print("### y")
-
-                async def _coro():
-                    print("### z")
-                    api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
-
-                    reverse_wallet = WebSocketReverseWallet(
-                        wallet.id,
-                        api_key,
-                        wallet.config.reverse_funding_ws_url(),
-                        routers,
-                    )
-                    await reverse_wallet()
-
-                return _coro
-
-            coro = _feed_reverse_funding_source(wallet)
+            coro = feed_reverse_funding_source(wallet, routers)
             create_unique_task(
                 f"reverse_funding_wallet_{wallet.id}",
                 coro(),

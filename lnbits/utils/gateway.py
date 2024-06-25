@@ -374,11 +374,30 @@ class WebSocketReverseWallet:
         self._api_key = api_key
         self._reverse_funding_url = reverse_funding_url
         self._routers = routers
+        self._ws_client: Optional[WebSocketApp] = None
+
+    async def __call__(self):
+        try:
+            self._ws_client = WebSocketApp(
+                self._reverse_funding_url,
+                on_open=self._on_open,
+                on_message=self._on_message,
+                on_error=self._on_error,
+                on_close=self._on_close,
+            )
+
+            await asyncio.to_thread(self._ws_client.run_forever, ping_interval=30)
+            logger.info(f"[Wallet: {self._wallet_id}] Closed connection.")
+        except Exception as exc:
+            logger.warning(exc)
+
+    def disconnect(self):
+        if self._ws_client:
+            logger.info(f"[Wallet: {self._wallet_id}] Diconnectig...")
+            self._ws_client.close()
 
     def _on_open(self, _):
-        logger.info(
-            f"[Wallet: {self._wallet_id}] Connected to {self._reverse_funding_url}."
-        )
+        logger.info(f"[Wallet: {self._wallet_id}] Connected.")
 
     def _on_close(self, _, status_code, message):
         logger.info(
@@ -388,10 +407,6 @@ class WebSocketReverseWallet:
     def _on_message(self, _ws: WebSocketApp, req: str):
         print("### _on_message _ws", _ws)
         print("### _on_message req", req)
-        logger.trace(
-            f"[Wallet: {self._wallet_id}] Received message from "
-            f"{self._reverse_funding_url}."
-        )
 
         internal_call = HTTPInternalCall(self._routers, self._api_key)
         resp = asyncio.run(internal_call(req))
@@ -400,21 +415,6 @@ class WebSocketReverseWallet:
 
     def _on_error(self, _, error):
         logger.warning(f"[Wallet: {self._wallet_id}] Error: '{error!s}'.")
-
-    async def __call__(self):
-        try:
-            ws_client = WebSocketApp(
-                self._reverse_funding_url,
-                on_open=self._on_open,
-                on_message=self._on_message,
-                on_error=self._on_error,
-                on_close=self._on_close,
-            )
-
-            await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
-            print("### feed_reverse_funding_source: done")
-        except Exception as exc:
-            logger.warning(exc)
 
 
 # todo: extrct models?

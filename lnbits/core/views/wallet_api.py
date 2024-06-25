@@ -12,7 +12,7 @@ from lnbits.core.models import (
     Wallet,
     WalletConfig,
 )
-from lnbits.core.tasks import reverse_funding_wallets
+from lnbits.core.tasks import reverse_funding_wallets_ids
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
@@ -60,11 +60,7 @@ async def api_update_wallet(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     wallet = await update_wallet(wallet.wallet.id, name, currency, config=config)
-
-    if wallet.reverse_funding_enabled:
-        await reverse_funding_wallets.put(wallet)
-        print("#### reverse_funding_enabled")
-
+    await reverse_funding_wallets_ids.put(wallet)
     return wallet
 
 
