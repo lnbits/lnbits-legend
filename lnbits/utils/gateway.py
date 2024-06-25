@@ -57,10 +57,11 @@ class HTTPTunnelClient:
         timeout: Optional[int],
     ) -> "HTTPTunnelResponse":
         request_id = uuid.uuid4().hex
+        self._req_resp[request_id] = Queue()
         try:
             assert self.connected, "Tunnel connection not established."
 
-            self._req_resp[request_id] = Queue()
+
             body = data
             if json:
                 body = dumps(json)
@@ -77,9 +78,7 @@ class HTTPTunnelClient:
             resp = await asyncio.wait_for(
                 self._req_resp[request_id].get(), timeout or 30
             )
-            print("### req-resp", resp)
-
-            del self._req_resp[request_id]
+            return HTTPTunnelResponse(resp)
         except TimeoutError as exc:
             logger.warning(exc)
             return HTTPTunnelResponse({"status": int(HTTPStatus.REQUEST_TIMEOUT)})
@@ -89,7 +88,7 @@ class HTTPTunnelClient:
                 {"status": int(HTTPStatus.INTERNAL_SERVER_ERROR), "detail": str(exc)}
             )
         finally:
-            del self._req_resp[request_id]
+            self._req_resp.__delitem__(request_id)
 
     async def get(
         self,
@@ -271,7 +270,7 @@ class HTTPTunnelResponse:
             return self
 
         # todo add request, test flow
-        raise httpx.HTTPStatusError(self.text, request=None, response=self)
+        raise httpx.HTTPStatusError(self._resp, request=None, response=self)
 
     def json(self, **kwargs: Any) -> Any:
         body = self.text
