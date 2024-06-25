@@ -316,9 +316,7 @@ class HTTPInternalCall:
             if reqest.get("headers")
             else []
         )
-        _req["headers"].append(
-            (b"x-api-key", self._x_api_key.encode("utf-8"))
-        )
+        _req["headers"].append((b"x-api-key", self._x_api_key.encode("utf-8")))
         _req["query_string"] = (
             urlencode(reqest["params"]) if reqest.get("params") else None
         )

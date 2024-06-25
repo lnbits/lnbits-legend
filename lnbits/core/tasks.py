@@ -12,7 +12,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Payment, Wallet
 from lnbits.core.services import (
-    feed_reverse_funding_source,
+    XXX,
     get_balance_delta,
     send_payment_notification,
     switch_to_voidwallet,
@@ -171,12 +171,16 @@ async def register_reverse_funding_sources(routers: APIRouter):
 
             print("### resp", wallet)
 
+            if not wallet.reverse_funding_enabled:
+                print("### clean-up")
+
             def _feed_reverse_funding_source(wallet):
                 print("### y")
 
                 async def _coro():
                     print("### z")
-                    await feed_reverse_funding_source(wallet, routers)
+                    xxx = XXX(wallet, routers)
+                    await xxx()
 
                 return _coro
 

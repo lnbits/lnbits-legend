@@ -820,52 +820,56 @@ async def get_balance_delta() -> BalanceDelta:
     )
 
 
-async def feed_reverse_funding_source(w: Wallet, routers: APIRouter):
-    # async def feed_reverse_funding_source(w: Wallet):
-    print("### feed_reverse_funding_source", w)
-    if not w.reverse_funding_enabled:
-        return
+class XXX:
 
-    def _on_open(_):
-        logger.info(f"[Wallet: {w.id}] Connected to {w.config.reverse_funding_url}.")
+    def __init__(self, wallet: Wallet, routers: APIRouter):
+        self._w = wallet
+        self._routers = routers
 
-    def _on_close(_, status_code, message):
+    def _on_open(self, _):
         logger.info(
-            f"[Wallet: {w.id}] Disconnected from {w.config.reverse_funding_url}."
+            f"[Wallet: {self._w.id}] Connected to {self._w.config.reverse_funding_url}."
         )
 
-    def _on_message(_ws: WebSocketApp, req: str):
+    def _on_close(self, _, status_code, message):
+        logger.info(
+            f"[Wallet: {self._w.id}] Disconnected from "
+            f"{self._w.config.reverse_funding_url}."
+        )
+
+    def _on_message(self, _ws: WebSocketApp, req: str):
         print("### _on_message _ws", _ws)
         print("### _on_message req", req)
         logger.trace(
-            f"[Wallet: {w.id}] Received message from "
-            f"{w.config.reverse_funding_url}."
+            f"[Wallet: {self._w.id}] Received message from "
+            f"{self._w.config.reverse_funding_url}."
         )
 
-        reverse_x_api_key = getattr(w, w.config.reverse_funding_access, "")
-        internal_call = HTTPInternalCall(routers, reverse_x_api_key)
+        internal_call = HTTPInternalCall(self._routers, self._reverse_x_api_key())
         resp = asyncio.run(internal_call(req))
         _ws.send(json.dumps(resp))
         print("### _on_message resp", resp)
 
-    def _on_error(_, error):
+    def _on_error(self, _, error):
         logger.warning(
-            f"[Wallet: {w.id}] Error from {w.config.reverse_funding_url}. "
+            f"[Wallet: {self._w.id}] Error from {self._w.config.reverse_funding_url}. "
             f"Error: '{error!s}'."
         )
 
-    try:
-        ws_client = WebSocketApp(
-            w.config.reverse_funding_ws_url(),
-            on_open=_on_open,
-            on_message=_on_message,
-            on_error=_on_error,
-            on_close=_on_close,
-        )
+    def _reverse_x_api_key(self):
+        return getattr(self._w, self._w.config.reverse_funding_access, "")
 
-        # ws_client.run_forever(ping_interval=3)
+    async def __call__(self):
+        try:
+            ws_client = WebSocketApp(
+                self._w.config.reverse_funding_ws_url(),
+                on_open=self._on_open,
+                on_message=self._on_message,
+                on_error=self._on_error,
+                on_close=self._on_close,
+            )
 
-        await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
-        print("### feed_reverse_funding_source: done")
-    except Exception as exc:
-        logger.warning(exc)
+            await asyncio.to_thread(ws_client.run_forever, ping_interval=30)
+            print("### feed_reverse_funding_source: done")
+        except Exception as exc:
+            logger.warning(exc)
