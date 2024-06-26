@@ -5,7 +5,7 @@ from fastapi import (
 )
 
 from lnbits.settings import settings
-from lnbits.utils.gateway import websocket_tunnel
+from lnbits.utils.gateway import HTTPTunnelClient, websocket_tunnel
 
 from ..services import (
     websocket_manager,
@@ -43,8 +43,9 @@ async def websocket_update_get(item_id: str, data: str):
         return {"sent": False, "data": data}
 
 
-def enable_ws_tunnel_for_routers(routers: APIRouter):
+def enable_ws_tunnel_for_routers(
+    routers: APIRouter, http_tunnel_client: HTTPTunnelClient
+):
     @routers.websocket("/api/v1/feeder/{secret}")
     async def websocket_feeder(websocket: WebSocket, secret: str):
-        print("###  websocket_feeder secret", secret)
-        await websocket_tunnel(websocket)
+        await websocket_tunnel(websocket, http_tunnel_client)

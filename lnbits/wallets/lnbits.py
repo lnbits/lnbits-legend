@@ -6,7 +6,6 @@ import httpx
 from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.utils.gateway import http_tunnel_client
 
 from .base import (
     InvoiceResponse,
@@ -17,6 +16,7 @@ from .base import (
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
+    http_tunnel_client,
 )
 
 

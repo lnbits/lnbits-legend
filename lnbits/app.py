@@ -42,6 +42,7 @@ from lnbits.utils.logger import (
     log_server_info,
 )
 from lnbits.wallets import get_funding_source, set_funding_source
+from lnbits.wallets.base import http_tunnel_client
 
 from .commands import migrate_databases
 from .core import init_core_routers
@@ -96,7 +97,7 @@ async def startup(app: FastAPI):
     all_routers = init_core_routers()
     if settings.lnbits_ws_tunnel_enabled:
         # todo: filter by tag
-        enable_ws_tunnel_for_routers(all_routers)
+        enable_ws_tunnel_for_routers(all_routers, http_tunnel_client)
     app.include_router(all_routers)
 
     # check extensions after restart

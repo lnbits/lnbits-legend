@@ -175,9 +175,7 @@ async def register_reverse_funding_sources(routers: APIRouter):
     while settings.lnbits_running:
         try:
             wallet = await reverse_funding_wallets_ids.get()
-            wallet_api_key = getattr(
-                wallet, wallet.config.reverse_funding_access or "", ""
-            )
+            wallet_api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
 
             active_reverse_wallet = reverse_funding_wallets.get(wallet.id)
             if active_reverse_wallet:
@@ -203,21 +201,13 @@ async def register_reverse_funding_sources(routers: APIRouter):
                 f"reverse_wallet_{wallet.id}",
                 coro(),
             )
-            print("### out")
-
         except Exception as exc:
             logger.warning(exc)
             await asyncio.sleep(60)
 
 
-# get all active reverse wallets
-
-
 def _feed_reverse_funding_source(wallet: Wallet, routers: APIRouter):
-    print("### y")
-
     async def _coro():
-        print("### z")
         api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
 
         reverse_wallet = WebSocketReverseWallet(

@@ -40,8 +40,6 @@ class HTTPTunnelClient:
 
         while settings.lnbits_running and self.connected:
             resp = await self._receive_fn()
-            print("### receive resp", resp)
-
             await self._handle_response(resp)
 
     def disconnect(self):
@@ -250,7 +248,6 @@ class HTTPTunnelClient:
             logger.warning(f"Unknown request id: '{request_id}'. Possible timeout!")
 
     async def _handle_streaming(self, data: dict):
-        print("### handle streaming here", data)
         await self._chunks.put(data)
 
 
@@ -288,7 +285,6 @@ class HTTPTunnelResponse:
                 "Cannot call `raise_for_status` as the response "
                 "instance has not been set on this response."
             )
-        print("### self.is_success", self.is_success, self._resp)
         if self.is_success:
             return self
 
@@ -345,25 +341,26 @@ class HTTPInternalCall:
                 "detail": str(exc),
             }
 
-    def _normalize_request(self, reqest: dict) -> dict:
+    def _normalize_request(self, req: dict) -> dict:
         headers: list[tuple[Any, Any]] = [
             (b"x-api-key", self._x_api_key.encode("utf-8"))
         ]
-        if reqest.get("headers"):
+        if req.get("headers"):
             headers += [
                 (k and k.encode("utf-8"), v and v.encode("utf-8"))
-                for k, v in reqest["headers"].items()
+                for k, v in req["headers"].items()
             ]
 
-        query_string = urlencode(reqest["params"]) if reqest.get("params") else None
+        query_string = urlencode(req["params"]) if req.get("params") else None
 
         # todo: normalize if domaine present
-        path = reqest["url"] if reqest.get("url") else None
+        path = req["url"] if req.get("url") else None
 
-        self._body = reqest["body"] if reqest.get("body") else None
-        self._request_id = reqest.get("request_id")
+        self._body = req["body"] if req.get("body") else None
+        self._request_id = req.get("request_id")
 
         return {
+            **req,
             "type": "http",
             "path": path,
             "query_string": query_string,
@@ -441,7 +438,6 @@ class WebSocketReverseWallet:
             self._ws_client.close()
 
     def notify_payment(self, payment_hash: str):
-        print("### notify_payment", payment_hash)
         if self._ws_client:
             self._ws_client.send(dumps({"payment_hash": payment_hash}))
 
@@ -454,23 +450,15 @@ class WebSocketReverseWallet:
         )
 
     def _on_message(self, _ws: WebSocketApp, req: str):
-        print("### _on_message _ws", _ws)
-        print("### _on_message req", req)
-
         internal_call = HTTPInternalCall(self._routers, self.api_key)
         resp = asyncio.run(internal_call(req))
         _ws.send(dumps(resp))
-        print("### _on_message resp", resp)
 
     def _on_error(self, _, error):
         logger.warning(f"[Wallet: {self.wallet_id}] Error: '{error!s}'.")
 
 
-# todo: extrct models?
-http_tunnel_client = HTTPTunnelClient()
-
-
-async def websocket_tunnel(websocket: WebSocket):
+async def websocket_tunnel(websocket: WebSocket, http_tunnel_client: HTTPTunnelClient):
     try:
         await websocket.accept()
 

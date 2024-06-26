@@ -5,6 +5,7 @@ from typing import Optional
 
 from lnbits.nodes import set_node_class
 from lnbits.settings import settings
+from lnbits.utils.gateway import HTTPTunnelClient
 from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
@@ -44,6 +45,7 @@ def get_funding_source() -> Wallet:
 
 wallets_module = importlib.import_module("lnbits.wallets")
 fake_wallet = FakeWallet()
+
 
 # initialize as fake wallet
 funding_source: Wallet = fake_wallet
