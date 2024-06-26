@@ -16,7 +16,6 @@ from .base import (
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
-    http_tunnel_client,
 )
 
 
@@ -38,8 +37,7 @@ class LNbitsWallet(Wallet):
             )
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
-        # self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
-        self.client = http_tunnel_client
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
     async def cleanup(self):
         try:
@@ -49,9 +47,6 @@ class LNbitsWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            if not self.client.connected:
-                return StatusResponse(None, 333)
-
             r = await self.client.get(url="/api/v1/wallet", timeout=15)
             r.raise_for_status()
             data = r.json()
@@ -205,14 +200,32 @@ class LNbitsWallet(Wallet):
 
         while settings.lnbits_running:
             try:
-                async with self.client.stream("GET", url) as r:
-                    async for value in r.aiter_text():
-                        data = json.loads(value)
-                        if "payment_hash" in data:
-                            yield data["payment_hash"]
+                async with httpx.AsyncClient(
+                    timeout=None, headers=self.headers
+                ) as client:
+                    del client.headers[
+                        "accept-encoding"
+                    ]  # we have to disable compression for SSEs
+                    async with client.stream(
+                        "GET", url, content="text/event-stream"
+                    ) as r:
+                        sse_trigger = False
+                        async for line in r.aiter_lines():
+                            # The data we want to listen to is of this shape:
+                            # event: payment-received
+                            # data: {.., "payment_hash" : "asd"}
+                            if line.startswith("event: payment-received"):
+                                sse_trigger = True
+                                continue
+                            elif sse_trigger and line.startswith("data:"):
+                                data = json.loads(line[len("data:") :])
+                                sse_trigger = False
+                                yield data["payment_hash"]
+                            else:
+                                sse_trigger = False
 
-            except Exception as exc:
-                logger.warning(exc)
+            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
+                pass
 
             logger.error(
                 "lost connection to lnbits /payments/sse, retrying in 5 seconds"
