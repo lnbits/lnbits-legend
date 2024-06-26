@@ -3,7 +3,7 @@ import uuid
 from asyncio import Queue, TimeoutError
 from http import HTTPStatus
 from json import dumps, loads
-from typing import Any, AsyncIterator, Awaitable, Dict, Mapping, Optional
+from typing import Any, AsyncIterator, Awaitable, Dict, Iterator, Mapping, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -13,7 +13,7 @@ from loguru import logger
 from websocket import WebSocketApp
 
 from lnbits.settings import settings
-
+from contextlib import asynccontextmanager
 
 class HTTPTunnelClient:
 
@@ -215,13 +215,23 @@ class HTTPTunnelClient:
             timeout=timeout,
         )
 
-    async def aiter_text(self) -> AsyncIterator[str]:
-        for chunk in await self._chunks.get():
-            print("### chunk", chunk)
-            yield chunk
-
     async def aclose(self) -> None:
         self.disconnect()
+
+    @asynccontextmanager
+    async def stream(
+        self,
+        method: str,
+        url: str,
+
+    ) -> AsyncIterator["HTTPTunnelResponse"]:
+
+        response = HTTPTunnelResponse(queue=self._chunks)
+        try:
+            yield response
+        finally:
+            await response.aclose()
+
 
     async def _handle_response(self, resp: Optional[dict]):
         if not resp:
@@ -247,8 +257,10 @@ class HTTPTunnelClient:
 class HTTPTunnelResponse:
 
     # status code, detail
-    def __init__(self, resp: Optional[dict]):
+    def __init__(self, resp: Optional[dict] = None, queue: Optional[Queue] = None):
         self._resp = resp
+        self._queue = queue
+        self._running = True
 
     @property
     def is_error(self) -> bool:
@@ -283,7 +295,17 @@ class HTTPTunnelResponse:
         body = self.text
         return loads(body, **kwargs) if body else None
 
+    async def aiter_text(
+        self
+    ) -> AsyncIterator[str]:
+        if not self._queue:
+            return
+        while self._running:
+            data =  await self._queue.get()
+            yield data
 
+    async def aclose(self) -> None:
+        self._running = False
 class HTTPInternalCall:
 
     def __init__(self, routers: APIRouter, x_api_key: str):
