@@ -23,7 +23,7 @@ from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 
 
 class WalletConfig(BaseModel):
-    reverse_funding_access: Optional[str] = ""
+    reverse_funding_access: str = ""
     reverse_funding_url: Optional[str] = None
     reverse_funding_secret: Optional[str] = None
 

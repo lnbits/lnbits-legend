@@ -59,9 +59,11 @@ async def api_update_wallet(
     config: Optional[WalletConfig] = Body(None),
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    wallet = await update_wallet(wallet.wallet.id, name, currency, config=config)
-    await reverse_funding_wallets_ids.put(wallet)
-    return wallet
+    updated_wallet = await update_wallet(
+        wallet.wallet.id, name, currency, config=config
+    )
+    await reverse_funding_wallets_ids.put(updated_wallet)
+    return updated_wallet
 
 
 @wallet_router.delete("")

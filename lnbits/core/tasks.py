@@ -175,7 +175,9 @@ async def register_reverse_funding_sources(routers: APIRouter):
     while settings.lnbits_running:
         try:
             wallet = await reverse_funding_wallets_ids.get()
-            wallet_api_key = getattr(wallet, wallet.config.reverse_funding_access, "")
+            wallet_api_key = getattr(
+                wallet, wallet.config.reverse_funding_access or "", ""
+            )
 
             active_reverse_wallet = reverse_funding_wallets.get(wallet.id)
             if active_reverse_wallet:

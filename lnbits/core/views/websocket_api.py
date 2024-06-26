@@ -1,14 +1,11 @@
-import json
-
 from fastapi import (
     APIRouter,
     WebSocket,
     WebSocketDisconnect,
 )
-from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.utils.gateway import HTTPInternalCall, websocket_tunnel
+from lnbits.utils.gateway import websocket_tunnel
 
 from ..services import (
     websocket_manager,
@@ -47,20 +44,6 @@ async def websocket_update_get(item_id: str, data: str):
 
 
 def enable_ws_tunnel_for_routers(routers: APIRouter):
-    @routers.websocket("/api/v1/tunnel")
-    async def websocket_temp(websocket: WebSocket):
-        try:
-            await websocket.accept()
-
-            while settings.lnbits_running:
-                req = await websocket.receive_text()
-
-                resp = await HTTPInternalCall(routers)(req)
-
-                await websocket.send_text(json.dumps(resp))
-        except WebSocketDisconnect as exc:
-            logger.warning(exc)
-
     @routers.websocket("/api/v1/feeder/{secret}")
     async def websocket_feeder(websocket: WebSocket, secret: str):
         print("###  websocket_feeder secret", secret)

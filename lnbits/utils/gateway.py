@@ -4,7 +4,7 @@ from asyncio import Queue, TimeoutError
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from json import dumps, loads
-from typing import Any, AsyncIterator, Awaitable, Dict, Mapping, Optional
+from typing import Any, AsyncIterator, Callable, Dict, Mapping, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -21,8 +21,8 @@ class HTTPTunnelClient:
     # todo: add typings
     def __init__(
         self,
-        send_fn: Optional[Awaitable] = None,
-        receive_fn: Optional[Awaitable] = None,
+        send_fn: Optional[Callable] = None,
+        receive_fn: Optional[Callable] = None,
     ):
         self._send_fn = send_fn
         self._receive_fn = receive_fn
@@ -34,7 +34,7 @@ class HTTPTunnelClient:
     def connected(self) -> bool:
         return self._send_fn is not None and self._receive_fn is not None
 
-    async def connect(self, send_fn: Awaitable, receive_fn: Awaitable):
+    async def connect(self, send_fn: Callable, receive_fn: Callable):
         self._send_fn = send_fn
         self._receive_fn = receive_fn
 
@@ -63,6 +63,7 @@ class HTTPTunnelClient:
         self._req_resp[request_id] = Queue()
         try:
             assert self.connected, "Tunnel connection not established."
+            assert self._send_fn, "Tunnel connection closed."
 
             body = data
             if json:
@@ -144,7 +145,7 @@ class HTTPTunnelClient:
         self,
         url: str,
         *,
-        data: Optional[dict] = None,
+        data: Optional[str] = None,
         json: Optional[dict] = None,
         params: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
@@ -164,7 +165,7 @@ class HTTPTunnelClient:
         self,
         url: str,
         *,
-        data: Optional[dict] = None,
+        data: Optional[str] = None,
         json: Optional[dict] = None,
         params: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
@@ -184,7 +185,7 @@ class HTTPTunnelClient:
         self,
         url: str,
         *,
-        data: Optional[dict] = None,
+        data: Optional[str] = None,
         json: Optional[dict] = None,
         params: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
@@ -263,11 +264,15 @@ class HTTPTunnelResponse:
 
     @property
     def is_error(self) -> bool:
+        if not self._resp:
+            return False
         status = self._resp.get("status", 500)
         return 400 <= status <= 599
 
     @property
     def is_success(self) -> bool:
+        if not self._resp:
+            return True
         status = int(self._resp.get("status", 500))
         return 200 <= status <= 299
 
@@ -288,7 +293,12 @@ class HTTPTunnelResponse:
             return self
 
         # todo add request, test flow
-        raise httpx.HTTPStatusError(self._resp, request=None, response=self)
+        status_code = int(self._resp.get("status", 500))
+        raise httpx.HTTPStatusError(
+            dumps(self._resp),
+            request=httpx.Request("", ""),
+            response=httpx.Response(status_code),
+        )
 
     def json(self, **kwargs: Any) -> Any:
         body = self.text
@@ -299,7 +309,7 @@ class HTTPTunnelResponse:
             return
         while self._running:
             data = await self._queue.get()
-            yield data
+            yield dumps(data)
 
     async def aclose(self) -> None:
         self._running = False
@@ -336,27 +346,29 @@ class HTTPInternalCall:
             }
 
     def _normalize_request(self, reqest: dict) -> dict:
-        _req = {"type": "http"}
-        _req["headers"] = (
-            [
+        headers: list[tuple[Any, Any]] = [
+            (b"x-api-key", self._x_api_key.encode("utf-8"))
+        ]
+        if reqest.get("headers"):
+            headers += [
                 (k and k.encode("utf-8"), v and v.encode("utf-8"))
                 for k, v in reqest["headers"].items()
             ]
-            if reqest.get("headers")
-            else []
-        )
-        _req["headers"].append((b"x-api-key", self._x_api_key.encode("utf-8")))
-        _req["query_string"] = (
-            urlencode(reqest["params"]) if reqest.get("params") else None
-        )
+
+        query_string = urlencode(reqest["params"]) if reqest.get("params") else None
 
         # todo: normalize if domaine present
-        _req["path"] = reqest["url"] if reqest.get("url") else None
+        path = reqest["url"] if reqest.get("url") else None
 
         self._body = reqest["body"] if reqest.get("body") else None
         self._request_id = reqest.get("request_id")
 
-        return {**reqest, **_req}
+        return {
+            "type": "http",
+            "path": path,
+            "query_string": query_string,
+            "headers": headers,
+        }
 
     def _normalize_response(self, response: dict) -> dict:
         _resp = {
@@ -378,7 +390,7 @@ class HTTPInternalCall:
         return _resp
 
     # todo: fix typing
-    async def _receive(self):
+    async def _receive(self) -> Any:
         if not self._body:
             return None
         return {
