@@ -111,6 +111,13 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'LNbitsReverseWallet',
+          'LNbits Reverse',
+          {
+            lnbits_reverse_secret: 'Secret'
+          }
+        ],
+        [
           'AlbyWallet',
           'Alby',
           {

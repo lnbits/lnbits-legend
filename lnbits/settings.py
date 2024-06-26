@@ -166,6 +166,9 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_admin_key: Optional[str] = Field(default=None)
     lnbits_invoice_key: Optional[str] = Field(default=None)
 
+class LNbitsReverseFundingSource(LNbitsSettings):
+    lnbits_reverse_secret: str = Field(default="")
+
 
 class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: Optional[str] = Field(default=None)
@@ -259,6 +262,7 @@ class LightningSettings(LNbitsSettings):
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
+    LNbitsReverseFundingSource,
     ClicheFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
@@ -420,6 +424,7 @@ class SuperUserSettings(LNbitsSettings):
             "CoreLightningWallet",
             "EclairWallet",
             "LNbitsWallet",
+            "LNbitsReverseWallet",
             "LndRestWallet",
             "LNPayWallet",
             "LnTipsWallet",
