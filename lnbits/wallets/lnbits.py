@@ -205,11 +205,9 @@ class LNbitsWallet(Wallet):
 
         while settings.lnbits_running:
             try:
-                 async with self.client.stream(
-                        "GET", url
-                    ) as r:
-                        async for data in r.aiter_text():
-                            yield data["payment_hash"]
+                async with self.client.stream("GET", url) as r:
+                    async for data in r.aiter_text():
+                        yield data["payment_hash"]
 
             except Exception as exc:
                 logger.warning(exc)

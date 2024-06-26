@@ -1,9 +1,10 @@
 import asyncio
 import uuid
 from asyncio import Queue, TimeoutError
+from contextlib import asynccontextmanager
 from http import HTTPStatus
 from json import dumps, loads
-from typing import Any, AsyncIterator, Awaitable, Dict, Iterator, Mapping, Optional
+from typing import Any, AsyncIterator, Awaitable, Dict, Mapping, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -13,7 +14,7 @@ from loguru import logger
 from websocket import WebSocketApp
 
 from lnbits.settings import settings
-from contextlib import asynccontextmanager
+
 
 class HTTPTunnelClient:
 
@@ -223,7 +224,6 @@ class HTTPTunnelClient:
         self,
         method: str,
         url: str,
-
     ) -> AsyncIterator["HTTPTunnelResponse"]:
 
         response = HTTPTunnelResponse(queue=self._chunks)
@@ -231,7 +231,6 @@ class HTTPTunnelClient:
             yield response
         finally:
             await response.aclose()
-
 
     async def _handle_response(self, resp: Optional[dict]):
         if not resp:
@@ -295,17 +294,17 @@ class HTTPTunnelResponse:
         body = self.text
         return loads(body, **kwargs) if body else None
 
-    async def aiter_text(
-        self
-    ) -> AsyncIterator[str]:
+    async def aiter_text(self) -> AsyncIterator[str]:
         if not self._queue:
             return
         while self._running:
-            data =  await self._queue.get()
+            data = await self._queue.get()
             yield data
 
     async def aclose(self) -> None:
         self._running = False
+
+
 class HTTPInternalCall:
 
     def __init__(self, routers: APIRouter, x_api_key: str):
