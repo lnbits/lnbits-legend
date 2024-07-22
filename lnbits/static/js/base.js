@@ -22,18 +22,11 @@ window.LNbits = {
         data: data
       })
     },
-    createInvoice: async function (
-      wallet,
-      amount,
-      memo,
-      unit = 'sat',
-      lnurlCallback = null
-    ) {
+    createInvoice: async function (wallet, amount, memo, unit = 'sat') {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
         memo: memo,
-        lnurl_callback: lnurlCallback,
         unit: unit
       })
     },
@@ -43,27 +36,24 @@ window.LNbits = {
         bolt11: bolt11
       })
     },
-    payLnurl: function (
-      wallet,
-      callback,
-      description_hash,
-      amount,
-      description = '',
-      comment = '',
-      unit = ''
-    ) {
-      return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
-        callback,
-        description_hash,
+    payLnurl: function (wallet, pay_response, amount, comment = '', unit = '') {
+      return this.request('post', '/lnurl/api/v1/pay', wallet.adminkey, {
+        pay_response,
         amount,
         comment,
-        description,
         unit
       })
     },
-    authLnurl: function (wallet, callback) {
-      return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
-        callback
+    withdrawLnurl: function (wallet, withdraw_response, amount, memo) {
+      return this.request('post', '/lnurl/api/v1/withdraw', wallet.adminkey, {
+        withdraw_response,
+        amount,
+        memo
+      })
+    },
+    authLnurl: function (wallet, auth_response) {
+      return this.request('post', '/lnurl/api/v1/auth', wallet.adminkey, {
+        auth_response
       })
     },
     createAccount: function (name) {

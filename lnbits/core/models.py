@@ -1,6 +1,4 @@
 import datetime
-import hashlib
-import hmac
 import json
 import time
 from dataclasses import dataclass
@@ -8,14 +6,12 @@ from enum import Enum
 from sqlite3 import Row
 from typing import Callable, Dict, List, Optional
 
-from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
+from lnurl import LnurlAuthResponse, LnurlPayResponse, LnurlWithdrawResponse
 from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.db import Connection, FilterModel, FromRowModel
-from lnbits.helpers import url_for
-from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
@@ -39,28 +35,6 @@ class Wallet(BaseWallet):
     @property
     def balance(self) -> int:
         return self.balance_msat // 1000
-
-    @property
-    def withdrawable_balance(self) -> int:
-        from .services import fee_reserve
-
-        return self.balance_msat - fee_reserve(self.balance_msat)
-
-    @property
-    def lnurlwithdraw_full(self) -> str:
-        url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
-        try:
-            return lnurl_encode(url)
-        except Exception:
-            return ""
-
-    def lnurlauth_key(self, domain: str) -> SigningKey:
-        hashing_key = hashlib.sha256(self.id.encode()).digest()
-        linking_key = hmac.digest(hashing_key, domain.encode(), "sha256")
-
-        return SigningKey.from_string(
-            linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
-        )
 
     async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
         from .crud import get_standalone_payment
@@ -397,13 +371,21 @@ class DecodePayment(BaseModel):
     data: str
 
 
-class CreateLnurl(BaseModel):
-    description_hash: str
-    callback: str
+class CreateLnurlAuth(BaseModel):
+    auth_response: LnurlAuthResponse
+
+
+class CreateLnurlPay(BaseModel):
+    pay_response: LnurlPayResponse
     amount: int
     comment: Optional[str] = None
-    description: Optional[str] = None
     unit: Optional[str] = None
+
+
+class CreateLnurlWithdraw(BaseModel):
+    withdraw_response: LnurlWithdrawResponse
+    amount: int
+    memo: Optional[str] = None
 
 
 class CreateInvoice(BaseModel):
@@ -418,16 +400,11 @@ class CreateInvoice(BaseModel):
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
-    lnurl_callback: Optional[str] = None
 
 
 class CreateTopup(BaseModel):
     id: str
     amount: int
-
-
-class CreateLnurlAuth(BaseModel):
-    callback: str
 
 
 class CreateWallet(BaseModel):

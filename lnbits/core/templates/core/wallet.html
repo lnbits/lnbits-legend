@@ -126,26 +126,6 @@
               <q-separator></q-separator>
 
               <q-list>
-                {% if wallet.lnurlwithdraw_full %}
-                <q-expansion-item
-                  group="extras"
-                  icon="crop_free"
-                  :label="$t('drain_funds')"
-                >
-                  <q-card>
-                    <q-card-section class="text-center">
-                      <a href="lightning:{{wallet.lnurlwithdraw_full}}">
-                        <lnbits-qrcode
-                          :value="lightning:{{wallet.lnurlwithdraw_full}}"
-                        ></lnbits-qrcode>
-                      </a>
-                      <p v-text="$t('drain_funds_desc')"></p>
-                    </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                {% endif %}
-
                 <q-expansion-item
                   group="extras"
                   icon="settings_cell"
@@ -276,16 +256,12 @@
           {% endif %}
         </div>
       </div>
-
       <q-dialog v-model="receive.show" position="top">
         <q-card
-          v-if="!receive.paymentReq"
+          v-if="receive.paymentReq === null"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
           <q-form @submit="createInvoice" class="q-gutter-md">
-            <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
-              <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
-            </p>
             {% if LNBITS_DENOMINATION != 'sats' %}
             <q-input
               filled
@@ -297,7 +273,6 @@
               reverse-fill-mask
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% else %}
             <q-select
@@ -320,7 +295,6 @@
               :step="receive.unit != 'sat' ? '0.01' : '1'"
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% endif %}
 
@@ -337,11 +311,7 @@
                 :disable="receive.data.amount == null || receive.data.amount <= 0"
                 type="submit"
               >
-                <span
-                  v-if="receive.lnurl"
-                  v-text="$t('withdraw_from') + receive.lnurl.domain"
-                ></span>
-                <span v-else v-text="$t('create_invoice')"></span>
+                <span v-text="$t('create_invoice')"></span>
               </q-btn>
               <q-btn
                 v-close-popup
@@ -358,8 +328,9 @@
             ></q-spinner>
           </q-form>
         </q-card>
+
         <q-card
-          v-else-if="receive.paymentReq && receive.lnurl == null"
+          v-else-if="receive.paymentReq"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
           <div class="text-center q-mb-lg">
@@ -448,7 +419,7 @@
           <div v-else-if="parse.lnurlauth">
             <q-form @submit="authLnurl" class="q-gutter-md">
               <p class="q-my-none text-h6">
-                Authenticate with <b v-text="parse.lnurlauth.domain"></b>?
+                Authenticate with <b v-text="parse.domain"></b>?
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <p>
@@ -458,9 +429,7 @@
                 data will be shared with
                 <span v-text="parse.lnurlauth.domain"></span>.
               </p>
-              <p>
-                Your public key for <b v-text="parse.lnurlauth.domain"></b> is:
-              </p>
+              <p>Your public key for <b v-text="parse.domain"></b> is:</p>
               <p class="q-mx-xl">
                 <code class="text-wrap" v-text="parse.lnurlauth.pubkey"></code>
               </p>
@@ -481,10 +450,56 @@
               </div>
             </q-form>
           </div>
+          <div v-else-if="parse.lnurlwithdraw">
+            <q-form @submit="withdrawLnurl" class="q-gutter-md">
+              <p class="q-my-none text-h6 text-center">
+                <b v-text="parse.domain"></b> is requesting <br />
+                between
+                <b
+                  v-text="msatoshiFormat(parse.lnurlwithdraw.minWithdrawable)"
+                ></b>
+                and
+                <b
+                  v-text="msatoshiFormat(parse.lnurlwithdraw.maxWithdrawable)"
+                ></b>
+                <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
+              </p>
+              <q-separator class="q-my-sm"></q-separator>
+              <div class="row">
+                <p
+                  class="col text-justify text-italic"
+                  v-text="parse.lnurlwithdraw.defaultDescription"
+                ></p>
+              </div>
+              <div class="row">
+                <div class="col">
+                  <q-input
+                    ref="setAmount"
+                    v-model.number="parse.data.amount"
+                    :min="parse.lnurlwithdraw.minWithdrawable / 1000"
+                    :max="parse.lnurlwithdraw.maxWithdrawable / 1000"
+                    :label="$t('amount') + ' *'"
+                    filled
+                    dense
+                  ></q-input>
+                </div>
+              </div>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Withdraw</q-btn>
+                <q-btn
+                  :label="$t('cancel')"
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-ml-auto"
+                ></q-btn>
+              </div>
+            </q-form>
+          </div>
           <div v-else-if="parse.lnurlpay">
             <q-form @submit="payLnurl" class="q-gutter-md">
               <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-                <b v-text="parse.lnurlpay.domain"></b> is requesting
+                <b v-text="parse.domain"></b> is requesting
                 <span
                   v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"
                 ></span>
@@ -497,9 +512,7 @@
                 </span>
               </p>
               <p v-else class="q-my-none text-h6 text-center">
-                <b
-                  v-text="parse.lnurlpay.targetUser || parse.lnurlpay.domain"
-                ></b>
+                <b v-text="parse.lnurlpay.targetUser || parse.domain"></b>
                 is requesting <br />
                 between
                 <b v-text="msatoshiFormat(parse.lnurlpay.minSendable)"></b> and
@@ -516,7 +529,7 @@
               <div class="row">
                 <p
                   class="col text-justify text-italic"
-                  v-text="parse.lnurlpay.description"
+                  v-text="getLnurlDescription(parse.lnurlpay)"
                 ></p>
                 <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
                   <q-img :src="parse.lnurlpay.image" />
@@ -536,17 +549,17 @@
                   <br />
                   <q-input
                     ref="setAmount"
-                    filled
-                    dense
                     v-model.number="parse.data.amount"
+                    :min="parse.lnurlpay.minSendable / 1000"
+                    :max="parse.lnurlpay.maxSendable / 1000"
+                    :readonly="parse.lnurlpay && parse.lnurlpay.fixed"
                     :label="$t('amount') + ' (' + parse.data.unit + ') *'"
                     :mask="parse.data.unit != 'sat' ? '#.##' : '#'"
                     :step="parse.data.unit != 'sat' ? '0.01' : '1'"
                     fill-mask="0"
                     reverse-fill-mask
-                    :min="parse.lnurlpay.minSendable / 1000"
-                    :max="parse.lnurlpay.maxSendable / 1000"
-                    :readonly="parse.lnurlpay && parse.lnurlpay.fixed"
+                    filled
+                    dense
                   ></q-input>
                 </div>
                 <div

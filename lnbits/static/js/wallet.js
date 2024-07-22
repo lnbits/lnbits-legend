@@ -30,6 +30,7 @@ new Vue({
         invoice: null,
         lnurlpay: null,
         lnurlauth: null,
+        lnurlwithdraw: null,
         data: {
           request: '',
           amount: 0,
@@ -130,6 +131,12 @@ new Vue({
         this.receive.paymentHash = null
       }
     },
+    getLnurlDescription: function (lnurl) {
+      const description = JSON.parse(lnurl.metadata).filter(
+        item => item[0] === 'text/plain'
+      )
+      return description[0][1]
+    },
     createInvoice: function () {
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
@@ -147,30 +154,6 @@ new Vue({
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.payment_request
           this.receive.paymentHash = response.data.payment_hash
-
-          if (response.data.lnurl_response !== null) {
-            if (response.data.lnurl_response === false) {
-              response.data.lnurl_response = `Unable to connect`
-            }
-
-            if (typeof response.data.lnurl_response === 'string') {
-              // failure
-              this.$q.notify({
-                timeout: 5000,
-                type: 'warning',
-                message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                caption: response.data.lnurl_response
-              })
-              return
-            } else if (response.data.lnurl_response === true) {
-              // success
-              this.$q.notify({
-                timeout: 5000,
-                message: `Invoice sent to ${this.receive.lnurl.domain}!`,
-                spinner: true
-              })
-            }
-          }
         })
         .then(() => {
           this.updatePayments = !this.updatePayments
@@ -232,11 +215,7 @@ new Vue({
         this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
       ) {
         LNbits.api
-          .request(
-            'GET',
-            '/api/v1/lnurlscan/' + this.parse.data.request,
-            this.g.wallet.adminkey
-          )
+          .request('GET', '/lnurl/api/v1/scan/' + this.parse.data.request, null)
           .catch(err => {
             LNbits.utils.notifyApiError(err)
           })
@@ -253,28 +232,21 @@ new Vue({
               return
             }
 
-            if (data.kind === 'pay') {
+            const url = new URL(data.callback)
+            this.parse.domain = url.host
+            if (data.tag === 'payRequest') {
               this.parse.lnurlpay = Object.freeze(data)
               this.parse.data.amount = data.minSendable / 1000
-            } else if (data.kind === 'auth') {
+            } else if (data.tag === 'login') {
               this.parse.lnurlauth = Object.freeze(data)
-            } else if (data.kind === 'withdraw') {
-              this.parse.show = false
-              this.receive.show = true
-              this.receive.status = 'pending'
-              this.receive.paymentReq = null
-              this.receive.paymentHash = null
-              this.receive.data.amount = data.maxWithdrawable / 1000
-              this.receive.data.memo = data.defaultDescription
-              this.receive.minMax = [
+            } else if (data.tag === 'withdrawRequest') {
+              this.parse.lnurlwithdraw = Object.freeze(data)
+              this.parse.data.amount = data.maxWithdrawable / 1000
+              this.parse.data.memo = data.defaultDescription
+              this.parse.minMax = [
                 data.minWithdrawable / 1000,
                 data.maxWithdrawable / 1000
               ]
-              this.receive.lnurl = {
-                domain: data.domain,
-                callback: data.callback,
-                fixed: data.fixed
-              }
             }
           })
         return
@@ -364,6 +336,42 @@ new Vue({
           this.parse.show = false
         })
     },
+    withdrawLnurl: function () {
+      let dismissPaymentMsg = this.$q.notify({
+        timeout: 0,
+        message: 'Processing withdraw...'
+      })
+      LNbits.api
+        .withdrawLnurl(
+          this.g.wallet,
+          this.parse.lnurlwithdraw,
+          this.parse.data.amount * 1000,
+          this.parse.data.memo
+        )
+        .then(response => {
+          this.parse.show = false
+          this.parse.lnurlwithdraw = null
+          clearInterval(this.parse.paymentChecker)
+          setTimeout(() => {
+            clearInterval(this.parse.paymentChecker)
+          }, 40000)
+          this.parse.paymentChecker = setInterval(() => {
+            LNbits.api
+              .getPayment(this.g.wallet, response.data.payment_hash)
+              .then(res => {
+                if (res.data.paid) {
+                  dismissPaymentMsg()
+                  clearInterval(this.parse.paymentChecker)
+                  this.updatePayments = !this.updatePayments
+                }
+              })
+          }, 2000)
+        })
+        .catch(err => {
+          dismissPaymentMsg()
+          LNbits.utils.notifyApiError(err)
+        })
+    },
     payLnurl: function () {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
@@ -373,10 +381,8 @@ new Vue({
       LNbits.api
         .payLnurl(
           this.g.wallet,
-          this.parse.lnurlpay.callback,
-          this.parse.lnurlpay.description_hash,
+          this.parse.lnurlpay,
           this.parse.data.amount * 1000,
-          this.parse.lnurlpay.description.slice(0, 120),
           this.parse.data.comment,
           this.parse.data.unit
         )
@@ -453,7 +459,7 @@ new Vue({
       })
 
       LNbits.api
-        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .authLnurl(this.g.wallet, this.parse.lnurlauth)
         .then(_ => {
           dismissAuthMsg()
           this.$q.notify({

@@ -1,12 +1,8 @@
 import asyncio
-import json
 import uuid
 from http import HTTPStatus
-from math import ceil
-from typing import List, Optional, Union
-from urllib.parse import urlparse
+from typing import List, Optional
 
-import httpx
 from fastapi import (
     APIRouter,
     Body,
@@ -17,6 +13,7 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import JSONResponse
+from lnurl import decode as lnurl_decode
 from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 
@@ -24,7 +21,6 @@ from lnbits import bolt11
 from lnbits.core.db import db
 from lnbits.core.models import (
     CreateInvoice,
-    CreateLnurl,
     DecodePayment,
     KeyType,
     Payment,
@@ -37,13 +33,10 @@ from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
     parse_filters,
-    require_admin_key,
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from ..crud import (
     DateTrunc,
@@ -168,36 +161,9 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         assert payment_db is not None, "payment not found"
         checking_id = payment_db.checking_id
 
-    invoice = bolt11.decode(payment_request)
-
-    lnurl_response: Union[None, bool, str] = None
-    if data.lnurl_callback:
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers) as client:
-            try:
-                r = await client.get(
-                    data.lnurl_callback,
-                    params={
-                        "pr": payment_request,
-                    },
-                    timeout=10,
-                )
-                if r.is_error:
-                    lnurl_response = r.text
-                else:
-                    resp = json.loads(r.text)
-                    if resp["status"] != "OK":
-                        lnurl_response = resp["reason"]
-                    else:
-                        lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError) as ex:
-                logger.error(ex)
-                lnurl_response = False
-
     return {
-        "payment_hash": invoice.payment_hash,
+        "payment_hash": payment_hash,
         "payment_request": payment_request,
-        "lnurl_response": lnurl_response,
         # maintain backwards compatibility with API clients:
         "checking_id": checking_id,
     }
@@ -268,89 +234,10 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-@payment_router.post("/lnurl")
-async def api_payments_pay_lnurl(
-    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
-    domain = urlparse(data.callback).netloc
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            if data.unit and data.unit != "sat":
-                amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
-                # no msat precision
-                amount_msat = ceil(amount_msat // 1000) * 1000
-            else:
-                amount_msat = data.amount
-            r = await client.get(
-                data.callback,
-                params={"amount": amount_msat, "comment": data.comment},
-                timeout=40,
-            )
-            if r.is_error:
-                raise httpx.ConnectError("LNURL callback connection error")
-            r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError) as exc:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Failed to connect to {domain}.",
-            ) from exc
-
-    params = json.loads(r.text)
-    if params.get("status") == "ERROR":
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} said: '{params.get('reason', '')}'",
-        )
-
-    if not params.get("pr"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} did not return a payment request.",
-        )
-
-    invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != amount_msat:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                (
-                    f"{domain} returned an invalid invoice. Expected"
-                    f" {amount_msat} msat, got {invoice.amount_msat}."
-                ),
-            ),
-        )
-
-    extra = {}
-
-    if params.get("successAction"):
-        extra["success_action"] = params["successAction"]
-    if data.comment:
-        extra["comment"] = data.comment
-    if data.unit and data.unit != "sat":
-        extra["fiat_currency"] = data.unit
-        extra["fiat_amount"] = data.amount / 1000
-    assert data.description is not None, "description is required"
-    payment_hash = await pay_invoice(
-        wallet_id=wallet.wallet.id,
-        payment_request=params["pr"],
-        description=data.description,
-        extra=extra,
-    )
-
-    return {
-        "success_action": params.get("successAction"),
-        "payment_hash": payment_hash,
-        # maintain backwards compatibility with API clients:
-        "checking_id": payment_hash,
-    }
-
-
 async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     """
     Subscribe to new invoices for a wallet. Can be wrapped in EventSourceResponse.
-    Listenes invoming payments for a wallet and yields jsons with payment details.
+    Listenes incoming payments for a wallet and yields jsons with payment details.
     """
     this_wallet_id = wallet.id
 
