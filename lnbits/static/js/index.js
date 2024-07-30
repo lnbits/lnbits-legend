@@ -50,7 +50,7 @@ new Vue({
           this.password,
           this.passwordRepeat
         )
-        window.location.href = '/wallet'
+        LNbits.utils.redirect('/wallet')
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -58,7 +58,7 @@ new Vue({
     login: async function () {
       try {
         await LNbits.api.login(this.username, this.password)
-        window.location.href = '/wallet'
+        LNbits.utils.redirect('/wallet')
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -67,14 +67,16 @@ new Vue({
       try {
         await LNbits.api.loginUsr(this.usr)
         this.usr = ''
-        window.location.href = '/wallet'
+        LNbits.utils.redirect('/wallet')
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     },
     createWallet: function () {
       LNbits.api.createAccount(this.walletName).then(res => {
-        window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+        LNbits.utils.redirect(
+          '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
+        )
       })
     },
     processing: function () {
@@ -96,7 +98,7 @@ new Vue({
 
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
-      window.location.href = '/wallet'
+      LNbits.utils.redirect('/wallet')
     }
   }
 })

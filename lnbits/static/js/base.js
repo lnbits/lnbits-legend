@@ -15,7 +15,7 @@ window.LNbits = {
     request: function (method, url, apiKey, data) {
       return axios({
         method: method,
-        url: url,
+        url: `/lnbits/${url}`,
         headers: {
           'X-Api-Key': apiKey
         },
@@ -74,7 +74,7 @@ window.LNbits = {
     register: function (username, email, password, password_repeat) {
       return axios({
         method: 'POST',
-        url: '/api/v1/auth/register',
+        url: '/lnbits/api/v1/auth/register',
         data: {
           username,
           email,
@@ -86,21 +86,21 @@ window.LNbits = {
     login: function (username, password) {
       return axios({
         method: 'POST',
-        url: '/api/v1/auth',
+        url: '/lnbits/api/v1/auth',
         data: {username, password}
       })
     },
     loginUsr: function (usr) {
       return axios({
         method: 'POST',
-        url: '/api/v1/auth/usr',
+        url: '/lnbits/api/v1/auth/usr',
         data: {usr}
       })
     },
     logout: function () {
       return axios({
         method: 'POST',
-        url: '/api/v1/auth/logout'
+        url: '/lnbits/api/v1/auth/logout'
       })
     },
     getAuthenticatedUser: function () {
@@ -113,7 +113,7 @@ window.LNbits = {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
         name: name
       }).then(res => {
-        window.location = '/wallet?wal=' + res.data.id
+        LNbits.utils.redirect('/wallet?wal=' + res.data.id)
       })
     },
     updateWallet: function (name, wallet) {
@@ -126,7 +126,7 @@ window.LNbits = {
         _ => {
           let url = new URL(window.location.href)
           url.searchParams.delete('wal')
-          window.location = url
+          LNbits.utils.redirect(url)
         }
       )
     },
@@ -424,6 +424,9 @@ window.LNbits = {
       converter.setFlavor('github')
       converter.setOption('simpleLineBreaks', true)
       return converter.makeHtml(text)
+    },
+    redirect(path) {
+      window.location = `/lnbits/${path}`
     }
   }
 }
@@ -497,7 +500,7 @@ window.windowMixin = {
         .onOk(async () => {
           try {
             await LNbits.api.logout()
-            window.location = '/'
+            LNbits.utils.redirect('/')
           } catch (e) {
             LNbits.utils.notifyApiError(e)
           }

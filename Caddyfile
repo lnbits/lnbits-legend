@@ -1,0 +1,13 @@
+{
+	debug
+}
+
+localhost:9090 {
+	handle_path /lnbits* {
+		reverse_proxy localhost:5000
+	}
+
+	handle /* {
+		reverse_proxy localhost:8080
+	}
+}

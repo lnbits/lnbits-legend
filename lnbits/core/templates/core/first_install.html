@@ -128,7 +128,7 @@
             password_repeat: this.loginData.passwordRepeat
           })
 
-          window.location.href = '/admin'
+          LNbits.utils.redirect('/admin')
         } catch (e) {
           LNbits.utils.notifyApiError(e)
         }

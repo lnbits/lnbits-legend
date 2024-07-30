@@ -47,7 +47,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
 
 
 def static_url_for(static: str, path: str) -> str:
-    return f"/{static}/{path}?v={settings.server_startup_time}"
+    return f"/lnbits/{static}/{path}?v={settings.server_startup_time}"
 
 
 def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:

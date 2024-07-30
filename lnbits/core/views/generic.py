@@ -13,7 +13,7 @@ from pydantic.types import UUID4
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import template_renderer
+from lnbits.helpers import static_url_for, template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -244,21 +244,25 @@ async def manifest(request: Request, usr: str):
                 "sizes": "512x512",
                 "type": "image/png",
             },
-            {"src": "/static/favicon.ico", "sizes": "32x32", "type": "image/x-icon"},
             {
-                "src": "/static/images/maskable_icon_x192.png",
+                "src": static_url_for("static", "favicon.ico"),
+                "sizes": "32x32",
+                "type": "image/x-icon",
+            },
+            {
+                "src": static_url_for("static", "images/maskable_icon_x192.png"),
                 "type": "image/png",
                 "sizes": "192x192",
                 "purpose": "maskable",
             },
             {
-                "src": "/static/images/maskable_icon_x512.png",
+                "src": static_url_for("static", "images/maskable_icon_x512.png"),
                 "type": "image/png",
                 "sizes": "512x512",
                 "purpose": "maskable",
             },
             {
-                "src": "/static/images/maskable_icon.png",
+                "src": static_url_for("static", "images/maskable_icon.png"),
                 "type": "image/png",
                 "sizes": "1024x1024",
                 "purpose": "maskable",
@@ -266,14 +270,14 @@ async def manifest(request: Request, usr: str):
         ],
         "screenshots": [
             {
-                "src": "/static/images/screenshot_desktop.png",
+                "src": static_url_for("static", "images/screenshot_desktop.png"),
                 "sizes": "2394x1314",
                 "type": "image/png",
                 "form_factor": "wide",
                 "label": "LNbits - Desktop screenshot",
             },
             {
-                "src": "/static/images/screenshot_phone.png",
+                "src": static_url_for("static", "images/screenshot_phone.png"),
                 "sizes": "1080x1739",
                 "type": "image/png",
                 "form_factor": "narrow",
@@ -294,7 +298,7 @@ async def manifest(request: Request, usr: str):
                 "url": f"/wallet?usr={usr}&wal={wallet.id}",
                 "icons": [
                     {
-                        "src": "/static/images/maskable_icon_x96.png",
+                        "src": static_url_for("static", "images/maskable_icon_x96.png"),
                         "sizes": "96x96",
                         "type": "image/png",
                     }
