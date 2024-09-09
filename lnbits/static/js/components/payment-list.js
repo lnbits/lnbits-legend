@@ -109,7 +109,7 @@ Vue.component('payment-list', {
         filter: null,
         loading: false
       },
-      visiblePayments: ['pending', 'incoming', 'outgoing', 'failed']
+      filterOut: ['pending', 'incoming', 'outgoing', 'failed']
       /*
       {
       isFailed: false​​
@@ -145,7 +145,6 @@ Vue.component('payment-list', {
       return LNbits.api
         .getPayments(this.wallet, params)
         .then(response => {
-          console.log('payments', response.data.data)
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
           this.payments = response.data.data.map(obj => {
@@ -338,10 +337,10 @@ Vue.component('payment-list', {
         >
           <template v-slot:top="props">
             <div v-if="$q.screen.gt.sm" class="col">
-              <q-toggle v-model="visiblePayments" val="pending" label="Pending" />
-              <q-toggle v-model="visiblePayments" val="incoming" label="Incoming" />
-              <q-toggle v-model="visiblePayments" val="outgoing" label="Outgoing" />
-              <q-toggle v-model="visiblePayments" val="failed" label="Failed" />
+              <q-toggle v-model="filterOut" val="pending" label="Pending" />
+              <q-toggle v-model="filterOut" val="incoming" label="Incoming" />
+              <q-toggle v-model="filterOut" val="outgoing" label="Outgoing" />
+              <q-toggle v-model="filterOut" val="failed" label="Failed" />
             </div>
           </template>
           <template v-slot:header="props">
