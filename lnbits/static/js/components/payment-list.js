@@ -108,16 +108,26 @@ Vue.component('payment-list', {
         ],
         filter: null,
         loading: false
+      },
+      visiblePayments: ['pending', 'incoming', 'outgoing', 'failed']
+      /*
+      {
+      isFailed: false​​
+      isIn: false      ​​
+      isOut: true      ​​
+      isPaid: true      ​​
+      isPending: false
       }
+      */
     }
   },
   computed: {
-    filteredPayments: function () {
-      var q = this.paymentsTable.search
-      if (!q || q === '') return this.payments
+    // filteredPayments: function () {
+    //   var q = this.paymentsTable.search
+    //   if (!q || q === '') return this.payments
 
-      return LNbits.utils.search(this.payments, q)
-    },
+    //   return LNbits.utils.search(this.payments, q)
+    // },
     paymentsOmitter() {
       if (this.$q.screen.lt.md && this.mobileSimple) {
         return this.payments.length > 0 ? [this.payments[0]] : []
@@ -131,9 +141,11 @@ Vue.component('payment-list', {
   methods: {
     fetchPayments: function (props) {
       const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
+      console.log('fetchPayments', params)
       return LNbits.api
         .getPayments(this.wallet, params)
         .then(response => {
+          console.log('payments', response.data.data)
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
           this.payments = response.data.data.map(obj => {
@@ -324,6 +336,14 @@ Vue.component('payment-list', {
           :hide-bottom="mobileSimple"
           @request="fetchPayments"
         >
+          <template v-slot:top="props">
+            <div v-if="$q.screen.gt.sm" class="col">
+              <q-toggle v-model="visiblePayments" val="pending" label="Pending" />
+              <q-toggle v-model="visiblePayments" val="incoming" label="Incoming" />
+              <q-toggle v-model="visiblePayments" val="outgoing" label="Outgoing" />
+              <q-toggle v-model="visiblePayments" val="failed" label="Failed" />
+            </div>
+          </template>
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
