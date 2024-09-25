@@ -1,6 +1,6 @@
 import pytest
 
-from lnbits.helpers import (
+from lnbits.db import (
     insert_query,
     update_query,
 )

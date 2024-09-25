@@ -158,6 +158,18 @@ class Connection(Compat):
         result.close()
         return row
 
+    async def update(self, table_name: str, model: BaseModel, where: str = "id = :id"):
+        result = await self.conn.execute(
+            text(update_query(table_name, model, where)), model.dict()
+        )
+        result.close()
+
+    async def insert(self, table_name: str, model: BaseModel):
+        result = await self.conn.execute(
+            text(insert_query(table_name, model)), model.dict()
+        )
+        result.close()
+
     async def fetch_page(
         self,
         query: str,
@@ -303,6 +315,16 @@ class Database(Compat):
     async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
         async with self.connect() as conn:
             return await conn.fetchone(query, values)
+
+    async def insert(self, table_name: str, model: BaseModel) -> None:
+        async with self.connect() as conn:
+            await conn.insert(table_name, model)
+
+    async def update(
+        self, table_name: str, model: BaseModel, where: str = "id = :id"
+    ) -> None:
+        async with self.connect() as conn:
+            await conn.update(table_name, model, where)
 
     async def fetch_page(
         self,
@@ -518,3 +540,34 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.search and self.model:
             values["search"] = f"%{self.search}%"
         return values
+
+
+def insert_query(table_name: str, model: BaseModel) -> str:
+    """
+    Generate an insert query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    """
+    placeholders = []
+    for field in model.dict().keys():
+        placeholders.append(get_placeholder(model, field))
+    fields = ", ".join(model.dict().keys())
+    values = ", ".join(placeholders)
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+
+
+def update_query(
+    table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+) -> str:
+    """
+    Generate an update query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    :param where: Where string, default to `WHERE id = :id`
+    """
+    fields = []
+    for field in model.dict().keys():
+        placeholder = get_placeholder(model, field)
+        fields.append(f"{field} = {placeholder}")
+    query = ", ".join(fields)
+    return f"UPDATE {table_name} SET {query} {where}"
