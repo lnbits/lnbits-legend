@@ -175,9 +175,7 @@ class Connection(Compat):
             return dict_to_model(row, model)
         return row
 
-    async def update(
-        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
-    ):
+    async def update(self, table_name: str, model: BaseModel, where: str = "id = :id"):
         await self.conn.execute(
             text(update_query(table_name, model, where)), model_to_dict(model)
         )
@@ -343,7 +341,7 @@ class Database(Compat):
             await conn.insert(table_name, model)
 
     async def update(
-        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+        self, table_name: str, model: BaseModel, where: str = "id = :id"
     ) -> None:
         async with self.connect() as conn:
             await conn.update(table_name, model, where)
@@ -571,21 +569,19 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
 
-def update_query(
-    table_name: str, model: BaseModel, where: str = "WHERE id = :id"
-) -> str:
+def update_query(table_name: str, model: BaseModel, where: str = "id = :id") -> str:
     """
     Generate an update query with placeholders for a given table and model
     :param table_name: Name of the table
     :param model: Pydantic model
-    :param where: Where string, default to `WHERE id = :id`
+    :param where: Where string, default to `id = :id`
     """
     fields = []
     for field in model.dict().keys():
         placeholder = get_placeholder(model, field)
         fields.append(f"{field} = {placeholder}")
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
+    return f"UPDATE {table_name} SET {query} WHERE {where}"
 
 
 def model_to_dict(model: BaseModel) -> dict:
