@@ -155,7 +155,7 @@ class Connection(Compat):
         if not row:
             return []
         if model:
-            return [_dict_to_model(r, model) for r in row]
+            return [dict_to_model(r, model) for r in row]
         return row
 
     async def fetchone(
@@ -166,18 +166,18 @@ class Connection(Compat):
         row = result.mappings().first()
         result.close()
         if model and row:
-            return _dict_to_model(row, model)
+            return dict_to_model(row, model)
         return row
 
     async def update(self, table_name: str, model: BaseModel, where: str = "id = :id"):
         await self.conn.execute(
-            text(update_query(table_name, model, where)), _model_to_dict(model)
+            text(update_query(table_name, model, where)), model_to_dict(model)
         )
         await self.conn.commit()
 
     async def insert(self, table_name: str, model: BaseModel):
         await self.conn.execute(
-            text(insert_query(table_name, model)), _model_to_dict(model)
+            text(insert_query(table_name, model)), model_to_dict(model)
         )
         await self.conn.commit()
 
@@ -584,7 +584,7 @@ def update_query(
     return f"UPDATE {table_name} SET {query} {where}"
 
 
-def _model_to_dict(model: BaseModel) -> dict:
+def model_to_dict(model: BaseModel) -> dict:
     _dict = model.dict()
     for key, value in _dict.items():
         if key.startswith("_"):
@@ -595,7 +595,7 @@ def _model_to_dict(model: BaseModel) -> dict:
     return _dict
 
 
-def _dict_to_model(_dict: dict, model: TModel) -> TModel:
+def dict_to_model(_dict: dict, model: TModel) -> TModel:
     for key, value in _dict.items():
         type_ = model.__fields__[key].type_
         if type_ is BaseModel:

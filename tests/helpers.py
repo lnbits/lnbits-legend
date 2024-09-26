@@ -2,6 +2,8 @@ import random
 import string
 from typing import Optional
 
+from pydantic import BaseModel
+
 from lnbits.db import FromRowModel
 from lnbits.wallets import get_funding_source, set_funding_source
 
@@ -14,6 +16,19 @@ class DbTestModel(FromRowModel):
     id: int
     name: str
     value: Optional[str] = None
+
+
+class DbTestModelInner(BaseModel):
+    id: int
+    label: str
+    description: Optional[str] = None
+
+
+class DbTestModel2(BaseModel):
+    id: int
+    name: str
+    value: Optional[str] = None
+    child: DbTestModelInner
 
 
 def get_random_string(iterations: int = 10):
