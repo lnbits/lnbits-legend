@@ -234,7 +234,9 @@ class Connection(Compat):
                     """,
                     parsed_values,
                 )
-                count = int(result.get("count", 0))
+                row = result.mappings().first()
+                result.close()
+                count = int(row.get("count", 0))
             else:
                 count = len(rows)
         else:
@@ -587,8 +589,10 @@ def update_query(
 def model_to_dict(model: BaseModel) -> dict:
     """
     Convert a Pydantic model to a dictionary with JSON-encoded nested models
-    TODO: no recursion, maybe make them recursive?
+    private fields starting with _ are ignored
+    :param model: Pydantic model
     """
+    # TODO: no recursion, maybe make them recursive?
     _dict = model.dict()
     for key, value in _dict.items():
         if key.startswith("_"):
@@ -602,9 +606,15 @@ def model_to_dict(model: BaseModel) -> dict:
 def dict_to_model(_dict: dict, model: type[TModel]) -> TModel:
     """
     Convert a dictionary with JSON-encoded nested models to a Pydantic model
-    TODO: no recursion, maybe make them recursive?
+    :param _dict: Dictionary from database
+    :param model: Pydantic model
     """
+    # TODO: no recursion, maybe make them recursive?
+    # TODO: check why keys are sometimes not in the dict
     for key, value in _dict.items():
+        if key not in model.__fields__:
+            # logger.warning(f"Converting {key} to model `{model}`.")
+            continue
         type_ = model.__fields__[key].type_
         if issubclass(type_, BaseModel):
             _dict[key] = type_.construct(**json.loads(value))
