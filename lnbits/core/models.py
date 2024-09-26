@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import hashlib
 import hmac
-import json
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -90,7 +89,7 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
-class UserConfig(BaseModel):
+class UserExtra(BaseModel):
     email_verified: Optional[bool] = False
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -144,7 +143,7 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
-    config: Optional[UserConfig] = None
+    extra: Optional[UserExtra] = None
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
 
@@ -178,7 +177,7 @@ class UpdateUser(BaseModel):
     user_id: str
     email: Optional[str] = Query(default=None)
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
-    config: Optional[UserConfig] = None
+    extra: Optional[UserExtra] = None
 
 
 class UpdateUserPassword(BaseModel):
@@ -244,23 +243,38 @@ class CreatePayment(BaseModel):
     fee: int = 0
 
 
+# class Extra(BaseModel):
+#     _raw_json: str
+
+#     @property
+#     def _json(self):
+#         return json.loads(self._raw_json)
+
+# class PaymentExtra(Extra):
+#     tag: Optional[str] = None
+#     def __getitem__(self, key):
+#         return self[key] or self._raw_json[key]
+
+
 class Payment(BaseModel):
     status: str
-    # TODO should be removed in the future, backward compatibility
-    pending: bool
     checking_id: str
+    payment_hash: str
+    wallet_id: str
     amount: int
     fee: int
     memo: Optional[str]
     time: int
     bolt11: str
-    preimage: str
-    payment_hash: str
     expiry: Optional[float]
     extra: Optional[dict]
-    wallet_id: str
     webhook: Optional[str]
-    webhook_status: Optional[int]
+    webhook_status: Optional[int] = None
+    preimage: Optional[str] = "0" * 64
+
+    @property
+    def pending(self) -> bool:
+        return self.status == PaymentState.PENDING.value
 
     @property
     def success(self) -> bool:
@@ -269,27 +283,6 @@ class Payment(BaseModel):
     @property
     def failed(self) -> bool:
         return self.status == PaymentState.FAILED.value
-
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(
-            checking_id=row["checking_id"],
-            payment_hash=row["hash"] or "0" * 64,
-            bolt11=row["bolt11"] or "",
-            preimage=row["preimage"] or "0" * 64,
-            extra=json.loads(row["extra"] or "{}"),
-            status=row["status"],
-            # TODO should be removed in the future, backward compatibility
-            pending=row["status"] == PaymentState.PENDING.value,
-            amount=row["amount"],
-            fee=row["fee"],
-            memo=row["memo"],
-            time=row["time"],
-            expiry=row["expiry"],
-            wallet_id=row["wallet"],
-            webhook=row["webhook"],
-            webhook_status=row["webhook_status"],
-        )
 
     @property
     def tag(self) -> Optional[str]:
@@ -376,10 +369,6 @@ class TinyURL(BaseModel):
     endless: bool
     wallet: str
     time: float
-
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(**dict(row))
 
 
 class ConversionData(BaseModel):

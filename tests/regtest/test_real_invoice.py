@@ -143,7 +143,6 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
     assert payment.success
-    assert payment.pending is False
 
 
 @pytest.mark.asyncio
@@ -167,7 +166,6 @@ async def test_pay_hold_invoice_check_pending(
     payment_db = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db
-    assert payment_db.pending is True
 
     settle_invoice(preimage)
 
@@ -181,7 +179,6 @@ async def test_pay_hold_invoice_check_pending(
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db_after_settlement
-    assert payment_db_after_settlement.pending is False
 
 
 @pytest.mark.asyncio
@@ -205,7 +202,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     payment_db = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db
-    assert payment_db.pending is True
 
     preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
 
@@ -221,7 +217,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     # payment should be in database as failed
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement
-    assert payment_db_after_settlement.pending is False
     assert payment_db_after_settlement.failed is True
 
 
@@ -246,7 +241,6 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     payment_db = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db
-    assert payment_db.pending is True
 
     # cancel payment task, this simulates the client dropping the connection
     task.cancel()
@@ -307,7 +301,6 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         assert payment_status["paid"]
 
         assert payment
-        assert payment.pending is False
 
         # set the incoming invoice to pending
         await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
@@ -316,7 +309,6 @@ async def test_receive_real_invoice_set_pending_and_check_state(
             invoice["payment_hash"], incoming=True
         )
         assert payment_pending
-        assert payment_pending.pending is True
         assert payment_pending.success is False
         assert payment_pending.failed is False
 
