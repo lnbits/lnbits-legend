@@ -16,10 +16,7 @@ from lnbits.requestvars import g
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
-# import insert_query, update_query here is deprecated
-# use shortcut on `Database` class instead
-# example: await db.insert("table_name", base_model)
-from .db import FilterModel, insert_query, update_query  # noqa: F401
+from .db import FilterModel
 
 
 def get_db_vendor_name():
