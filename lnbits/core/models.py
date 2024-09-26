@@ -13,7 +13,7 @@ from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from pydantic import BaseModel, validator
 
-from lnbits.db import FilterModel, FromRowModel
+from lnbits.db import FilterModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
@@ -103,7 +103,7 @@ class UserConfig(BaseModel):
     provider: Optional[str] = "lnbits"  # auth provider
 
 
-class Account(FromRowModel):
+class Account(BaseModel):
     id: str
     is_super_user: Optional[bool] = False
     is_admin: Optional[bool] = False
@@ -244,7 +244,7 @@ class CreatePayment(BaseModel):
     fee: int = 0
 
 
-class Payment(FromRowModel):
+class Payment(BaseModel):
     status: str
     # TODO should be removed in the future, backward compatibility
     pending: bool
