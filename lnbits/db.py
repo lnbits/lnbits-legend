@@ -146,7 +146,10 @@ class Connection(Compat):
         return clean_values
 
     async def fetchall(
-        self, query: str, values: Optional[dict] = None, model: Optional[TModel] = None
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
     ) -> list[TModel]:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
@@ -159,7 +162,10 @@ class Connection(Compat):
         return row
 
     async def fetchone(
-        self, query: str, values: Optional[dict] = None, model: Optional[TModel] = None
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
     ) -> TModel:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
@@ -187,9 +193,9 @@ class Connection(Compat):
         where: Optional[list[str]] = None,
         values: Optional[dict] = None,
         filters: Optional[Filters] = None,
-        model: Optional[type[TRowModel]] = None,
+        model: Optional[type[TModel]] = None,
         group_by: Optional[list[str]] = None,
-    ) -> Page[TRowModel]:
+    ) -> Page[TModel]:
         if not filters:
             filters = Filters()
         clause = filters.where(where)
@@ -213,11 +219,12 @@ class Connection(Compat):
             {filters.pagination()}
             """,
             self.rewrite_values(parsed_values),
+            model,
         )
         if rows:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
-                result = await self.fetchone(
+                result = await self.execute(
                     f"""
                     SELECT COUNT(*) as count FROM (
                         {query}
@@ -234,7 +241,7 @@ class Connection(Compat):
             count = 0
 
         return Page(
-            data=[model.from_row(row) for row in rows] if model else [],
+            data=rows,
             total=count,
         )
 
@@ -343,9 +350,9 @@ class Database(Compat):
         where: Optional[list[str]] = None,
         values: Optional[dict] = None,
         filters: Optional[Filters] = None,
-        model: Optional[type[TRowModel]] = None,
+        model: Optional[type[TModel]] = None,
         group_by: Optional[list[str]] = None,
-    ) -> Page[TRowModel]:
+    ) -> Page[TModel]:
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
 
@@ -405,12 +412,6 @@ class Operator(Enum):
             raise ValueError("Unknown SQL Operator")
 
 
-class FromRowModel(BaseModel):
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(**row)
-
-
 class FilterModel(BaseModel):
     __search_fields__: list[str] = []
     __sort_fields__: Optional[list[str]] = None
@@ -418,7 +419,6 @@ class FilterModel(BaseModel):
 
 T = TypeVar("T")
 TModel = TypeVar("TModel", bound=BaseModel)
-TRowModel = TypeVar("TRowModel", bound=FromRowModel)
 TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 
 
@@ -585,19 +585,27 @@ def update_query(
 
 
 def model_to_dict(model: BaseModel) -> dict:
+    """
+    Convert a Pydantic model to a dictionary with JSON-encoded nested models
+    TODO: no recursion, maybe make them recursive?
+    """
     _dict = model.dict()
     for key, value in _dict.items():
         if key.startswith("_"):
             continue
         type_ = model.__fields__[key].type_
-        if type_ == BaseModel:
-            _dict[key] = json.dumps(value.dict())
+        if type(type_) is type(BaseModel):
+            _dict[key] = json.dumps(value)
     return _dict
 
 
-def dict_to_model(_dict: dict, model: TModel) -> TModel:
+def dict_to_model(_dict: dict, model: type[TModel]) -> TModel:
+    """
+    Convert a dictionary with JSON-encoded nested models to a Pydantic model
+    TODO: no recursion, maybe make them recursive?
+    """
     for key, value in _dict.items():
         type_ = model.__fields__[key].type_
-        if type_ is BaseModel:
-            _dict[key] = json.loads(value)
+        if issubclass(type_, BaseModel):
+            _dict[key] = type_.construct(**json.loads(value))
     return model.construct(**_dict)
