@@ -5,6 +5,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.services import (
     PaymentError,
+    PaymentState,
     pay_invoice,
 )
 
@@ -21,7 +22,7 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
     assert payment_hash
     payment = await get_standalone_payment(payment_hash)
     assert payment
-    assert not payment.pending
+    assert not payment.status == PaymentState.SUCCESS
     assert payment.memo == description
 
 

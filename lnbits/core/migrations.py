@@ -553,3 +553,12 @@ async def m022_add_pubkey_to_accounts(db):
         await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
     except OperationalError:
         pass
+
+
+async def m023_add_column_column_to_apipayments(db):
+    """
+    renames hash to payment_hash and drops unused index
+    """
+    await db.execute("DROP INDEX by_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN hash TO payment_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN wallet TO wallet_id")

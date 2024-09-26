@@ -328,13 +328,23 @@ class Database(Compat):
         finally:
             self.lock.release()
 
-    async def fetchall(self, query: str, values: Optional[dict] = None) -> list[dict]:
+    async def fetchall(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> list[TModel]:
         async with self.connect() as conn:
-            return await conn.fetchall(query, values)
+            return await conn.fetchall(query, values, model)
 
-    async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
+    async def fetchone(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> TModel:
         async with self.connect() as conn:
-            return await conn.fetchone(query, values)
+            return await conn.fetchone(query, values, model)
 
     async def insert(self, table_name: str, model: BaseModel) -> None:
         async with self.connect() as conn:

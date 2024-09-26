@@ -7,7 +7,6 @@ import json
 from enum import Enum
 from hashlib import sha256
 from os import path
-from sqlite3 import Row
 from time import time
 from typing import Any, Optional
 
@@ -635,11 +634,6 @@ class ReadOnlySettings(
 
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
-    @classmethod
-    def from_row(cls, row: Row) -> Settings:
-        data = dict(row)
-        return cls(**data)
-
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -11,7 +11,6 @@ from lnbits.core.extensions.models import (
     InstallableExtension,
     PayToEnableInfo,
     UserExtension,
-    UserExtensionInfo,
 )
 from lnbits.core.models import PaymentState
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
@@ -164,17 +163,14 @@ async def get_accounts(
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
-    row = await (conn or db).fetchone(
+    user = await (conn or db).fetchone(
         """
            SELECT id, email, username, pubkey, created_at, updated_at, extra
            FROM accounts WHERE id = :id
         """,
         {"id": user_id},
+        User,
     )
-
-    user = User(**row) if row else None
-    if user and row["extra"]:
-        user.config = UserConfig(**json.loads(row["extra"]))
     return user
 
 
@@ -463,93 +459,77 @@ async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -
 async def get_installed_extension(
     ext_id: str, conn: Optional[Connection] = None
 ) -> Optional[InstallableExtension]:
-    row = await (conn or db).fetchone(
+    extension = await (conn or db).fetchone(
         "SELECT * FROM installed_extensions WHERE id = :id",
         {"id": ext_id},
+        InstallableExtension,
     )
-
-    return InstallableExtension.from_row(row) if row else None
+    return extension
 
 
 async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    rows = await (conn or db).fetchall(
-        "SELECT * FROM installed_extensions",
+    where = "WHERE active = :active" if active else ""
+    values = {"active": active} if active else {}
+    all_extensions = await (conn or db).fetchall(
+        f"SELECT * FROM installed_extensions {where}",
+        values,
+        model=InstallableExtension,
     )
-    all_extensions = [InstallableExtension.from_row(row) for row in rows]
-    if active is None:
-        return all_extensions
-
-    return [e for e in all_extensions if e.active == active]
+    return all_extensions
 
 
 async def get_user_extension(
     user_id: str, extension: str, conn: Optional[Connection] = None
 ) -> Optional[UserExtension]:
-    row = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         """
-            SELECT extension, active, extra as _extra FROM extensions
+            SELECT * FROM extensions
             WHERE "user" = :user AND extension = :ext
         """,
         {"user": user_id, "ext": extension},
+        model=UserExtension,
     )
-    return UserExtension.from_row(row) if row else None
 
 
 async def get_user_extensions(
     user_id: str, conn: Optional[Connection] = None
 ) -> list[UserExtension]:
-    rows = await (conn or db).fetchall(
-        """
-            SELECT extension, active, extra as _extra FROM extensions
-            WHERE "user" = :user
-        """,
+    return await (conn or db).fetchall(
+        """SELECT * FROM extensions WHERE "user" = :user""",
         {"user": user_id},
+        model=UserExtension,
     )
-    return [UserExtension.from_row(row) for row in rows]
 
 
 async def update_user_extension(
-    *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
+    user_extension: UserExtension, conn: Optional[Connection] = None
 ) -> None:
-    await (conn or db).execute(
-        """
-        INSERT INTO extensions ("user", extension, active) VALUES (:user, :ext, :active)
-        ON CONFLICT ("user", extension) DO UPDATE SET active = :active
-        """,
-        {"user": user_id, "ext": extension, "active": active},
-    )
+    where = """extension = :extension AND "user" = :user"""
+    await (conn or db).update("extensions", user_extension, where)
+    # await (conn or db).execute(
+    #     """
+    #     INSERT INTO extensions ("user", extension, active)
+    #     VALUES (:user, :ext, :active)
+    #     ON CONFLICT ("user", extension) DO UPDATE SET active = :active
+    #     """,
+    #     {"user": user_id, "ext": extension, "active": active},
+    # )
 
 
 async def get_user_active_extensions_ids(
     user_id: str, conn: Optional[Connection] = None
 ) -> list[str]:
-    rows = await (conn or db).fetchall(
+    exts = await (conn or db).fetchall(
         """
-        SELECT extension FROM extensions WHERE "user" = :user AND active
+        SELECT * FROM extensions WHERE "user" = :user AND active
         """,
         {"user": user_id},
+        UserExtension,
     )
-    return [e.get("extension", "") for e in rows]
-
-
-async def update_user_extension_extra(
-    user_id: str,
-    extension: str,
-    extra: UserExtensionInfo,
-    conn: Optional[Connection] = None,
-) -> None:
-    extra_json = json.dumps(dict(extra))
-    await (conn or db).execute(
-        """
-        INSERT INTO extensions ("user", extension, extra) VALUES
-        (:user, :ext, :extra)
-        ON CONFLICT ("user", extension) DO UPDATE SET extra = :extra
-        """,
-        {"user": user_id, "ext": extension, "extra": extra_json},
-    )
+    return [ext.extension for ext in exts]
 
 
 # wallets
@@ -754,31 +734,29 @@ async def get_standalone_payment(
 
     row = await (conn or db).fetchone(
         f"""
-        SELECT *
-        FROM apipayments
+        SELECT * FROM apipayments
         WHERE {clause}
-        ORDER BY amount
-        LIMIT 1
+        ORDER BY amount LIMIT 1
         """,
         values,
+        Payment,
     )
-
-    return Payment.from_row(row) if row else None
+    return row
 
 
 async def get_wallet_payment(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[Payment]:
-    row = await (conn or db).fetchone(
+    payment = await (conn or db).fetchone(
         """
         SELECT *
         FROM apipayments
         WHERE wallet = :wallet AND hash = :hash
         """,
         {"wallet": wallet_id, "hash": payment_hash},
+        Payment,
     )
-
-    return Payment.from_row(row) if row else None
+    return payment
 
 
 async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
@@ -1305,24 +1283,22 @@ async def delete_tinyurl(tinyurl_id: str):
 async def get_webpush_subscription(
     endpoint: str, user: str
 ) -> Optional[WebPushSubscription]:
-    row = await db.fetchone(
+    return await db.fetchone(
         """
         SELECT * FROM webpush_subscriptions
         WHERE endpoint = :endpoint AND "user" = :user
         """,
         {"endpoint": endpoint, "user": user},
+        WebPushSubscription,
     )
-    return WebPushSubscription(**dict(row)) if row else None
 
 
-async def get_webpush_subscriptions_for_user(
-    user: str,
-) -> list[WebPushSubscription]:
-    rows = await db.fetchall(
+async def get_webpush_subscriptions_for_user(user: str) -> list[WebPushSubscription]:
+    return await db.fetchall(
         """SELECT * FROM webpush_subscriptions WHERE "user" = :user""",
         {"user": user},
+        WebPushSubscription,
     )
-    return [WebPushSubscription(**dict(row)) for row in rows]
 
 
 async def create_webpush_subscription(
