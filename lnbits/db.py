@@ -159,16 +159,14 @@ class Connection(Compat):
         return row
 
     async def update(self, table_name: str, model: BaseModel, where: str = "id = :id"):
-        result = await self.conn.execute(
+        await self.conn.execute(
             text(update_query(table_name, model, where)), model.dict()
         )
-        result.close()
+        await self.conn.commit()
 
     async def insert(self, table_name: str, model: BaseModel):
-        result = await self.conn.execute(
-            text(insert_query(table_name, model)), model.dict()
-        )
-        result.close()
+        await self.conn.execute(text(insert_query(table_name, model)), model.dict())
+        await self.conn.commit()
 
     async def fetch_page(
         self,
