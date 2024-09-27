@@ -530,23 +530,26 @@ video {
   overflow-wrap: break-word;
 }
 
-.qrcode__wrapper canvas {
+.qrcode__wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qrcode__wrapper canvas {
   width: 100% !important;
-  max-width: 100%;
-  max-height: 100%;
+  height: 100% !important;
+  max-width: 350px;
 }
 
 .qrcode__image {
+  position: absolute;
+  max-width: 52px;
   width: 15%;
-  height: 15%;
   overflow: hidden;
   background: #fff;
-  left: 50%;
   overflow: hidden;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
   padding: 0.2rem;
   border-radius: 0.2rem;
 }

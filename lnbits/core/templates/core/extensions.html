@@ -659,11 +659,9 @@
           <a
             :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
           >
-            <q-responsive :ratio="1" class="q-mx-xl">
-              <lnbits-qrcode
-                :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
-              ></lnbits-qrcode>
-            </q-responsive>
+            <lnbits-qrcode
+              :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
+            ></lnbits-qrcode>
           </a>
         </div>
         <div v-else class="col">
