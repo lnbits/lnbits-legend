@@ -38,7 +38,6 @@
               <strong v-text="formattedBalance"></strong>
               <small>{{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
-                v-if="'{{user.super_user}}' == 'True'"
                 :wallet_id="this.g.wallet.id"
                 flat
                 :callback="updateBalanceCallback"

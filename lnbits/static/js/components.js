@@ -444,7 +444,7 @@ window.app.component('lnbits-update-balance', {
       return LNBITS_DENOMINATION
     },
     admin() {
-      return this.g.user.admin
+      return user.super_user
     }
   },
   data: function () {

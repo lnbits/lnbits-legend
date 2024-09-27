@@ -5,6 +5,7 @@ window.app = Vue.createApp({
     return {
       updatePayments: false,
       origin: window.location.origin,
+      wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
       receive: {
         show: false,
