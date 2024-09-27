@@ -311,8 +311,8 @@ async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    where = "WHERE active = :active" if active else ""
-    values = {"active": active} if active else {}
+    where = "WHERE active = :active" if active is not None else ""
+    values = {"active": active} if active is not None else {}
     all_extensions = await (conn or db).fetchall(
         f"SELECT * FROM installed_extensions {where}",
         values,
@@ -503,8 +503,9 @@ async def get_wallet(
 ) -> Optional[Wallet]:
     return await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE id = :wallet
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0) AS balance_msat FROM wallets WHERE id = :wallet
         """,
         {"wallet": wallet_id},
         Wallet,
@@ -514,8 +515,9 @@ async def get_wallet(
 async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> list[Wallet]:
     return await (conn or db).fetchall(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE "user" = :user
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0) AS balance_msat FROM wallets WHERE "user" = :user
         """,
         {"user": user_id},
         Wallet,
@@ -528,7 +530,9 @@ async def get_wallet_for_key(
 ) -> Optional[Wallet]:
     return await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0)
         AS balance_msat FROM wallets
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
         """,

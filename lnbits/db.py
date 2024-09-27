@@ -624,7 +624,11 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         if key not in model.__fields__:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
+        if not value:
+            continue
         type_ = model.__fields__[key].type_
-        if issubclass(type_, BaseModel):
+        if issubclass(type_, BaseModel) and value is not None:
             _dict[key] = type_.construct(**json.loads(value))
+            continue
+        _dict[key] = value
     return model.construct(**_dict)

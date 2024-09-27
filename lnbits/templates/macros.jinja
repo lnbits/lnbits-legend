@@ -5,10 +5,10 @@
       window.currencies = {{ currencies | tojson | safe }};
     {% endif %}
     {% if user %}
-      window.user = {{ user | tojson | safe }};
+      window.user = JSON.parse({{ user | tojson | safe }});
     {% endif %}
     {% if wallet %}
-      window.wallet = {{ wallet | tojson | safe }};
+      window.wallet = JSON.parse({{ wallet | tojson | safe }});
     {% endif %}
   </script>
 {%- endmacro %}

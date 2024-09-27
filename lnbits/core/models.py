@@ -35,10 +35,15 @@ class BaseWallet(BaseModel):
     balance_msat: int
 
 
-class Wallet(BaseWallet):
+class Wallet(BaseModel):
+    id: str
     user: str
+    name: str
+    adminkey: str
+    inkey: str
+    balance_msat: int
     currency: Optional[str]
-    deleted: bool
+    deleted: bool = False
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
 
@@ -109,8 +114,6 @@ class Account(BaseModel):
     password_hash: Optional[str] = None
     email: Optional[str] = None
     balance_msat: Optional[int] = 0
-    transaction_count: Optional[int] = 0
-    wallet_count: Optional[int] = 0
     last_payment: Optional[datetime] = None
     extra: Optional[UserExtra] = None
     created_at: datetime = datetime.now()
@@ -136,6 +139,11 @@ class Account(BaseModel):
             return False
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         return pwd_context.verify(password, self.password_hash)
+
+
+class AccountOverview(Account):
+    transaction_count: Optional[int] = 0
+    wallet_count: Optional[int] = 0
 
 
 class AccountFilters(FilterModel):

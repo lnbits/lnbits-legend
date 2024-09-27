@@ -159,7 +159,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
             request,
             "core/extensions.html",
             {
-                "user": user.dict(),
+                "user": user.json(),
                 "extensions": extensions,
             },
         )
@@ -200,8 +200,8 @@ async def wallet(
         request,
         "core/wallet.html",
         {
-            "user": user.dict(),
-            "wallet": wallet.dict(),
+            "user": user.json(),
+            "wallet": wallet.json(),
             "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
@@ -224,7 +224,9 @@ async def account(
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
-        {"user": user.dict()},
+        {
+            "user": user.json(),
+        },
     )
 
 
@@ -334,7 +336,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
         request,
         "node/index.html",
         {
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].dict(),
@@ -372,7 +374,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
         request,
         "admin/index.html",
         {
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
@@ -389,7 +391,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         "users/index.html",
         {
             "request": request,
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "currencies": list(currencies.keys()),
         },
