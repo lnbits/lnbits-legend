@@ -70,17 +70,17 @@ async def get_accounts(
             accounts.username,
             accounts.email,
             SUM(COALESCE((
-                SELECT balance FROM balances WHERE wallet = wallets.id
+                SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
             SUM((
-                SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+                SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
             )) as transaction_count,
             (
                 SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
             ) as wallet_count,
             MAX((
                 SELECT time FROM apipayments
-                WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
+                WHERE wallet_id = wallets.id ORDER BY time DESC LIMIT 1
             )) as last_payment
             FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
         """,
@@ -488,7 +488,7 @@ async def delete_unused_wallets(
         """
         DELETE FROM wallets
         WHERE (
-            SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+            SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
         ) = 0 AND (
             (updated_at is null AND created_at < :delta)
             OR updated_at < :delta
@@ -557,9 +557,9 @@ async def get_standalone_payment(
     incoming: Optional[bool] = False,
     wallet_id: Optional[str] = None,
 ) -> Optional[Payment]:
-    clause: str = "checking_id = :checking_id OR hash = :hash"
+    clause: str = "checking_id = :checking_id OR payment_hash = :hash"
     values = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
         "checking_id": checking_id_or_hash,
         "hash": checking_id_or_hash,
     }
@@ -567,7 +567,7 @@ async def get_standalone_payment(
         clause = f"({clause}) AND amount > 0"
 
     if wallet_id:
-        clause = f"({clause}) AND wallet = :wallet"
+        clause = f"({clause}) AND wallet_id = :wallet_id"
 
     row = await (conn or db).fetchone(
         f"""
@@ -588,7 +588,7 @@ async def get_wallet_payment(
         """
         SELECT *
         FROM apipayments
-        WHERE wallet = :wallet AND hash = :hash
+        WHERE wallet_id = :wallet AND payment_hash = :hash
         """,
         {"wallet": wallet_id, "hash": payment_hash},
         Payment,
@@ -629,7 +629,7 @@ async def get_payments_paginated(
     """
 
     values: dict = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
         "time": since,
     }
     clause: list[str] = []
@@ -638,7 +638,7 @@ async def get_payments_paginated(
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
-        clause.append("wallet = :wallet")
+        clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
         pass
@@ -756,13 +756,13 @@ async def create_payment(
     await (conn or db).execute(
         f"""
         INSERT INTO apipayments
-          (wallet, checking_id, bolt11, hash, preimage,
+          (wallet_id, checking_id, bolt11, payment_hash, preimage,
            amount, status, memo, fee, extra, webhook, expiry, pending)
-          VALUES (:wallet, :checking_id, :bolt11, :hash, :preimage,
+          VALUES (:wallet_id, :checking_id, :bolt11, :hash, :preimage,
            :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph}, :pending)
         """,
         {
-            "wallet": data.wallet_id,
+            "wallet_id": data.wallet_id,
             "checking_id": checking_id,
             "bolt11": data.payment_request,
             "hash": data.payment_hash,
@@ -848,7 +848,9 @@ async def update_payment_extra(
     amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
 
     row: dict = await (conn or db).fetchone(
-        f"SELECT hash, extra from apipayments WHERE hash = :hash {amount_clause}",
+        f"""
+        SELECT payment_hash, extra from apipayments WHERE hash = :hash {amount_clause}
+        """,
         {"hash": payment_hash},
     )
     if not row:
@@ -857,7 +859,9 @@ async def update_payment_extra(
     db_extra.update(extra)
 
     await (conn or db).execute(
-        f"UPDATE apipayments SET extra = :extra WHERE hash = :hash {amount_clause} ",
+        f"""
+        UPDATE apipayments SET extra = :extra WHERE payment_hash = :hash {amount_clause}
+        """,
         {"extra": json.dumps(db_extra), "hash": payment_hash},
     )
 
@@ -946,7 +950,7 @@ async def check_internal(
     row: dict = await (conn or db).fetchone(
         f"""
         SELECT checking_id FROM apipayments
-        WHERE hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
         """,
         {"hash": payment_hash},
     )
@@ -966,7 +970,7 @@ async def check_internal_pending(
     row: dict = await (conn or db).fetchone(
         """
         SELECT status FROM apipayments
-        WHERE hash = :hash AND amount > 0
+        WHERE payment_hash = :hash AND amount > 0
         """,
         {"hash": payment_hash},
     )
@@ -979,7 +983,7 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
     await db.execute(
         """
         UPDATE apipayments SET webhook_status = :status
-        WHERE hash = :hash
+        WHERE payment_hash = :hash
         """,
         {"status": status, "hash": payment_hash},
     )
