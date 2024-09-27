@@ -314,12 +314,12 @@ async def delete_installed_extension(
 
 
 async def drop_extension_db(ext_id: str, conn: Optional[Connection] = None) -> None:
-    db_version = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         "SELECT * FROM dbversions WHERE db = :id",
         {"id": ext_id},
     )
     # Check that 'ext_id' is a valid extension id and not a malicious string
-    assert db_version, f"Extension '{ext_id}' db version cannot be found"
+    assert row, f"Extension '{ext_id}' db version cannot be found"
 
     is_file_based_db = await Database.clean_ext_db_files(ext_id)
     if is_file_based_db:
@@ -537,15 +537,14 @@ async def delete_unused_wallets(
 async def get_wallet(
     wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    row = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
         AS balance_msat FROM wallets WHERE id = :wallet
         """,
         {"wallet": wallet_id},
+        Wallet,
     )
-
-    return Wallet(**row) if row else None
 
 
 async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> list[Wallet]:
@@ -865,6 +864,7 @@ async def update_payment_details(
     )
 
 
+# TODO: should not be needed use update_payment instead
 async def update_payment_extra(
     payment_hash: str,
     extra: dict,
@@ -879,7 +879,7 @@ async def update_payment_extra(
 
     amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
 
-    row = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         f"SELECT hash, extra from apipayments WHERE hash = :hash {amount_clause}",
         {"hash": payment_hash},
     )
@@ -921,7 +921,7 @@ async def get_payments_history(
         "wallet": wallet_id,
     }
     where = [f"wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"]
-    transactions = await db.fetchall(
+    transactions: list[dict] = await db.fetchall(
         f"""
         SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
@@ -975,7 +975,7 @@ async def check_internal(
     Returns the checking_id of the internal payment if it exists,
     otherwise None
     """
-    row = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         f"""
         SELECT checking_id FROM apipayments
         WHERE hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
@@ -995,7 +995,7 @@ async def check_internal_pending(
     Returns False if the internal payment is not pending anymore
     (and thus paid), otherwise True
     """
-    row = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         """
         SELECT status FROM apipayments
         WHERE hash = :hash AND amount > 0
@@ -1022,7 +1022,7 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
 
 
 async def get_super_settings() -> Optional[SuperSettings]:
-    row = await db.fetchone("SELECT * FROM settings")
+    row: dict = await db.fetchone("SELECT * FROM settings")
     if not row:
         return None
     editable_settings = json.loads(row["editable_settings"])
@@ -1050,7 +1050,7 @@ async def delete_admin_settings() -> None:
 
 
 async def update_admin_settings(data: EditableSettings) -> None:
-    row = await db.fetchone("SELECT editable_settings FROM settings")
+    row: dict = await db.fetchone("SELECT editable_settings FROM settings")
     editable_settings = json.loads(row["editable_settings"]) if row else {}
     editable_settings.update(data.dict(exclude_unset=True))
     await db.execute(
@@ -1084,9 +1084,12 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 
 # db versions
 # --------------
-async def get_dbversions(conn: Optional[Connection] = None):
-    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
-    return {row["db"]: row["version"] for row in rows}
+async def get_dbversions(conn: Optional[Connection] = None) -> dict:
+    result = await (conn or db).execute("SELECT db, version FROM dbversions")
+    _dict = {}
+    for row in result.mappings().all():
+        _dict[row["db"]] = row["version"]
+    return _dict
 
 
 async def update_migration_version(conn, db_name, version):

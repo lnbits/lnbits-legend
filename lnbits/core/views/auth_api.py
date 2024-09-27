@@ -246,6 +246,17 @@ async def update_password(
             status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
         )
 
+    # old accounts do not have a pasword
+    if account.password_hash:
+        if not data.password_old:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Missing old password."
+            )
+        if not account.verify_password(data.password_old):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Invalid credentials."
+            )
+
     account.username = data.username
     account.hash_password(data.password)
     await update_account(account)
