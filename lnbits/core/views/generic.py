@@ -12,7 +12,7 @@ from lnurl import decode as lnurl_decode
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.extensions.models import Extension, InstallableExtension
+from lnbits.core.extensions.models import Extension, ExtensionMeta, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice
@@ -88,13 +88,21 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 
         for e in installable_exts:
             installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
-            if installed_ext:
-                e.installed_release = installed_ext.installed_release
-                if installed_ext.pay_to_enable and not user.admin:
+            if installed_ext and installed_ext.meta:
+                installed_release = installed_ext.meta.installed_release
+                if installed_ext.meta.pay_to_enable and not user.admin:
                     # not a security leak, but better not to share the wallet id
-                    installed_ext.pay_to_enable.wallet = None
-                e.pay_to_enable = installed_ext.pay_to_enable
+                    installed_ext.meta.pay_to_enable.wallet = None
+                pay_to_enable = installed_ext.meta.pay_to_enable
 
+                if e.meta:
+                    e.meta.installed_release = installed_release
+                    e.meta.pay_to_enable = pay_to_enable
+                else:
+                    e.meta = ExtensionMeta(
+                        installed_release=installed_release,
+                        pay_to_enable=pay_to_enable,
+                    )
                 # use the installed extension values
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
@@ -119,7 +127,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                 "shortDescription": ext.short_description,
                 "stars": ext.stars,
                 "isFeatured": ext.featured,
-                "dependencies": ext.dependencies,
+                "dependencies": ext.meta.dependencies if ext.meta else "",
                 "isInstalled": ext.id in installed_exts_ids,
                 "hasDatabaseTables": ext.id in db_version,
                 "isAvailable": ext.id in all_ext_ids,
@@ -129,9 +137,15 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                     dict(ext.latest_release) if ext.latest_release else None
                 ),
                 "installedRelease": (
-                    dict(ext.installed_release) if ext.installed_release else None
+                    dict(ext.meta.installed_release)
+                    if ext.meta and ext.meta.installed_release
+                    else None
                 ),
-                "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
+                "payToEnable": (
+                    dict(ext.meta.pay_to_enable)
+                    if ext.meta and ext.meta.pay_to_enable
+                    else {}
+                ),
                 "isPaymentRequired": ext.requires_payment,
             }
             for ext in installable_exts

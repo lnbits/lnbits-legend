@@ -541,8 +541,6 @@ async def m021_add_success_failed_to_apipayments(db):
         GROUP BY apipayments.wallet
     """
     )
-    # TODO: drop column in next release
-    # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
 
 
 async def m022_add_pubkey_to_accounts(db):
@@ -559,6 +557,7 @@ async def m023_add_column_column_to_apipayments(db):
     """
     renames hash to payment_hash and drops unused index
     """
+    await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
     await db.execute("DROP INDEX by_hash")
     await db.execute("ALTER TABLE apipayments RENAME COLUMN hash TO payment_hash")
     await db.execute("ALTER TABLE apipayments RENAME COLUMN wallet TO wallet_id")
