@@ -16,14 +16,14 @@
       <q-item dense class="q-pa-none">
         <q-item-section>
           <q-item-label>
-            <strong>Wallet ID: </strong><em>{{ wallet.id }}</em>
+            <strong>Wallet ID: </strong><em v-text="wallet.id"></em>
           </q-item-label>
         </q-item-section>
         <q-item-section side>
           <q-icon
             name="content_copy"
             class="cursor-pointer"
-            @click="copyText('{{ wallet.id }}')"
+            @click="copyText(wallet.id)"
           ></q-icon>
         </q-item-section>
       </q-item>
@@ -32,7 +32,7 @@
           <q-item-label>
             <strong>Admin key: </strong
             ><em
-              v-text="adminkeyHidden ? '****************' : `{{ wallet.adminkey }}`"
+              v-text="adminkeyHidden ? '****************' : wallet.adminkey"
             ></em>
           </q-item-label>
         </q-item-section>
@@ -55,9 +55,7 @@
         <q-item-section>
           <q-item-label>
             <strong>Invoice/read key: </strong
-            ><em
-              v-text="inkeyHidden ? '****************' : `{{ wallet.inkey }}`"
-            ></em>
+            ><em v-text="inkeyHidden ? '****************' : wallet.inkey"></em>
           </q-item-label>
         </q-item-section>
         <q-item-section side>
@@ -70,7 +68,7 @@
             <q-icon
               name="content_copy"
               class="cursor-pointer q-ml-sm"
-              @click="copyText('{{ wallet.inkey }}')"
+              @click="copyText(wallet.inkey)"
             ></q-icon>
           </div>
         </q-item-section>
