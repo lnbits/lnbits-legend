@@ -46,6 +46,7 @@ class Wallet(BaseModel):
     deleted: bool = False
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
+    balance_msat: int = 0
 
     @property
     def balance(self) -> int:
