@@ -699,13 +699,9 @@
                     ></lnbits-payment-details>
                     <div v-if="props.row.bolt11" class="text-center q-mb-lg">
                       <a :href="'lightning:' + props.row.bolt11">
-                        <q-responsive :ratio="1" class="q-mx-xl">
-                          <lnbits-qrcode
-                            :value="
-                              'lightning:' + props.row.bolt11.toUpperCase()
-                            "
-                          ></lnbits-qrcode>
-                        </q-responsive>
+                        <lnbits-qrcode
+                          :value="'lightning:' + props.row.bolt11.toUpperCase()"
+                        ></lnbits-qrcode>
                       </a>
                     </div>
                     <div class="row q-mt-lg">

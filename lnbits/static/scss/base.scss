@@ -207,23 +207,24 @@ video {
 }
 
 // qrcode
-.qrcode__wrapper canvas {
+.qrcode__wrapper {
   position: relative;
-  width: 100% !important; // important to override qrcode inline width
-  max-width: 100%;
-  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
+.qrcode__wrapper canvas {
+  width: 100% !important; // important to override qrcode inline width
+  height: 100% !important;
+  max-width: 350px; // default width of <lnbits-qrcode> component
+}
 .qrcode__image {
+  position: absolute;
+  max-width: 52px;
   width: 15%;
-  height: 15%;
   overflow: hidden;
   background: #fff;
-  left: 50%;
   overflow: hidden;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
   padding: 0.2rem;
   border-radius: 0.2rem;
 }

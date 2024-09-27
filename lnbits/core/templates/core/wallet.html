@@ -153,10 +153,7 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <qrcode-vue
-                        :value="'{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                        :options="{ width: 256 }"
-                      ></qrcode-vue>
+                      <lnbits-qrcode :value="exportUrl"></lnbits-qrcode>
                     </q-card-section>
                     <q-card-actions class="flex-center q-pb-md">
                       <q-btn
@@ -369,11 +366,9 @@
         >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <lnbits-qrcode
-                  :value="'lightning:' + receive.paymentReq.toUpperCase()"
-                ></lnbits-qrcode>
-              </q-responsive>
+              <lnbits-qrcode
+                :value="'lightning:' + receive.paymentReq.toUpperCase()"
+              ></lnbits-qrcode>
             </a>
           </div>
           <div class="row q-mt-lg">
