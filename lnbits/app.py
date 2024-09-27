@@ -6,7 +6,7 @@ import shutil
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,12 +17,10 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
-    add_installed_extension,
     get_dbversions,
     get_installed_extensions,
-    update_installed_extension_state,
+    update_installed_extension,
 )
-from lnbits.core.extensions.extension_manager import deactivate_extension
 from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
@@ -47,7 +45,7 @@ from lnbits.wallets import get_funding_source, set_funding_source
 from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
-from .core.extensions.models import Extension, InstallableExtension
+from .core.extensions.models import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
 from .middleware import (
     CustomGZipMiddleware,
@@ -240,7 +238,9 @@ async def check_installed_extensions(app: FastAPI):
                 )
         except Exception as e:
             logger.warning(e)
-            await deactivate_extension(ext.id)
+            settings.deactivate_extension_paths(ext.id)
+            ext.active = False
+            await update_installed_extension(ext)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
@@ -252,7 +252,7 @@ async def check_installed_extensions(app: FastAPI):
 
 async def build_all_installed_extensions_list(
     include_deactivated: Optional[bool] = True,
-) -> List[InstallableExtension]:
+) -> list[InstallableExtension]:
     """
     Returns a list of all the installed extensions plus the extensions that
     MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
@@ -272,8 +272,13 @@ async def build_all_installed_extensions_list(
         release = next((e for e in ext_releases if e.is_version_compatible), None)
 
         if release:
+            ext_meta = ExtensionMeta(installed_release=release)
             ext_info = InstallableExtension(
-                id=ext_id, name=ext_id, installed_release=release, icon=release.icon
+                id=ext_id,
+                name=ext_id,
+                version=release.version,
+                icon=release.icon,
+                meta=ext_meta,
             )
             installed_extensions.append(ext_info)
 
@@ -304,8 +309,8 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
 
 async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
-    await add_installed_extension(ext)
-    await update_installed_extension_state(ext_id=ext.id, active=True)
+    ext.active = True
+    await update_installed_extension(ext)
 
     extension = Extension.from_installable_ext(ext)
     register_ext_routes(app, extension)

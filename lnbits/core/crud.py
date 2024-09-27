@@ -9,7 +9,6 @@ import shortuuid
 from lnbits.core.db import db
 from lnbits.core.extensions.models import (
     InstallableExtension,
-    PayToEnableInfo,
     UserExtension,
 )
 from lnbits.core.models import PaymentState
@@ -242,42 +241,18 @@ async def get_user(account: Account, conn: Optional[Connection] = None) -> User:
 # -------
 
 
-async def add_installed_extension(
+async def create_installed_extension(
     ext: InstallableExtension,
     conn: Optional[Connection] = None,
 ) -> None:
-    meta = {
-        "installed_release": (
-            dict(ext.installed_release) if ext.installed_release else None
-        ),
-        "pay_to_enable": (dict(ext.pay_to_enable) if ext.pay_to_enable else None),
-        "dependencies": ext.dependencies,
-        "payments": [dict(p) for p in ext.payments] if ext.payments else None,
-    }
+    await (conn or db).insert("installed_extensions", ext)
 
-    version = ext.installed_release.version if ext.installed_release else ""
 
-    await (conn or db).execute(
-        """
-        INSERT INTO installed_extensions
-        (id, version, name, active, short_description, icon, stars, meta)
-        VALUES
-        (:ext, :version, :name, :active, :short_description, :icon, :stars, :meta)
-        ON CONFLICT (id) DO UPDATE SET
-        (version, name, active, short_description, icon, stars, meta) =
-        (:version, :name, :active, :short_description, :icon, :stars, :meta)
-        """,
-        {
-            "ext": ext.id,
-            "version": version,
-            "name": ext.name,
-            "active": ext.active,
-            "short_description": ext.short_description,
-            "icon": ext.icon,
-            "stars": ext.stars,
-            "meta": json.dumps(meta),
-        },
-    )
+async def update_installed_extension(
+    ext: InstallableExtension,
+    conn: Optional[Connection] = None,
+) -> None:
+    await (conn or db).update("installed_extensions", ext)
 
 
 async def update_installed_extension_state(
@@ -289,17 +264,6 @@ async def update_installed_extension_state(
         """,
         {"ext": ext_id, "active": active},
     )
-
-
-async def update_extension_pay_to_enable(
-    ext_id: str, payment_info: PayToEnableInfo, conn: Optional[Connection] = None
-) -> None:
-    ext = await get_installed_extension(ext_id, conn)
-    if not ext:
-        return
-    ext.pay_to_enable = payment_info
-
-    await add_installed_extension(ext, conn)
 
 
 async def delete_installed_extension(

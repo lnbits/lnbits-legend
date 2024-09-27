@@ -3,14 +3,13 @@ import importlib
 
 from loguru import logger
 
+from lnbits.core import core_app_extra
 from lnbits.core.crud import (
-    add_installed_extension,
     delete_installed_extension,
     get_dbversions,
     get_installed_extension,
     update_installed_extension_state,
 )
-from lnbits.core.db import core_app_extra
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.settings import settings
 
@@ -18,22 +17,24 @@ from .models import Extension, InstallableExtension
 
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:
+    ext_id = ext_info.id
     extension = Extension.from_installable_ext(ext_info)
-    installed_ext = await get_installed_extension(ext_info.id)
+    installed_ext = await get_installed_extension(ext_id)
     ext_info.payments = installed_ext.payments if installed_ext else []
 
     await ext_info.download_archive()
 
     ext_info.extract_archive()
 
-    db_version = (await get_dbversions()).get(ext_info.id, 0)
+    db_version = (await get_dbversions()).get(ext_id, 0)
     await migrate_extension_database(extension, db_version)
 
-    await add_installed_extension(ext_info)
+    # TODO: think about add installed
+    # await add_installed_extension(ext_info)
 
     if extension.is_upgrade_extension:
         # call stop while the old routes are still active
-        await stop_extension_background_work(ext_info.id)
+        await stop_extension_background_work(ext_id)
 
     return extension
 

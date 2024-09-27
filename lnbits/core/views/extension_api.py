@@ -18,6 +18,7 @@ from lnbits.core.extensions.models import (
     CreateExtension,
     Extension,
     ExtensionConfig,
+    ExtensionMeta,
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
@@ -43,7 +44,7 @@ from ..crud import (
     get_installed_extension,
     get_installed_extensions,
     get_user_extension,
-    update_extension_pay_to_enable,
+    update_installed_extension,
     update_user_extension,
 )
 
@@ -69,8 +70,13 @@ async def api_install_extension(data: CreateExtension):
         )
 
     release.payment_hash = data.payment_hash
+    ext_meta = ExtensionMeta(installed_release=release)
     ext_info = InstallableExtension(
-        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
+        id=data.ext_id,
+        name=data.ext_id,
+        version=data.version,
+        meta=ext_meta,
+        icon=release.icon,
     )
 
     try:
@@ -142,22 +148,21 @@ async def api_update_pay_to_enable(
     data: PayToEnableInfo,
     user: User = Depends(check_admin),
 ) -> SimpleStatus:
-    try:
-        assert (
-            data.wallet in user.wallet_ids
-        ), "Wallet does not belong to this admin user."
-        await update_extension_pay_to_enable(ext_id, data)
-        return SimpleStatus(
-            success=True, message=f"Payment info updated for '{ext_id}' extension."
-        )
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    except Exception as exc:
-        logger.warning(exc)
+    if data.wallet not in user.wallet_ids:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=(f"Failed to update pay to install data for extension '{ext_id}' "),
-        ) from exc
+            HTTPStatus.BAD_REQUEST, "Wallet does not belong to this admin user."
+        )
+    extension = await get_installed_extension(ext_id)
+    if not extension:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' not found.")
+    if extension.meta:
+        extension.meta.pay_to_enable = data
+    else:
+        extension.meta = ExtensionMeta(pay_to_enable=data)
+    await update_installed_extension(extension)
+    return SimpleStatus(
+        success=True, message=f"Payment info updated for '{ext_id}' extension."
+    )
 
 
 @extension_router.put("/{ext_id}/enable")
@@ -197,11 +202,11 @@ async def api_enable_extension(
             )
 
         assert (
-            ext.pay_to_enable and ext.pay_to_enable.wallet
+            ext.meta and ext.meta.pay_to_enable and ext.meta.pay_to_enable.wallet
         ), f"Extension '{ext_id}' is missing payment wallet."
 
         payment_status = await check_transaction_status(
-            wallet_id=ext.pay_to_enable.wallet,
+            wallet_id=ext.meta.pay_to_enable.wallet,
             payment_hash=user_ext.extra.payment_hash_to_enable,
         )
 
@@ -300,7 +305,11 @@ async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
         installed_ext = next(
             (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
-        if installed_ext and ext_id in installed_ext.dependencies:
+        if (
+            installed_ext
+            and installed_ext.meta
+            and ext_id in installed_ext.meta.dependencies
+        ):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=(
@@ -399,35 +408,35 @@ async def get_pay_to_enable_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Extension '{ext_id}' not found."
         )
 
-    if not ext.pay_to_enable:
+    if not ext.meta or not ext.meta.pay_to_enable:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Payment info not found for extension '{ext_id}'.",
         )
 
-    if not ext.pay_to_enable.required:
+    if not ext.meta.pay_to_enable.required:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Payment not required for extension '{ext_id}'.",
         )
 
-    if not ext.pay_to_enable.wallet or not ext.pay_to_enable.amount:
+    if not ext.meta.pay_to_enable.wallet or not ext.meta.pay_to_enable.amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Payment wallet or amount missing for extension '{ext_id}'.",
         )
 
-    if data.amount < ext.pay_to_enable.amount:
+    if data.amount < ext.meta.pay_to_enable.amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=(
                 f"Amount {data.amount} sats is less than required "
-                f"{ext.pay_to_enable.amount} sats."
+                f"{ext.meta.pay_to_enable.amount} sats."
             ),
         )
 
     payment_hash, payment_request = await create_invoice(
-        wallet_id=ext.pay_to_enable.wallet,
+        wallet_id=ext.meta.pay_to_enable.wallet,
         amount=data.amount,
         memo=f"Enable '{ext.name}' extension.",
     )

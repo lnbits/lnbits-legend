@@ -373,29 +373,37 @@ class ExtensionRelease(BaseModel):
             return None
 
 
+class ExtensionMeta(BaseModel):
+    installed_release: Optional[ExtensionRelease] = None
+    pay_to_enable: Optional[PayToEnableInfo] = None
+    payments: list[ReleasePaymentInfo] = []
+    dependencies: list[str] = []
+
+
 class InstallableExtension(BaseModel):
     id: str
     name: str
+    version: str
     active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
-    dependencies: list[str] = []
-    is_admin_only: bool = False
     stars: int = 0
     featured = False
-    latest_release: Optional[ExtensionRelease] = None
-    installed_release: Optional[ExtensionRelease] = None
-    payments: list[ReleasePaymentInfo] = []
-    pay_to_enable: Optional[PayToEnableInfo] = None
     archive: Optional[str] = None
+    latest_release: Optional[ExtensionRelease] = None
+    meta: Optional[ExtensionMeta] = None
+
+    @property
+    def is_admin_only(self) -> bool:
+        return self.id in settings.lnbits_admin_extensions
 
     @property
     def hash(self) -> str:
-        if self.installed_release:
-            if self.installed_release.hash:
-                return self.installed_release.hash
+        if self.meta and self.meta.installed_release:
+            if self.meta.installed_release.hash:
+                return self.meta.installed_release.hash
             m = hashlib.sha256()
-            m.update(f"{self.installed_release.archive}".encode())
+            m.update(f"{self.meta.installed_release.archive}".encode())
             return m.hexdigest()
         return "not-installed"
 
@@ -433,15 +441,15 @@ class InstallableExtension(BaseModel):
 
     @property
     def installed_version(self) -> str:
-        if self.installed_release:
-            return self.installed_release.version
+        if self.meta and self.meta.installed_release:
+            return self.meta.installed_release.version
         return ""
 
     @property
     def requires_payment(self) -> bool:
-        if not self.pay_to_enable:
+        if not self.meta or not self.meta.pay_to_enable:
             return False
-        return self.pay_to_enable.required is True
+        return self.meta.pay_to_enable.required is True
 
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
@@ -449,12 +457,14 @@ class InstallableExtension(BaseModel):
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
-            assert self.installed_release, "installed_release is none."
+            assert (
+                self.meta and self.meta.installed_release
+            ), "installed_release is none."
 
             self._restore_payment_info()
 
             await asyncio.to_thread(
-                download_url, self.installed_release.archive_url, ext_zip_file
+                download_url, self.meta.installed_release.archive_url, ext_zip_file
             )
 
             self._remember_payment_info()
@@ -464,7 +474,11 @@ class InstallableExtension(BaseModel):
             raise AssertionError("Cannot fetch extension archive file") from exc
 
         archive_hash = file_hash(ext_zip_file)
-        if self.installed_release.hash and self.installed_release.hash != archive_hash:
+        if (
+            self.meta
+            and self.meta.installed_release.hash
+            and self.meta.installed_release.hash != archive_hash
+        ):
             # remove downloaded archive
             if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
@@ -498,12 +512,13 @@ class InstallableExtension(BaseModel):
             self.short_description = config_json.get("short_description")
 
             if (
-                self.installed_release
-                and self.installed_release.is_github_release
+                self.meta
+                and self.meta.installed_release
+                and self.meta.installed_release.is_github_release
                 and config_json.get("tile")
             ):
                 self.icon = icon_to_github_url(
-                    self.installed_release.source_repo, config_json.get("tile")
+                    self.meta.installed_release.source_repo, config_json.get("tile")
                 )
 
         shutil.rmtree(self.ext_dir, True)
@@ -540,47 +555,33 @@ class InstallableExtension(BaseModel):
         )
 
     def _restore_payment_info(self):
-        if not self.installed_release:
+        if (
+            not self.meta
+            or not self.meta.installed_release
+            or not self.meta.installed_release.pay_link
+            or not self.meta.installed_release.payment_hash
+        ):
             return
-        if not self.installed_release.pay_link:
-            return
-        if self.installed_release.payment_hash:
-            return
-        payment_info = self.find_existing_payment(self.installed_release.pay_link)
+        payment_info = self.find_existing_payment(self.meta.installed_release.pay_link)
         if payment_info:
-            self.installed_release.payment_hash = payment_info.payment_hash
+            self.meta.installed_release.payment_hash = payment_info.payment_hash
 
     def _remember_payment_info(self):
-        if not self.installed_release or not self.installed_release.pay_link:
+        if (
+            not self.meta
+            or not self.meta.installed_release
+            or not self.meta.installed_release.pay_link
+        ):
             return
         payment_info = ReleasePaymentInfo(
-            amount=self.installed_release.cost_sats,
-            pay_link=self.installed_release.pay_link,
-            payment_hash=self.installed_release.payment_hash,
+            amount=self.meta.installed_release.cost_sats,
+            pay_link=self.meta.installed_release.pay_link,
+            payment_hash=self.meta.installed_release.payment_hash,
         )
         self.payments = [
             p for p in self.payments if p.pay_link != payment_info.pay_link
         ]
         self.payments.append(payment_info)
-
-    @classmethod
-    def from_row(cls, data: dict) -> InstallableExtension:
-        meta = json.loads(data["meta"])
-        ext = InstallableExtension(**data)
-        if "installed_release" in meta:
-            ext.installed_release = ExtensionRelease(**meta["installed_release"])
-        if meta.get("pay_to_enable"):
-            ext.pay_to_enable = PayToEnableInfo(**meta["pay_to_enable"])
-        if meta.get("payments"):
-            ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]
-
-        return ext
-
-    @classmethod
-    def from_rows(cls, rows: Optional[list[Any]] = None) -> list[InstallableExtension]:
-        if rows is None:
-            rows = []
-        return [InstallableExtension.from_row(row) for row in rows]
 
     @classmethod
     async def from_github_release(
@@ -594,6 +595,7 @@ class InstallableExtension(BaseModel):
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
+                version=latest_release.tag_name,
                 short_description=config.short_description,
                 stars=int(repo.stargazers_count),
                 icon=icon_to_github_url(
@@ -610,13 +612,15 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     def from_explicit_release(cls, e: ExplicitRelease) -> InstallableExtension:
+        meta = ExtensionMeta(dependencies=e.dependencies)
         return InstallableExtension(
             id=e.id,
             name=e.name,
+            version=e.version,
             archive=e.archive,
             short_description=e.short_description,
             icon=e.icon,
-            dependencies=e.dependencies,
+            meta=meta,
         )
 
     @classmethod

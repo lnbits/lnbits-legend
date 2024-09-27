@@ -611,7 +611,7 @@ def model_to_dict(model: BaseModel) -> dict:
     return _dict
 
 
-def dict_to_model(_dict: dict, model: type[TModel]) -> TModel:
+def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     """
     Convert a dictionary with JSON-encoded nested models to a Pydantic model
     :param _dict: Dictionary from database
@@ -619,9 +619,10 @@ def dict_to_model(_dict: dict, model: type[TModel]) -> TModel:
     """
     # TODO: no recursion, maybe make them recursive?
     # TODO: check why keys are sometimes not in the dict
-    for key, value in _dict.items():
+    _dict = {}
+    for key, value in _row.items():
         if key not in model.__fields__:
-            # logger.warning(f"Converting {key} to model `{model}`.")
+            logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
         if issubclass(type_, BaseModel):
