@@ -19,7 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from lnbits.core.crud import (
     get_dbversions,
     get_installed_extensions,
-    update_installed_extension,
+    update_installed_extension_state,
 )
 from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
@@ -239,8 +239,7 @@ async def check_installed_extensions(app: FastAPI):
         except Exception as e:
             logger.warning(e)
             settings.deactivate_extension_paths(ext.id)
-            ext.active = False
-            await update_installed_extension(ext)
+            await update_installed_extension_state(ext_id=ext.id, active=False)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
@@ -309,8 +308,7 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
 
 async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
-    ext.active = True
-    await update_installed_extension(ext)
+    await update_installed_extension_state(ext_id=ext.id, active=True)
 
     extension = Extension.from_installable_ext(ext)
     register_ext_routes(app, extension)

@@ -41,7 +41,6 @@ class Wallet(BaseModel):
     name: str
     adminkey: str
     inkey: str
-    balance_msat: int
     currency: Optional[str]
     deleted: bool = False
     created_at: Optional[int] = None
