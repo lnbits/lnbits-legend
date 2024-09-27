@@ -125,7 +125,7 @@ class Account(BaseModel):
 
     @property
     def is_admin(self) -> bool:
-        return self.id in settings.lnbits_admin_users
+        return self.id in settings.lnbits_admin_users or self.is_super_user
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""

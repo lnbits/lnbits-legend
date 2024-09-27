@@ -201,6 +201,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = [
     "root_validator",
+    "validator",
 ]
 
 [tool.ruff.lint.mccabe]
