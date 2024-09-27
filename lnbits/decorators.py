@@ -65,7 +65,7 @@ class KeyChecker(SecurityBase):
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
-        self.model: APIKey = openapi_model
+        self.model: APIKey = openapi_model  # type: ignore
 
     async def __call__(self, request: Request) -> WalletTypeInfo:
 
@@ -147,11 +147,8 @@ async def check_user_exists(
     if not account or not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
-    user = await get_user(account.id)
-    assert user, "User not found for account."
-
+    user = await get_user(account)
     await _check_user_extension_access(user.id, r["path"])
-
     return user
 
 

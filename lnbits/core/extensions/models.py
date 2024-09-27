@@ -120,6 +120,7 @@ class UserExtensionInfo(BaseModel):
 
 
 class UserExtension(BaseModel):
+    user: str
     extension: str
     active: bool
     extra: Optional[UserExtensionInfo] = None

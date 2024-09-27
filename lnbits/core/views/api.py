@@ -3,7 +3,6 @@ import json
 from http import HTTPStatus
 from io import BytesIO
 from time import time
-from typing import Dict, List
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -13,8 +12,9 @@ from fastapi import (
     Depends,
 )
 from fastapi.exceptions import HTTPException
-from starlette.responses import StreamingResponse
+from fastapi.responses import StreamingResponse
 
+from lnbits.core.crud import create_account, create_wallet
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
@@ -38,11 +38,7 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from ..services import create_user_account, perform_lnurlauth
-
-# backwards compatibility for extension
-# TODO: remove api_payment and pay_invoice imports from extensions
-from .payment_api import api_payment, pay_invoice  # noqa: F401
+from ..services import perform_lnurlauth
 
 api_router = APIRouter(tags=["Core"])
 
@@ -61,7 +57,7 @@ async def health() -> dict:
     name="Wallets",
     description="Get basic info for all of user's wallets.",
 )
-async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWallet]:
+async def api_wallets(user: User = Depends(check_user_exists)) -> list[BaseWallet]:
     return [BaseWallet(**w.dict()) for w in user.wallets]
 
 
@@ -72,8 +68,9 @@ async def api_create_account(data: CreateWallet) -> Wallet:
             status_code=HTTPStatus.FORBIDDEN,
             detail="Account creation is disabled.",
         )
-    account = await create_user_account(wallet_name=data.name)
-    return account.wallets[0]
+    account = await create_account()
+    wallet = await create_wallet(user_id=account.id, wallet_name=data.name)
+    return wallet
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
@@ -101,7 +98,7 @@ async def api_lnurlscan(
             ) from exc
 
     # params is what will be returned to the client
-    params: Dict = {"domain": domain}
+    params: dict = {"domain": domain}
 
     if "tag=login" in url:
         params.update(kind="auth")
@@ -150,7 +147,7 @@ async def api_lnurlscan(
 
                 # callback with k1 already in it
                 parsed_callback: ParseResult = urlparse(data["callback"])
-                qs: Dict = parse_qs(parsed_callback.query)
+                qs: dict = parse_qs(parsed_callback.query)
                 qs["k1"] = data["k1"]
 
                 # balanceCheck/balanceNotify
@@ -207,13 +204,13 @@ async def api_perform_lnurlauth(
 
 
 @api_router.get("/api/v1/rate/{currency}")
-async def api_check_fiat_rate(currency: str) -> Dict[str, float]:
+async def api_check_fiat_rate(currency: str) -> dict[str, float]:
     rate = await get_fiat_rate_satoshis(currency)
     return {"rate": rate}
 
 
 @api_router.get("/api/v1/currencies")
-async def api_list_currencies_available() -> List[str]:
+async def api_list_currencies_available() -> list[str]:
     return allowed_currencies()
 
 

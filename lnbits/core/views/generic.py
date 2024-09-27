@@ -25,9 +25,11 @@ from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
     create_wallet,
+    get_account,
     get_dbversions,
     get_installed_extensions,
     get_user,
+    get_wallet,
 )
 
 generic_router = APIRouter(
@@ -136,7 +138,8 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         ]
 
         # refresh user state. Eg: enabled extensions.
-        user = await get_user(user.id) or user
+        # TODO: refactor
+        # user = await get_user(user.id) or user
 
         return template_renderer().TemplateResponse(
             request,
@@ -165,18 +168,16 @@ async def wallet(
     wal: Optional[UUID4] = Query(None),
 ):
     if wal:
-        wallet_id = wal.hex
+        wallet = await get_wallet(wal.hex)
     elif len(user.wallets) == 0:
         wallet = await create_wallet(user_id=user.id)
-        user = await get_user(user_id=user.id) or user
-        wallet_id = wallet.id
+        user.wallets.append(wallet)
     elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
-        wallet_id = lnbits_last_active_wallet
+        wallet = await get_wallet(lnbits_last_active_wallet)
     else:
-        wallet_id = user.wallets[0].id
+        wallet = user.wallets[0]
 
-    user_wallet = user.get_wallet(wallet_id)
-    if not user_wallet or user_wallet.deleted:
+    if not wallet or wallet.deleted:
         return template_renderer().TemplateResponse(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
@@ -186,14 +187,14 @@ async def wallet(
         "core/wallet.html",
         {
             "user": user.dict(),
-            "wallet": user_wallet.dict(),
+            "wallet": wallet.dict(),
             "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
-    resp.set_cookie("lnbits_last_active_wallet", wallet_id)
+    resp.set_cookie("lnbits_last_active_wallet", wallet.id)
     return resp
 
 
@@ -228,11 +229,10 @@ async def service_worker(request: Request):
 @generic_router.get("/manifest/{usr}.webmanifest")
 async def manifest(request: Request, usr: str):
     host = urlparse(str(request.url)).netloc
-
-    user = await get_user(usr)
-    if not user:
+    account = await get_account(usr)
+    if not account:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
+    user = await get_user(account)
     return {
         "short_name": settings.lnbits_site_title,
         "name": settings.lnbits_site_title + " Wallet",
