@@ -231,8 +231,8 @@ async def get_user(account: Account, conn: Optional[Connection] = None) -> User:
         updated_at=account.updated_at,
         extensions=extensions,
         wallets=wallets,
-        admin=account.is_super_user or account.is_admin or False,
-        super_user=account.is_super_user or False,
+        admin=account.is_admin,
+        super_user=account.is_super_user,
         has_password=account.password_hash is not None,
     )
 
