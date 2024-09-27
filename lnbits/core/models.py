@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import datetime
 import hashlib
 import hmac
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
+from passlib.context import CryptContext
 from pydantic import BaseModel, validator
 
 from lnbits.db import FilterModel
@@ -104,14 +105,37 @@ class UserExtra(BaseModel):
 
 class Account(BaseModel):
     id: str
-    is_super_user: Optional[bool] = False
-    is_admin: Optional[bool] = False
     username: Optional[str] = None
+    password_hash: Optional[str] = None
     email: Optional[str] = None
     balance_msat: Optional[int] = 0
     transaction_count: Optional[int] = 0
     wallet_count: Optional[int] = 0
-    last_payment: Optional[datetime.datetime] = None
+    last_payment: Optional[datetime] = None
+    extra: Optional[UserExtra] = None
+    created_at: datetime = datetime.now()
+    updated_at: datetime = datetime.now()
+
+    @property
+    def is_super_user(self) -> bool:
+        return self.id == settings.super_user
+
+    @property
+    def is_admin(self) -> bool:
+        return self.id in settings.lnbits_admin_users
+
+    def hash_password(self, password: str) -> str:
+        """sets and returns the hashed password"""
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.password_hash = pwd_context.hash(password)
+        return self.password_hash
+
+    def verify_password(self, password: str) -> bool:
+        """returns True if the password matches the hash"""
+        if not self.password_hash:
+            return False
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        return pwd_context.verify(password, self.password_hash)
 
 
 class AccountFilters(FilterModel):
@@ -126,7 +150,7 @@ class AccountFilters(FilterModel):
     ]
 
     id: str
-    last_payment: Optional[datetime.datetime] = None
+    last_payment: Optional[datetime] = None
     transaction_count: Optional[int] = None
     wallet_count: Optional[int] = None
     username: Optional[str] = None
@@ -135,6 +159,8 @@ class AccountFilters(FilterModel):
 
 class User(BaseModel):
     id: str
+    created_at: datetime
+    updated_at: datetime
     email: Optional[str] = None
     username: Optional[str] = None
     pubkey: Optional[str] = None
@@ -144,8 +170,6 @@ class User(BaseModel):
     super_user: bool = False
     has_password: bool = False
     extra: Optional[UserExtra] = None
-    created_at: Optional[int] = None
-    updated_at: Optional[int] = None
 
     @property
     def wallet_ids(self) -> list[str]:
@@ -237,7 +261,7 @@ class CreatePayment(BaseModel):
     amount: int
     memo: str
     preimage: Optional[str] = None
-    expiry: Optional[datetime.datetime] = None
+    expiry: Optional[datetime] = None
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     fee: int = 0
@@ -336,11 +360,11 @@ class PaymentFilters(FilterModel):
     amount: int
     fee: int
     memo: Optional[str]
-    time: datetime.datetime
+    time: datetime
     bolt11: str
     preimage: str
     payment_hash: str
-    expiry: Optional[datetime.datetime]
+    expiry: Optional[datetime]
     extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
@@ -348,7 +372,7 @@ class PaymentFilters(FilterModel):
 
 
 class PaymentHistoryPoint(BaseModel):
-    date: datetime.datetime
+    date: datetime
     income: int
     spending: int
     balance: int

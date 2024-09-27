@@ -1,11 +1,12 @@
 import asyncio
 import json
 import time
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import httpx
 from bolt11 import MilliSatoshi
@@ -13,7 +14,6 @@ from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from loguru import logger
-from passlib.context import CryptContext
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
@@ -52,8 +52,6 @@ from .crud import (
     create_payment,
     create_wallet,
     get_account,
-    get_account_by_email,
-    get_account_by_username,
     get_payments,
     get_standalone_payment,
     get_super_settings,
@@ -64,16 +62,15 @@ from .crud import (
     update_payment_details,
     update_payment_status,
     update_super_user,
-    update_user_extension,
 )
 from .helpers import to_valid_user_id
 from .models import (
+    Account,
     BalanceDelta,
     CreatePayment,
     Payment,
     PaymentState,
-    User,
-    UserConfig,
+    UserExtra,
     Wallet,
 )
 
@@ -762,7 +759,7 @@ async def check_admin_settings():
             send_admin_user_to_saas()
 
         account = await get_account(settings.super_user)
-        if account and account.config and account.config.provider == "env":
+        if account and account.extra and account.extra.provider == "env":
             settings.first_install = True
 
         logger.success(
@@ -809,57 +806,26 @@ def update_cached_settings(sets_dict: dict):
 
 
 async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
+    async def new_account(account_id: str) -> Account:
+        now = datetime.now()
+        account = Account(
+            id=account_id,
+            extra=UserExtra(provider="env"),
+            created_at=now,
+            updated_at=now,
+        )
+        await create_account(account)
+        return account
+
     account = None
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await create_account(
-            user_id=super_user, user_config=UserConfig(provider="env")
-        )
-    if not account.wallets or len(account.wallets) == 0:
+        account = await new_account(super_user or uuid4().hex)
         await create_wallet(user_id=account.id)
 
     editable_settings = EditableSettings.from_dict(settings.dict())
-
     return await create_admin_settings(account.id, editable_settings.dict())
-
-
-async def create_user_account(
-    user_id: Optional[str] = None,
-    email: Optional[str] = None,
-    username: Optional[str] = None,
-    pubkey: Optional[str] = None,
-    password: Optional[str] = None,
-    wallet_name: Optional[str] = None,
-    user_config: Optional[UserConfig] = None,
-) -> User:
-    if not settings.new_accounts_allowed:
-        raise ValueError("Account creation is disabled.")
-    if username and await get_account_by_username(username):
-        raise ValueError("Username already exists.")
-
-    if email and await get_account_by_email(email):
-        raise ValueError("Email already exists.")
-
-    if user_id:
-        user_uuid4 = UUID(hex=user_id, version=4)
-        assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
-    else:
-        user_id = uuid4().hex
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    password = pwd_context.hash(password) if password else None
-
-    account = await create_account(
-        user_id, username, pubkey, email, password, user_config
-    )
-    wallet = await create_wallet(user_id=account.id, wallet_name=wallet_name)
-    account.wallets = [wallet]
-
-    for ext_id in settings.lnbits_user_default_extensions:
-        await update_user_extension(user_id=account.id, extension=ext_id, active=True)
-
-    return account
 
 
 class WebsocketConnectionManager:

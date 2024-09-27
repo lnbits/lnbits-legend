@@ -17,6 +17,7 @@ from lnbits.core.crud import (
     create_account,
     create_wallet,
     get_account_by_username,
+    get_account,
     get_user,
     update_payment_status,
 )
@@ -148,7 +149,9 @@ def from_super_user(from_user):
 
 @pytest_asyncio.fixture(scope="session")
 async def superuser():
-    user = await get_user(settings.super_user)
+    account = await get_account(settings.super_user)
+    assert account, "Superuser not found"
+    user = await get_user(account)
     yield user
 
 

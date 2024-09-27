@@ -41,17 +41,7 @@ users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_adm
 async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
 ) -> Page[Account]:
-    try:
-        filtered = await get_accounts(filters=filters)
-        for user in filtered.data:
-            user.is_super_user = user.id == settings.super_user
-            user.is_admin = user.id in settings.lnbits_admin_users or user.is_super_user
-        return filtered
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Could not fetch users. {exc!s}",
-        ) from exc
+    return await get_accounts(filters=filters)
 
 
 @users_router.delete("/user/{user_id}", status_code=HTTPStatus.OK)
