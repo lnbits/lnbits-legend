@@ -619,7 +619,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     """
     # TODO: no recursion, maybe make them recursive?
     # TODO: check why keys are sometimes not in the dict
-    _dict = {}
+    _dict: dict = {}
     for key, value in _row.items():
         if key not in model.__fields__:
             logger.warning(f"Converting {key} to model `{model}`.")
@@ -628,6 +628,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             continue
         type_ = model.__fields__[key].type_
         if issubclass(type_, BaseModel) and value is not None:
+            if isinstance(value, str) and value == "null":
+                _dict[key] = None
+                continue
             _dict[key] = type_.construct(**json.loads(value))
             continue
         _dict[key] = value
