@@ -585,12 +585,12 @@
         :rows="paymentsOmitter"
         :row-key="paymentTableRowKey"
         :columns="paymentsTable.columns"
-        :pagination.sync="paymentsTable.pagination"
         :no-data-label="$t('no_transactions')"
         :filter="paymentsTable.search"
         :loading="paymentsTable.loading"
         :hide-header="mobileSimple"
         :hide-bottom="mobileSimple"
+        v-model:pagination="paymentsTable.pagination"
         @request="fetchPayments"
       >
         <template v-slot:header="props">

@@ -113,8 +113,6 @@ class Account(BaseModel):
     username: Optional[str] = None
     password_hash: Optional[str] = None
     email: Optional[str] = None
-    balance_msat: Optional[int] = 0
-    last_payment: Optional[datetime] = None
     extra: Optional[UserExtra] = None
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
@@ -144,6 +142,8 @@ class Account(BaseModel):
 class AccountOverview(Account):
     transaction_count: Optional[int] = 0
     wallet_count: Optional[int] = 0
+    balance_msat: Optional[int] = 0
+    last_payment: Optional[datetime] = None
 
 
 class AccountFilters(FilterModel):

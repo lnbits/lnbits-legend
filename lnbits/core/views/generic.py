@@ -202,6 +202,7 @@ async def wallet(
         {
             "user": user.json(),
             "wallet": wallet.json(),
+            "wallet_name": wallet.name,
             "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
