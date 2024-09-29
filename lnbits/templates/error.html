@@ -39,26 +39,21 @@
       </q-card-section>
     </q-card>
   </div>
-
-  {% endblock %} {% block scripts %}
-
-  <script>
-    window.app = Vue.createApp({
-      el: '#vue',
-      mixins: [window.windowMixin],
-      data: function () {
-        return {}
-      },
-      methods: {
-        goBack: function () {
-          window.history.back()
-        },
-        goHome: function () {
-          window.location.href = '/'
-        }
-      }
-    })
-  </script>
-
-  {% endblock %}
 </div>
+
+{% endblock %} {% block scripts %}
+<script>
+  window.app = Vue.createApp({
+    el: '#vue',
+    mixins: [window.windowMixin],
+    methods: {
+      goBack: function () {
+        window.history.back()
+      },
+      goHome: function () {
+        window.location.href = '/'
+      }
+    }
+  })
+</script>
+{% endblock %}
