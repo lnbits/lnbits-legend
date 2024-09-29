@@ -113,7 +113,7 @@ class Account(BaseModel):
     username: Optional[str] = None
     password_hash: Optional[str] = None
     email: Optional[str] = None
-    extra: Optional[UserExtra] = None
+    extra: UserExtra = UserExtra()
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
 
@@ -177,7 +177,7 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
-    extra: Optional[UserExtra] = None
+    extra: UserExtra = UserExtra()
 
     @property
     def wallet_ids(self) -> list[str]:
