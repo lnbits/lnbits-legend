@@ -8,7 +8,7 @@ import re
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, Generic, Literal, Optional, TypeVar
+from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -600,14 +600,28 @@ def model_to_dict(model: BaseModel) -> dict:
     private fields starting with _ are ignored
     :param model: Pydantic model
     """
-    _dict = model.dict()
-    for key, value in _dict.items():
+    _dict = {}
+    for key, value in model.dict().items():
         if key.startswith("_"):
             continue
         type_ = model.__fields__[key].type_
         if type(type_) is type(BaseModel):
             _dict[key] = json.dumps(value)
     return _dict
+
+
+def dict_to_submodel(model: type[TModel], value: Union[dict, str]) -> Optional[TModel]:
+    if isinstance(value, str):
+        if value == "null":
+            return None
+        _subdict = json.loads(value)
+    elif isinstance(value, dict):
+        _subdict = value
+    else:
+        logger.warning(f"Expected str or dict, got {type(value)}")
+        return None
+    # recursively convert nested models
+    return dict_to_model(_subdict, model)
 
 
 def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
@@ -624,19 +638,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         if not value:
             continue
         type_ = model.__fields__[key].type_
-        if issubclass(type_, BaseModel) and value is not None:
-            if isinstance(value, str):
-                if value == "null":
-                    _dict[key] = None
-                    continue
-                _subdict = json.loads(value)
-            elif isinstance(value, dict):
-                _subdict = value
-            else:
-                logger.warning(f"Expected str or dict, got {type(value)}")
-                continue
-            # recursively convert nested models
-            _dict[key] = dict_to_model(_subdict, type_)
+        if issubclass(type_, BaseModel):
+            _dict[key] = dict_to_submodel(type_, value)
             continue
         _dict[key] = value
+        continue
     return model.construct(**_dict)
