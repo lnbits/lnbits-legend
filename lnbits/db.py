@@ -600,7 +600,6 @@ def model_to_dict(model: BaseModel) -> dict:
     private fields starting with _ are ignored
     :param model: Pydantic model
     """
-    # TODO: no recursion, maybe make them recursive?
     _dict = model.dict()
     for key, value in _dict.items():
         if key.startswith("_"):
@@ -617,8 +616,6 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     :param _dict: Dictionary from database
     :param model: Pydantic model
     """
-    # TODO: no recursion, maybe make them recursive?
-    # TODO: check why keys are sometimes not in the dict
     _dict: dict = {}
     for key, value in _row.items():
         if key not in model.__fields__:
@@ -628,10 +625,18 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             continue
         type_ = model.__fields__[key].type_
         if issubclass(type_, BaseModel) and value is not None:
-            if isinstance(value, str) and value == "null":
-                _dict[key] = None
+            if isinstance(value, str):
+                if value == "null":
+                    _dict[key] = None
+                    continue
+                _subdict = json.loads(value)
+            elif isinstance(value, dict):
+                _subdict = value
+            else:
+                logger.warning(f"Expected str or dict, got {type(value)}")
                 continue
-            _dict[key] = type_.construct(**json.loads(value))
+            # recursively convert nested models
+            _dict[key] = dict_to_model(_subdict, type_)
             continue
         _dict[key] = value
     return model.construct(**_dict)

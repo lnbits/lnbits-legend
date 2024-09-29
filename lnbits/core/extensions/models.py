@@ -109,8 +109,8 @@ class ReleasePaymentInfo(BaseModel):
 
 
 class PayToEnableInfo(BaseModel):
-    required: Optional[bool] = False
-    amount: Optional[int] = None
+    amount: int
+    required: bool = False
     wallet: Optional[str] = None
 
 
@@ -375,9 +375,12 @@ class ExtensionRelease(BaseModel):
 
 class ExtensionMeta(BaseModel):
     installed_release: Optional[ExtensionRelease] = None
+    latest_release: Optional[ExtensionRelease] = None
     pay_to_enable: Optional[PayToEnableInfo] = None
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
+    archive: Optional[str] = None
+    featured: bool = False
 
 
 class InstallableExtension(BaseModel):
@@ -388,9 +391,6 @@ class InstallableExtension(BaseModel):
     short_description: Optional[str] = None
     icon: Optional[str] = None
     stars: int = 0
-    featured = False
-    archive: Optional[str] = None
-    latest_release: Optional[ExtensionRelease] = None
     meta: Optional[ExtensionMeta] = None
 
     @property
@@ -538,11 +538,15 @@ class InstallableExtension(BaseModel):
     def check_latest_version(self, release: Optional[ExtensionRelease]):
         if not release:
             return
-        if not self.latest_release:
-            self.latest_release = release
+        if not self.meta or not self.meta.latest_release:
+            meta = self.meta or ExtensionMeta()
+            meta.latest_release = release
+            self.meta = meta
             return
-        if version_parse(self.latest_release.version) < version_parse(release.version):
-            self.latest_release = release
+        if version_parse(self.meta.latest_release.version) < version_parse(
+            release.version
+        ):
+            self.meta.latest_release = release
 
     def find_existing_payment(
         self, pay_link: Optional[str]
@@ -602,8 +606,10 @@ class InstallableExtension(BaseModel):
                     source_repo,
                     config.tile,
                 ),
-                latest_release=ExtensionRelease.from_github_release(
-                    source_repo, latest_release
+                meta=ExtensionMeta(
+                    latest_release=ExtensionRelease.from_github_release(
+                        source_repo, latest_release
+                    ),
                 ),
             )
         except Exception as e:
@@ -612,12 +618,11 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     def from_explicit_release(cls, e: ExplicitRelease) -> InstallableExtension:
-        meta = ExtensionMeta(dependencies=e.dependencies)
+        meta = ExtensionMeta(archive=e.archive, dependencies=e.dependencies)
         return InstallableExtension(
             id=e.id,
             name=e.name,
             version=e.version,
-            archive=e.archive,
             short_description=e.short_description,
             icon=e.icon,
             meta=meta,
@@ -641,11 +646,13 @@ class InstallableExtension(BaseModel):
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
-                    if existing_ext:
-                        existing_ext.check_latest_version(ext.latest_release)
+                    if existing_ext and ext.meta:
+                        existing_ext.check_latest_version(ext.meta.latest_release)
                         continue
 
-                    ext.featured = ext.id in manifest.featured
+                    meta = ext.meta or ExtensionMeta()
+                    meta.featured = ext.id in manifest.featured
+                    ext.meta = meta
                     extension_list += [ext]
                     extension_id_list += [ext.id]
 
@@ -659,7 +666,9 @@ class InstallableExtension(BaseModel):
                         continue
                     ext = InstallableExtension.from_explicit_release(e)
                     ext.check_latest_version(release)
-                    ext.featured = ext.id in manifest.featured
+                    meta = ext.meta or ExtensionMeta()
+                    meta.featured = ext.id in manifest.featured
+                    ext.meta = meta
                     extension_list += [ext]
                     extension_id_list += [e.id]
             except Exception as e:

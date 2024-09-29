@@ -23,6 +23,7 @@ from lnbits.settings import (
 from .models import (
     Account,
     AccountFilters,
+    AccountOverview,
     CreatePayment,
     Payment,
     PaymentFilters,
@@ -62,7 +63,7 @@ async def delete_account(user_id: str, conn: Optional[Connection] = None) -> Non
 async def get_accounts(
     filters: Optional[Filters[AccountFilters]] = None,
     conn: Optional[Connection] = None,
-) -> Page[Account]:
+) -> Page[AccountOverview]:
     return await (conn or db).fetch_page(
         """
         SELECT
@@ -87,7 +88,7 @@ async def get_accounts(
         [],
         {},
         filters=filters,
-        model=Account,
+        model=AccountOverview,
         group_by=["accounts.id"],
     )
 
@@ -890,9 +891,11 @@ async def get_payments_history(
         raise ValueError(f"Invalid group value: {group}")
 
     values = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
     }
-    where = [f"wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"]
+    where = [
+        f"wallet_id = :wallet_id AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"
+    ]
     transactions: list[dict] = await db.fetchall(
         f"""
         SELECT {date_trunc} date,
