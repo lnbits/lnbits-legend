@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from time import time
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from uuid import uuid4
 
 import shortuuid
@@ -220,7 +220,15 @@ async def get_account_by_username_or_email(
     )
 
 
-async def get_user(account: Account, conn: Optional[Connection] = None) -> User:
+async def get_user(
+    account_or_id: Union[Account, str], conn: Optional[Connection] = None
+) -> Optional[User]:
+    if isinstance(account_or_id, str):
+        account = await get_account(account_or_id, conn)
+        if not account:
+            return None
+    else:
+        account = account_or_id
     extensions = await get_user_active_extensions_ids(account.id, conn)
     wallets = await get_wallets(account.id, conn)
     return User(
