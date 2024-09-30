@@ -152,6 +152,8 @@ async def check_user_exists(
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
     user = await get_user(account)
+    if not user:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
     await _check_user_extension_access(user.id, r["path"])
     return user
 
