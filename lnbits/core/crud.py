@@ -29,8 +29,6 @@ from .models import (
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
-    UpdateUserPassword,
-    UpdateUserPubkey,
     User,
     Wallet,
     WebPushSubscription,
@@ -48,9 +46,10 @@ async def create_account(
     return account
 
 
-async def update_account(account: Account) -> None:
+async def update_account(account: Account) -> Account:
     account.updated_at = datetime.now()
     await db.update("accounts", account)
+    return account
 
 
 async def delete_account(user_id: str, conn: Optional[Connection] = None) -> None:
@@ -215,6 +214,7 @@ async def get_account_by_pubkey(
         {"pubkey": pubkey},
         Account,
     )
+
 
 async def get_account_by_email(
     email: str, conn: Optional[Connection] = None

@@ -112,6 +112,7 @@ class Account(BaseModel):
     id: str
     username: Optional[str] = None
     password_hash: Optional[str] = None
+    pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
     created_at: datetime = datetime.now()
