@@ -246,7 +246,7 @@ async def update_password(
             status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
         )
 
-    # old accounts do not have a pasword
+    # old accounts do not have a password
     if account.password_hash:
         if not data.password_old:
             raise HTTPException(
@@ -260,7 +260,10 @@ async def update_password(
     account.username = data.username
     account.hash_password(data.password)
     await update_account(account)
-    return await get_user(account)
+    _user = await get_user(account)
+    if not _user:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found.")
+    return _user
 
 
 @auth_router.put("/reset")
