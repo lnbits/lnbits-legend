@@ -275,13 +275,7 @@ class CreatePayment(BaseModel):
     fee: int = 0
 
 
-# class Extra(BaseModel):
-#     _raw_json: str
-
-#     @property
-#     def _json(self):
-#         return json.loads(self._raw_json)
-
+# TODO: thanks about paymeny extra
 # class PaymentExtra(Extra):
 #     tag: Optional[str] = None
 #     def __getitem__(self, key):
