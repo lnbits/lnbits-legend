@@ -607,10 +607,14 @@ def model_to_dict(model: BaseModel) -> dict:
         type_ = model.__fields__[key].type_
         if type(type_) is type(BaseModel):
             _dict[key] = json.dumps(value)
+            continue
+        _dict[key] = value
+
     return _dict
 
 
 def dict_to_submodel(model: type[TModel], value: Union[dict, str]) -> Optional[TModel]:
+    """convert a dictionary or JSON string to a Pydantic model"""
     if isinstance(value, str):
         if value == "null":
             return None
@@ -635,10 +639,11 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         if key not in model.__fields__:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
-        if not value:
-            continue
         type_ = model.__fields__[key].type_
-        if issubclass(type_, BaseModel):
+        if issubclass(type_, bool):
+            _dict[key] = bool(value)
+            continue
+        if issubclass(type_, BaseModel) and value:
             _dict[key] = dict_to_submodel(type_, value)
             continue
         _dict[key] = value
