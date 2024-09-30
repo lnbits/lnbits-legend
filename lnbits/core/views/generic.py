@@ -24,7 +24,6 @@ from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
     create_wallet,
-    get_account,
     get_dbversions,
     get_installed_extensions,
     get_user,
@@ -231,10 +230,9 @@ async def service_worker(request: Request):
 @generic_router.get("/manifest/{usr}.webmanifest")
 async def manifest(request: Request, usr: str):
     host = urlparse(str(request.url)).netloc
-    account = await get_account(usr)
-    if not account:
+    user = await get_user(usr)
+    if not user:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-    user = await get_user(account)
     return {
         "short_name": settings.lnbits_site_title,
         "name": settings.lnbits_site_title + " Wallet",
@@ -325,7 +323,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
             "user": user.json(),
             "settings": settings.dict(),
             "balance": balance,
-            "wallets": user.wallets[0].dict(),
+            "wallets": user.wallets[0].json(),
         },
     )
 
