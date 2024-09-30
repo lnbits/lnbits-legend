@@ -337,6 +337,12 @@ window.LNbits = {
         .join('')
       return hashHex
     },
+    formatDate: function (timestamp) {
+      return Quasar.date.formatDate(
+        new Date(timestamp * 1000),
+        'YYYY-MM-DD HH:mm'
+      )
+    },
     formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {
         style: 'currency',

@@ -37,6 +37,7 @@
               icon="content_copy"
               size="sm"
               color="primary"
+              class="q-ml-xs"
               @click="copyText(props.row.id)"
             >
               <q-tooltip>Copy Wallet ID</q-tooltip>
@@ -45,6 +46,7 @@
               v-if="!props.row.deleted"
               :wallet_id="props.row.id"
               :callback="topupCallback"
+              class="q-ml-xs"
             ></lnbits-update-balance>
             <q-btn
               round
@@ -52,6 +54,7 @@
               icon="vpn_key"
               size="sm"
               color="primary"
+              class="q-ml-xs"
               @click="copyText(props.row.adminkey)"
             >
               <q-tooltip>Copy Admin Key</q-tooltip>
@@ -62,6 +65,7 @@
               icon="vpn_key"
               size="sm"
               color="secondary"
+              class="q-ml-xs"
               @click="copyText(props.row.inkey)"
             >
               <q-tooltip>Copy Invoice Key</q-tooltip>
@@ -72,6 +76,7 @@
               icon="toggle_off"
               size="sm"
               color="secondary"
+              class="q-ml-xs"
               @click="undeleteUserWallet(props.row.user, props.row.id)"
             >
               <q-tooltip>Undelete Wallet</q-tooltip>
@@ -81,6 +86,7 @@
               icon="delete"
               size="sm"
               color="negative"
+              class="q-ml-xs"
               @click="deleteUserWallet(props.row.user, props.row.id, props.row.deleted)"
             >
               <q-tooltip>Delete Wallet</q-tooltip>

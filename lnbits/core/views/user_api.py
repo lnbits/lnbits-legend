@@ -17,8 +17,8 @@ from lnbits.core.crud import (
     update_admin_settings,
 )
 from lnbits.core.models import (
-    Account,
     AccountFilters,
+    AccountOverview,
     CreateTopup,
     User,
     Wallet,
@@ -40,7 +40,7 @@ users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_adm
 )
 async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
-) -> Page[Account]:
+) -> Page[AccountOverview]:
     return await get_accounts(filters=filters)
 
 

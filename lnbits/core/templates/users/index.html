@@ -61,6 +61,7 @@ include "users/_createWalletDialog.html" %}
                   icon="content_copy"
                   size="sm"
                   color="primary"
+                  class="q-ml-xs"
                   @click="copyText(props.row.id)"
                 >
                   <q-tooltip>Copy User ID</q-tooltip>
@@ -71,6 +72,7 @@ include "users/_createWalletDialog.html" %}
                   icon="build"
                   size="sm"
                   :color="props.row.is_admin ? 'primary' : 'grey'"
+                  class="q-ml-xs"
                   @click="toggleAdmin(props.row.id)"
                 >
                   <q-tooltip>Toggle Admin</q-tooltip>
@@ -81,6 +83,7 @@ include "users/_createWalletDialog.html" %}
                   icon="build"
                   size="sm"
                   color="positive"
+                  class="q-ml-xs"
                 >
                   <q-tooltip>Super User</q-tooltip>
                 </q-btn>
@@ -98,6 +101,7 @@ include "users/_createWalletDialog.html" %}
                   icon="delete"
                   size="sm"
                   color="negative"
+                  class="q-ml-xs"
                   @click="deleteUser(props.row.id, props)"
                 >
                   <q-tooltip>Delete User</q-tooltip>
@@ -111,7 +115,10 @@ include "users/_createWalletDialog.html" %}
               <q-td auto-width v-text="props.row.transaction_count"></q-td>
               <q-td auto-width v-text="props.row.username"></q-td>
               <q-td auto-width v-text="props.row.email"></q-td>
-              <q-td auto-width v-text="props.row.last_payment"></q-td>
+              <q-td
+                auto-width
+                v-text="formatDate(props.row.last_payment)"
+              ></q-td>
             </q-tr>
           </template>
         </q-table>

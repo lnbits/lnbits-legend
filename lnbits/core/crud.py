@@ -230,7 +230,7 @@ async def get_user(
     else:
         account = account_or_id
     extensions = await get_user_active_extensions_ids(account.id, conn)
-    wallets = await get_wallets(account.id, conn)
+    wallets = await get_wallets(account.id, False, conn=conn)
     return User(
         id=account.id,
         email=account.email,
@@ -508,27 +508,33 @@ async def delete_unused_wallets(
 
 
 async def get_wallet(
-    wallet_id: str, conn: Optional[Connection] = None
+    wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
+    where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchone(
-        """
+        f"""
         SELECT *, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0) AS balance_msat FROM wallets WHERE id = :wallet
+        ), 0) AS balance_msat FROM wallets
+        WHERE id = :wallet {where}
         """,
-        {"wallet": wallet_id},
+        {"wallet": wallet_id, "deleted": deleted},
         Wallet,
     )
 
 
-async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> list[Wallet]:
+async def get_wallets(
+    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+) -> list[Wallet]:
+    where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchall(
-        """
+        f"""
         SELECT *, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0) AS balance_msat FROM wallets WHERE "user" = :user
+        ), 0) AS balance_msat FROM wallets
+        WHERE "user" = :user {where}
         """,
-        {"user": user_id},
+        {"user": user_id, "deleted": deleted},
         Wallet,
     )
 
