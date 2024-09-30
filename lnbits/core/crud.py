@@ -772,9 +772,9 @@ async def create_payment(
         f"""
         INSERT INTO apipayments
           (wallet_id, checking_id, bolt11, payment_hash, preimage,
-           amount, status, memo, fee, extra, webhook, expiry, pending)
+           amount, status, memo, fee, extra, webhook, expiry)
           VALUES (:wallet_id, :checking_id, :bolt11, :hash, :preimage,
-           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph}, :pending)
+           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph})
         """,
         {
             "wallet_id": data.wallet_id,
@@ -793,7 +793,6 @@ async def create_payment(
             ),
             "webhook": data.webhook,
             "expiry": data.expiry if data.expiry else None,
-            "pending": False,  # TODO: remove this in next release
         },
     )
 

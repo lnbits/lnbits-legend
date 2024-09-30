@@ -24,6 +24,12 @@ class DbTestModel2(BaseModel):
     child: DbTestModel
 
 
+class DbTestModel3(BaseModel):
+    id: int
+    child: DbTestModel2
+    active: bool = False
+
+
 def get_random_string(iterations: int = 10):
     return "".join(
         random.SystemRandom().choice(string.ascii_uppercase + string.digits)

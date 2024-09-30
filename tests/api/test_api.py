@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import pytest
 
@@ -144,7 +145,7 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     )
     assert response.is_success
     res_data = response.json()
-    extra = res_data["details"]["extra"]
+    extra = json.loads(res_data["details"]["extra"])
     assert extra["fiat_amount"] == data["amount"]
     assert extra["fiat_currency"] == data["unit"]
     assert extra["fiat_rate"]
@@ -501,13 +502,15 @@ async def test_fiat_tracking(client, adminkey_headers_from):
 
     settings.lnbits_default_accounting_currency = "USD"
     payment = await create_invoice()
-    assert payment["extra"]["wallet_fiat_currency"] == "USD"
-    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
-    assert payment["extra"]["wallet_fiat_rate"]
+    extra = json.loads(payment["extra"])
+    assert extra["wallet_fiat_currency"] == "USD"
+    assert extra["wallet_fiat_amount"] != payment["amount"]
+    assert extra["wallet_fiat_rate"]
 
     await update_currency("EUR")
 
     payment = await create_invoice()
-    assert payment["extra"]["wallet_fiat_currency"] == "EUR"
-    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
-    assert payment["extra"]["wallet_fiat_rate"]
+    extra = json.loads(payment["extra"])
+    assert extra["wallet_fiat_currency"] == "EUR"
+    assert extra["wallet_fiat_amount"] != payment["amount"]
+    assert extra["wallet_fiat_rate"]
