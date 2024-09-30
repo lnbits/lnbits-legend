@@ -46,7 +46,7 @@ from lnbits.wallets.base import (
 
 from .crud import (
     check_internal,
-    check_internal_pending,
+    check_internal_status,
     create_account,
     create_admin_settings,
     create_payment,
@@ -242,7 +242,7 @@ async def pay_invoice(
 
         # we check if an internal invoice exists that has already been paid
         # (not pending anymore)
-        if not await check_internal_pending(invoice.payment_hash, conn=conn):
+        if await check_internal_status(invoice.payment_hash, conn=conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
         # check_internal() returns the checking_id of the invoice we're waiting for

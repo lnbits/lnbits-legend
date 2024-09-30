@@ -976,23 +976,22 @@ async def check_internal(
         return row["checking_id"]
 
 
-async def check_internal_pending(
+async def check_internal_status(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
     """
-    Returns False if the internal payment is not pending anymore
-    (and thus paid), otherwise True
+    Returns True if the internal payment was successful
     """
     row: dict = await (conn or db).fetchone(
         """
         SELECT status FROM apipayments
-        WHERE payment_hash = :hash AND amount > 0
+        WHERE payment_hash = :payment_hash AND amount > 0
         """,
-        {"hash": payment_hash},
+        {"payment_hash": payment_hash},
     )
     if not row:
         return True
-    return row["status"] == PaymentState.PENDING.value
+    return row["status"] == PaymentState.SUCCESS.value
 
 
 async def mark_webhook_sent(payment_hash: str, status: int) -> None:
