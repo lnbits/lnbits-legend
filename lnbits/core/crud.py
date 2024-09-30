@@ -29,8 +29,6 @@ from .models import (
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
-    UpdateUserPassword,
-    UpdateUserPubkey,
     User,
     Wallet,
     WebPushSubscription,
@@ -48,9 +46,10 @@ async def create_account(
     return account
 
 
-async def update_account(account: Account) -> None:
+async def update_account(account: Account) -> Account:
     account.updated_at = datetime.now()
     await db.update("accounts", account)
+    return account
 
 
 async def delete_account(user_id: str, conn: Optional[Connection] = None) -> None:
@@ -122,65 +121,6 @@ async def delete_accounts_no_wallets(
     )
 
 
-async def update_user_password(data: UpdateUserPassword, last_login_time: int) -> User:
-
-    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "You can only update your credentials in the first"
-        f" {settings.auth_credetials_update_threshold} seconds."
-        " Please login again or ask a new reset key!"
-    )
-    assert data.password == data.password_repeat, "Passwords do not match."
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    await db.execute(
-        f"""
-        UPDATE accounts
-        SET pass = :pass, updated_at = {db.timestamp_placeholder("now")}
-        WHERE id = :user
-        """,
-        {
-            "pass": pwd_context.hash(data.password),
-            "now": int(time()),
-            "user": data.user_id,
-        },
-    )
-
-    user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved."
-    return user
-
-
-async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> User:
-
-    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "You can only update your credentials in the first"
-        f" {settings.auth_credetials_update_threshold} seconds after login."
-        " Please login again!"
-    )
-
-    user = await get_account_by_pubkey(data.pubkey)
-    if user:
-        assert user.id == data.user_id, "Public key already in use."
-
-    await db.execute(
-        f"""
-        UPDATE accounts
-        SET pubkey = :pubkey, updated_at = {db.timestamp_placeholder("now")}
-        WHERE id = :user
-        """,
-        {
-            "pubkey": data.pubkey,
-            "now": int(time()),
-            "user": data.user_id,
-        },
-    )
-
-    user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved"
-    return user
-
-
 async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
@@ -199,6 +139,7 @@ async def get_account_by_pubkey(
         {"pubkey": pubkey},
         Account,
     )
+
 
 async def get_account_by_email(
     email: str, conn: Optional[Connection] = None

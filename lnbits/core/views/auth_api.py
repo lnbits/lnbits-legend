@@ -1,16 +1,16 @@
 import base64
 import importlib
 import json
-from time import time
 from http import HTTPStatus
+from time import time
 from typing import Callable, Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
-from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
     create_access_token,
@@ -31,13 +31,8 @@ from ..crud import (
     get_account_by_username,
     get_account_by_username_or_email,
     get_user,
-    get_user_password,
     update_account,
-    update_user_password,
-    update_user_pubkey,
-    verify_user_password,
 )
-
 from ..models import (
     AccessTokenPayload,
     Account,
@@ -78,25 +73,29 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
 @auth_router.post("/nostr", description="Login via Nostr")
 async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Login with Nostr Auth not allowed."
+        )
 
     try:
         event = _nostr_nip98_event(request)
-
-        user = await get_account_by_pubkey(event["pubkey"])
-        if not user:
-            user = await create_user_account(
-                pubkey=event["pubkey"], user_config=UserConfig(provider="nostr")
+        account = await get_account_by_pubkey(event["pubkey"])
+        if not account:
+            account = Account(
+                id=uuid4().hex,
+                pubkey=event["pubkey"],
+                extra=UserExtra(provider="nostr"),
             )
+            await create_account(account)
 
-        return _auth_success_response(user.username or "", user.id, user.email)
+        return _auth_success_response(account.username or "", account.id, account.email)
     except HTTPException as exc:
         raise exc
     except AssertionError as exc:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, str(exc)) from exc
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
+        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
 @auth_router.post("/usr", description="Login via the User ID")
@@ -205,7 +204,6 @@ async def register(data: CreateUser) -> JSONResponse:
     return _auth_success_response(account.username)
 
 
-
 @auth_router.put("/pubkey")
 async def update_pubkey(
     data: UpdateUserPubkey,
@@ -213,16 +211,22 @@ async def update_pubkey(
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     if data.user_id != user.id:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
 
-    try:
-        data.pubkey = normalize_public_key(data.pubkey)
-        return await update_user_pubkey(data, payload.auth_time or 0)
-
-    except AssertionError as exc:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
-    except Exception as exc:
-        logger.debug(exc)
+    account = await get_account(user.id)
+    if not account:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
+        )
+    account_existing = await get_account_by_pubkey(data.pubkey)
+    if account_existing and account_existing.id != account.id:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Public key already in use."
+        )
+    _validate_auth_timeout(payload.auth_time)
+    account.pubkey = normalize_public_key(data.pubkey)
+    await update_account(account)
+    return await get_user(account)
 
 
 @auth_router.put("/password")
@@ -256,6 +260,8 @@ async def update_password(
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Invalid credentials."
             )
+
+    _validate_auth_timeout(payload.auth_time)
 
     account.username = data.username
     account.hash_password(data.password)
@@ -389,7 +395,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
         if not settings.new_accounts_allowed:
             raise HTTPException(HTTPStatus.BAD_REQUEST, "Account creation is disabled.")
         account = Account(
-            id=urlsafe_short_hash(), email=email, extra=UserExtra(email_verified=True)
+            id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
         )
         await create_account(account)
     return _auth_redirect_response(redirect_path, email)
@@ -499,3 +505,13 @@ def _nostr_nip98_event(request: Request) -> dict:
     assert url in accepted_urls, f"Incorrect value for tag 'u': '{url}'."
 
     return event
+
+
+def _validate_auth_timeout(auth_time: Optional[int] = None):
+    if int(time()) - int(auth_time or 0) > settings.auth_credetials_update_threshold:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "You can only update your credentials in the first"
+            f" {settings.auth_credetials_update_threshold} seconds after login."
+            " Please login again!",
+        )

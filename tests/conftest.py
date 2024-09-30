@@ -7,6 +7,8 @@ from asgi_lifespan import LifespanManager
 
 uvloop.install()
 
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -16,13 +18,13 @@ from lnbits.app import create_app
 from lnbits.core.crud import (
     create_account,
     create_wallet,
-    get_account_by_username,
     get_account,
+    get_account_by_username,
     get_user,
     update_payment_status,
 )
-from lnbits.core.models import CreateInvoice, PaymentState
-from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.models import Account, CreateInvoice, PaymentState
+from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, settings
@@ -100,12 +102,16 @@ async def db():
 
 @pytest_asyncio.fixture(scope="package")
 async def user_alan():
-    user = await get_account_by_username("alan")
-    if not user:
-        user = await create_user_account(
-            email="alan@lnbits.com", username="alan", password="secret1234"
+    account = await get_account_by_username("alan")
+    if not account:
+        account = Account(
+            id=uuid4().hex,
+            email="alan@lnbits.com",
+            username="alan",
         )
-    yield user
+        account.hash_password("secret1234")
+        await create_account(account)
+    yield account
 
 
 @pytest_asyncio.fixture(scope="session")
