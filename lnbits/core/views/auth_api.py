@@ -271,32 +271,33 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
         )
-
-    assert data.reset_key[:10] == "reset_key_", "This is not a reset key."
+    if not data.reset_key[:10].startswith("reset_key_"):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "This is not a reset key.")
 
     reset_data_json = decrypt_internal_message(
         base64.b64decode(data.reset_key[10:]).decode()
     )
-    assert reset_data_json, "Cannot process reset key."
+    if not reset_data_json:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Cannot process reset key.")
 
     action, user_id, request_time = json.loads(reset_data_json)
-    assert action == "reset", "Expected reset action."
-    assert user_id is not None, "Missing user ID."
-    assert request_time is not None, "Missing reset time."
+    if not action:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing action.")
+    if not user_id:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing user ID.")
+    if not request_time:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing reset time.")
 
-    user = await get_account(user_id)
-    assert user, "User not found."
+    _validate_auth_timeout(request_time)
 
-    update_pwd = UpdateUserPassword(
-        user_id=user.id,
-        username=user.username or "",
-        password=data.password,
-        password_repeat=data.password_repeat,
-    )
-    user = await update_user_password(update_pwd, request_time)
+    account = await get_account(user_id)
+    if not account:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
 
+    account.hash_password(data.password)
+    await update_account(account)
     return _auth_success_response(
-        username=user.username, user_id=user_id, email=user.email
+        username=account.username, user_id=user_id, email=account.email
     )
 
 
