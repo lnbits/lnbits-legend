@@ -23,14 +23,6 @@ class InvoiceError(Exception):
         self.status = status
 
 
-def register_exception_handlers(app: FastAPI):
-    register_exception_handler(app)
-    register_request_validation_exception_handler(app)
-    register_http_exception_handler(app)
-    register_payment_error_handler(app)
-    register_invoice_error_handler(app)
-
-
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response
@@ -63,7 +55,9 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     return None
 
 
-def register_exception_handler(app: FastAPI):
+def register_exception_handlers(app: FastAPI):
+    """Register exception handlers for the FastAPI app"""
+
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
@@ -74,8 +68,14 @@ def register_exception_handler(app: FastAPI):
             content={"detail": str(exc)},
         )
 
+    @app.exception_handler(AssertionError)
+    async def assert_error_handler(request: Request, exc: AssertionError):
+        logger.warning(f"AssertionError: {exc!s}")
+        return render_html_error(request, exc) or JSONResponse(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
 
-def register_request_validation_exception_handler(app: FastAPI):
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
@@ -86,8 +86,6 @@ def register_request_validation_exception_handler(app: FastAPI):
             content={"detail": str(exc)},
         )
 
-
-def register_http_exception_handler(app: FastAPI):
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
@@ -96,8 +94,6 @@ def register_http_exception_handler(app: FastAPI):
             content={"detail": exc.detail},
         )
 
-
-def register_payment_error_handler(app: FastAPI):
     @app.exception_handler(PaymentError)
     async def payment_error_handler(request: Request, exc: PaymentError):
         logger.error(f"{exc.message}, {exc.status}")
@@ -106,8 +102,6 @@ def register_payment_error_handler(app: FastAPI):
             content={"detail": exc.message, "status": exc.status},
         )
 
-
-def register_invoice_error_handler(app: FastAPI):
     @app.exception_handler(InvoiceError)
     async def invoice_error_handler(request: Request, exc: InvoiceError):
         logger.error(f"{exc.message}, Status: {exc.status}")
