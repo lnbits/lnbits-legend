@@ -92,7 +92,7 @@ window.app = Vue.createApp({
             user_id: this.user.id,
             username: this.user.username,
             email: this.user.email,
-            config: this.user.config
+            extra: this.user.extra
           }
         )
         this.user = data
@@ -183,7 +183,7 @@ window.app = Vue.createApp({
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
       this.hasUsername = !!data.username
-      if (!this.user.config) this.user.config = {}
+      if (!this.user.extra) this.user.extra = {}
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }

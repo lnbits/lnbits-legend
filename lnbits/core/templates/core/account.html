@@ -38,9 +38,9 @@
                       </div>
                       <div class="col">
                         <q-img
-                          v-if="user.config.picture"
+                          v-if="user.extra.picture"
                           style="max-width: 100px"
-                          :src="user.config.picture"
+                          :src="user.extra.picture"
                           class="float-right"
                         ></q-img>
                       </div>
@@ -133,9 +133,9 @@
                     <div class="row">
                       <div class="col">
                         <q-img
-                          v-if="user.config.picture"
+                          v-if="user.extra.picture"
                           style="max-width: 100px"
-                          :src="user.config.picture"
+                          :src="user.extra.picture"
                           class="float-right"
                         ></q-img>
                       </div>
@@ -236,9 +236,9 @@
                     </div>
                   </q-card-section>
 
-                  <q-card-section v-if="user.config">
+                  <q-card-section v-if="user.extra">
                     <q-input
-                      v-model="user.config.first_name"
+                      v-model="user.extra.first_name"
                       :label="$t('first_name')"
                       filled
                       dense
@@ -246,7 +246,7 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.last_name"
+                      v-model="user.extra.last_name"
                       :label="$t('last_name')"
                       filled
                       dense
@@ -254,7 +254,7 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.provider"
+                      v-model="user.extra.provider"
                       :label="$t('auth_provider')"
                       filled
                       dense
@@ -263,7 +263,7 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.picture"
+                      v-model="user.extra.picture"
                       :label="$t('picture')"
                       filled
                       class="q-mb-md"

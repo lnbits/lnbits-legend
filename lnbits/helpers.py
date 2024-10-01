@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional, Type
 
@@ -184,7 +184,7 @@ def is_valid_username(username: str) -> bool:
 
 
 def create_access_token(data: dict):
-    expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.auth_token_expire_minutes)
     to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
