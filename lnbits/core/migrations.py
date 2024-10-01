@@ -563,5 +563,15 @@ async def m023_add_column_column_to_apipayments(db):
     await db.execute("ALTER TABLE accounts RENAME COLUMN pass TO password_hash")
 
 
-async def m023_drop_pending(db):
+async def m024_drop_pending(db):
     await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+
+
+async def m025_add_pubkey_to_accounts(db):
+    """
+    Adds pubkey column to accounts.
+    """
+    try:
+        await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
+    except OperationalError:
+        pass
