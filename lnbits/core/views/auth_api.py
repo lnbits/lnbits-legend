@@ -76,26 +76,16 @@ async def nostr_login(request: Request) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Login with Nostr Auth not allowed."
         )
-
-    try:
-        event = _nostr_nip98_event(request)
-        account = await get_account_by_pubkey(event["pubkey"])
-        if not account:
-            account = Account(
-                id=uuid4().hex,
-                pubkey=event["pubkey"],
-                extra=UserExtra(provider="nostr"),
-            )
-            await create_account(account)
-
-        return _auth_success_response(account.username or "", account.id, account.email)
-    except HTTPException as exc:
-        raise exc
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, str(exc)) from exc
-    except Exception as exc:
-        logger.warning(exc)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot login.") from exc
+    event = _nostr_nip98_event(request)
+    account = await get_account_by_pubkey(event["pubkey"])
+    if not account:
+        account = Account(
+            id=uuid4().hex,
+            pubkey=event["pubkey"],
+            extra=UserExtra(provider="nostr"),
+        )
+        await create_account(account)
+    return _auth_success_response(account.username or "", account.id, account.email)
 
 
 @auth_router.post("/usr", description="Login via the User ID")
@@ -139,23 +129,15 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
             detail=f"Login by '{provider}' not allowed.",
         )
 
-    try:
-        with provider_sso:
-            userinfo = await provider_sso.verify_and_process(request)
-            assert userinfo is not None
-            user_id = decrypt_internal_message(provider_sso.state)
-        request.session.pop("user", None)
-        return await _handle_sso_login(userinfo, user_id)
-    except HTTPException as exc:
-        raise exc
-    except ValueError as exc:
-        raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
-    except Exception as exc:
-        logger.debug(exc)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Cannot authenticate user with {provider} Auth.",
-        ) from exc
+    with provider_sso:
+        userinfo = await provider_sso.verify_and_process(request)
+        if not userinfo:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid user info."
+            )
+        user_id = decrypt_internal_message(provider_sso.state)
+    request.session.pop("user", None)
+    return await _handle_sso_login(userinfo, user_id)
 
 
 @auth_router.post("/logout")
@@ -191,6 +173,11 @@ async def register(data: CreateUser) -> JSONResponse:
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid username."
         )
 
+    if await get_account_by_username(data.username):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
+        )
+
     if data.email and not is_valid_email_address(data.email):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Invalid email.")
 
@@ -212,16 +199,18 @@ async def update_pubkey(
 ) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
-
+    if (
+        data.pubkey
+        and data.pubkey != user.pubkey
+        and await get_account_by_pubkey(data.pubkey)
+    ):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Public key already in use."
+        )
     account = await get_account(user.id)
     if not account:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
-        )
-    account_existing = await get_account_by_pubkey(data.pubkey)
-    if account_existing and account_existing.id != account.id:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Public key already in use."
         )
     _validate_auth_timeout(payload.auth_time)
     account.pubkey = normalize_public_key(data.pubkey)
@@ -239,7 +228,11 @@ async def update_password(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid user ID."
         )
-    if data.username and await get_account_by_username(data.username):
+    if (
+        data.username
+        and user.username != data.username
+        and await get_account_by_username(data.username)
+    ):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
         )
@@ -324,16 +317,19 @@ async def update(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Email mismatch.",
         )
-    account = await get_account(user.id)
-    if not account:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
-        )
-    if data.username and await get_account_by_username(data.username):
+    if (
+        data.username
+        and user.username != data.username
+        and await get_account_by_username(data.username)
+    ):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
         )
-    if data.email and await get_account_by_email(data.email):
+    if (
+        data.email
+        and data.email != user.email
+        and await get_account_by_email(data.email)
+    ):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Email already exists."
         )
@@ -473,37 +469,43 @@ def _find_auth_provider_class(provider: str) -> Callable:
 
 def _nostr_nip98_event(request: Request) -> dict:
     auth_header = request.headers.get("Authorization")
-    assert auth_header, "Nostr Auth header missing."
-
+    if not auth_header:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Nostr Auth header missing.")
     scheme, token = auth_header.split()
-    assert scheme.lower() == "nostr", "Authorization header is not nostr."
-
+    if scheme.lower() != "nostr":
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid Authorization scheme.")
     event = None
     try:
         event_json = base64.b64decode(token.encode("ascii"))
         event = json.loads(event_json)
     except Exception as exc:
         logger.warning(exc)
-
-    assert event, "Nostr login event cannot be parsed."
-
-    assert verify_event(event), "Nostr login event is not valid."
-
-    assert event["kind"] == 27_235, "Invalid event kind."
+    if not event:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Nostr login event cannot be parsed."
+        )
+    if not verify_event(event):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Nostr login event is not valid.")
+    if event["kind"] != 27_235:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid event kind.")
     auth_threshold = settings.auth_credetials_update_threshold
-    assert (
-        abs(time() - event["created_at"]) < auth_threshold
-    ), f"More than {auth_threshold} seconds have passed since the event was signed."
-
+    if abs(time() - event["created_at"]) > auth_threshold:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"{auth_threshold} seconds have passed since the event was signed.",
+        )
     method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
-    assert method, "Tag 'method' is missing."
-    assert method.upper() == "POST", "Incorrect value for tag 'method'."
+    if not method:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Tag 'method' is missing.")
+    if method.upper() != "POST":
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid value for tag 'method'.")
 
     url = next((v for k, v in event["tags"] if k == "u"), None)
-    assert url, "Tag 'u' for URL is missing."
+    if not url:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Tag 'u' for URL is missing.")
     accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
-    assert url in accepted_urls, f"Incorrect value for tag 'u': '{url}'."
-
+    if url not in accepted_urls:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid value for tag 'u'.")
     return event
 
 

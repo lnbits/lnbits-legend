@@ -1,16 +1,16 @@
 # ruff: noqa: E402
 import asyncio
-from time import time
 
 import uvloop
-from asgi_lifespan import LifespanManager
 
-uvloop.install()
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
+from time import time
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from asgi_lifespan import LifespanManager
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
@@ -110,7 +110,6 @@ async def user_alan():
             username="alan",
         )
         account.hash_password("secret1234")
-        await create_account(account)
     yield account
 
 
