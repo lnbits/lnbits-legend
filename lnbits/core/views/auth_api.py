@@ -198,20 +198,19 @@ async def update_pubkey(
 ) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
+
+    _validate_auth_timeout(payload.auth_time)
     if (
         data.pubkey
         and data.pubkey != user.pubkey
         and await get_account_by_pubkey(data.pubkey)
     ):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Public key already in use."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Public key already in use.")
+
     account = await get_account(user.id)
     if not account:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
-        )
-    _validate_auth_timeout(payload.auth_time)
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Account not found.")
+
     account.pubkey = normalize_public_key(data.pubkey)
     await update_account(account)
     return await get_user(account)
@@ -223,9 +222,8 @@ async def update_password(
     user: User = Depends(check_user_exists),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
-    if data.user_id != user.id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
     _validate_auth_timeout(payload.auth_time)
+    assert data.user_id == user.id, "Invalid user ID."
     if (
         data.username
         and user.username != data.username

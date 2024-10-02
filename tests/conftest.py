@@ -27,7 +27,7 @@ from lnbits.core.models import Account, CreateInvoice, PaymentState
 from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
-from lnbits.settings import AuthMethods, settings
+from lnbits.settings import AuthMethods, Settings, settings
 from tests.helpers import (
     get_random_invoice_data,
 )
@@ -40,19 +40,24 @@ settings.lnbits_extensions_default_install = []
 settings.lnbits_extensions_deactivate_all = True
 
 
+@pytest_asyncio.fixture(scope="session")
+def lnbits_settings():
+    return settings
+
+
 @pytest.fixture(autouse=True)
-def run_before_and_after_tests():
+def run_before_and_after_tests(lnbits_settings: Settings):
     """Fixture to execute asserts before and after a test is run"""
     ##### BEFORE TEST RUN #####
 
-    settings.lnbits_allow_new_accounts = True
-    settings.lnbits_allowed_users = []
-    settings.auth_allowed_methods = AuthMethods.all()
-    settings.auth_credetials_update_threshold = 120
-    settings.lnbits_reserve_fee_percent = 1
-    settings.lnbits_reserve_fee_min = 2000
-    settings.lnbits_service_fee = 0
-    settings.lnbits_wallet_limit_daily_max_withdraw = 0
+    lnbits_settings.lnbits_allow_new_accounts = True
+    lnbits_settings.lnbits_allowed_users = []
+    lnbits_settings.auth_allowed_methods = AuthMethods.all()
+    lnbits_settings.auth_credetials_update_threshold = 120
+    lnbits_settings.lnbits_reserve_fee_percent = 1
+    lnbits_settings.lnbits_reserve_fee_min = 2000
+    lnbits_settings.lnbits_service_fee = 0
+    lnbits_settings.lnbits_wallet_limit_daily_max_withdraw = 0
 
     yield  # this is where the testing happens
 
