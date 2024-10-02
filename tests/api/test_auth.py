@@ -95,6 +95,7 @@ async def test_login_alan_username_password_ok(
 
     payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
     access_token_payload = AccessTokenPayload(**payload)
+
     assert access_token_payload.sub == "alan", "Subject is Alan."
     assert access_token_payload.email == "alan@lnbits.com"
     assert access_token_payload.auth_time, "Auth time should be set by server."
@@ -113,7 +114,9 @@ async def test_login_alan_username_password_ok(
     assert not user.admin, "Not admin."
     assert not user.super_user, "Not superuser."
     assert user.has_password, "Password configured."
-    assert len(user.wallets) == 1, "One default wallet."
+    assert (
+        len(user.wallets) == 1
+    ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
 @pytest.mark.asyncio
@@ -221,7 +224,9 @@ async def test_register_ok(http_client: AsyncClient):
     assert not user.admin, "Not admin."
     assert not user.super_user, "Not superuser."
     assert user.has_password, "Password configured."
-    assert len(user.wallets) == 1, "One default wallet."
+    assert (
+        len(user.wallets) == 1
+    ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
 @pytest.mark.asyncio
@@ -509,7 +514,9 @@ async def test_register_nostr_ok(http_client: AsyncClient):
     assert not user.admin, "Not admin."
     assert not user.super_user, "Not superuser."
     assert not user.has_password, "Password configured."
-    assert len(user.wallets) == 1, "One default wallet."
+    assert (
+        len(user.wallets) == 1
+    ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
 @pytest.mark.asyncio

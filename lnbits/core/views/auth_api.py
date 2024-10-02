@@ -67,7 +67,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid credentials."
         )
-    return _auth_success_response(account.username, account.id)
+    return _auth_success_response(account.username, account.id, account.email)
 
 
 @auth_router.post("/nostr", description="Login via Nostr")
@@ -100,7 +100,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User ID does not exist."
         )
-    return _auth_success_response(account.username, account.id)
+    return _auth_success_response(account.username, account.id, account.email)
 
 
 @auth_router.get("/{provider}", description="SSO Provider")
@@ -188,7 +188,7 @@ async def register(data: CreateUser) -> JSONResponse:
     )
     account.hash_password(data.password)
     await create_account(account)
-    return _auth_success_response(account.username)
+    return _auth_success_response(account.username, account.id, account.email)
 
 
 @auth_router.put("/pubkey")
@@ -271,22 +271,19 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
         )
-    if not data.reset_key[:10].startswith("reset_key_"):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "This is not a reset key.")
+
+    assert data.password == data.password_repeat, "Passwords do not match."
+    assert data.reset_key[:10].startswith("reset_key_"), "This is not a reset key."
 
     reset_data_json = decrypt_internal_message(
         base64.b64decode(data.reset_key[10:]).decode()
     )
-    if not reset_data_json:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Cannot process reset key.")
+    assert reset_data_json, "Cannot process reset key."
 
     action, user_id, request_time = json.loads(reset_data_json)
-    if not action:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing action.")
-    if not user_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing user ID.")
-    if not request_time:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing reset time.")
+    assert action, "Missing action."
+    assert user_id, "Missing user ID."
+    assert request_time, "Missing reset time."
 
     _validate_auth_timeout(request_time)
 
@@ -296,9 +293,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
 
     account.hash_password(data.password)
     await update_account(account)
-    return _auth_success_response(
-        username=account.username, user_id=user_id, email=account.email
-    )
+    return _auth_success_response(account.username, user_id, account.email)
 
 
 @auth_router.put("/update")
@@ -365,7 +360,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     account.hash_password(data.password)
     await update_account(account)
     settings.first_install = False
-    return _auth_success_response(username=account.username)
+    return _auth_success_response(account.username, account.id, account.email)
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):
