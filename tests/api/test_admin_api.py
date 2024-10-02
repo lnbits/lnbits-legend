@@ -1,6 +1,7 @@
 import pytest
 
-from lnbits.settings import settings
+from lnbits.core.models import User
+from lnbits.settings import Settings
 
 
 @pytest.mark.asyncio
@@ -18,7 +19,7 @@ async def test_admin_get_settings(client, superuser):
 
 
 @pytest.mark.asyncio
-async def test_admin_update_settings(client, superuser):
+async def test_admin_update_settings(client, superuser: User, settings: Settings):
     new_site_title = "UPDATED SITETITLE"
     response = await client.put(
         f"/admin/api/v1/settings?usr={superuser.id}",

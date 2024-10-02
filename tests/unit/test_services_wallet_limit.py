@@ -1,11 +1,11 @@
 import pytest
 
 from lnbits.core.services import check_wallet_daily_withdraw_limit
-from lnbits.settings import settings
+from lnbits.settings import Settings
 
 
 @pytest.mark.asyncio
-async def test_no_wallet_limit():
+async def test_no_wallet_limit(settings: Settings):
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     result = await check_wallet_daily_withdraw_limit(
         conn=None, wallet_id="333333", amount_msat=0
@@ -15,7 +15,7 @@ async def test_no_wallet_limit():
 
 
 @pytest.mark.asyncio
-async def test_wallet_limit_but_no_payments():
+async def test_wallet_limit_but_no_payments(settings: Settings):
     settings.lnbits_wallet_limit_daily_max_withdraw = 5
     result = await check_wallet_daily_withdraw_limit(
         conn=None, wallet_id="333333", amount_msat=0
@@ -25,7 +25,7 @@ async def test_wallet_limit_but_no_payments():
 
 
 @pytest.mark.asyncio
-async def test_no_wallet_spend_allowed():
+async def test_no_wallet_spend_allowed(settings: Settings):
     settings.lnbits_wallet_limit_daily_max_withdraw = -1
 
     with pytest.raises(

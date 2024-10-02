@@ -5,7 +5,7 @@ from lnbits.core.services import (
     fee_reserve_total,
     service_fee,
 )
-from lnbits.settings import settings
+from lnbits.settings import Settings
 
 
 @pytest.mark.asyncio
@@ -15,7 +15,7 @@ async def test_fee_reserve_internal():
 
 
 @pytest.mark.asyncio
-async def test_fee_reserve_min():
+async def test_fee_reserve_min(settings: Settings):
     settings.lnbits_reserve_fee_percent = 2
     settings.lnbits_reserve_fee_min = 500
     fee = fee_reserve(10000)
@@ -23,7 +23,7 @@ async def test_fee_reserve_min():
 
 
 @pytest.mark.asyncio
-async def test_fee_reserve_percent():
+async def test_fee_reserve_percent(settings: Settings):
     settings.lnbits_reserve_fee_percent = 1
     settings.lnbits_reserve_fee_min = 100
     fee = fee_reserve(100000)
@@ -31,14 +31,14 @@ async def test_fee_reserve_percent():
 
 
 @pytest.mark.asyncio
-async def test_service_fee_no_wallet():
+async def test_service_fee_no_wallet(settings: Settings):
     settings.lnbits_service_fee_wallet = ""
     fee = service_fee(10000)
     assert fee == 0
 
 
 @pytest.mark.asyncio
-async def test_service_fee_internal():
+async def test_service_fee_internal(settings: Settings):
     settings.lnbits_service_fee_wallet = "wallet_id"
     settings.lnbits_service_fee_ignore_internal = True
     fee = service_fee(10000, internal=True)
@@ -46,7 +46,7 @@ async def test_service_fee_internal():
 
 
 @pytest.mark.asyncio
-async def test_service_fee():
+async def test_service_fee(settings: Settings):
     settings.lnbits_service_fee_wallet = "wallet_id"
     settings.lnbits_service_fee = 2
     fee = service_fee(10000)
@@ -54,7 +54,7 @@ async def test_service_fee():
 
 
 @pytest.mark.asyncio
-async def test_service_fee_max():
+async def test_service_fee_max(settings: Settings):
     settings.lnbits_service_fee_wallet = "wallet_id"
     settings.lnbits_service_fee = 2
     settings.lnbits_service_fee_max = 199
@@ -63,7 +63,7 @@ async def test_service_fee_max():
 
 
 @pytest.mark.asyncio
-async def test_fee_reserve_total():
+async def test_fee_reserve_total(settings: Settings):
     settings.lnbits_reserve_fee_percent = 1
     settings.lnbits_reserve_fee_min = 100
     settings.lnbits_service_fee = 2

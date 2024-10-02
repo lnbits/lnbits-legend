@@ -839,9 +839,6 @@ async def create_user_account(
     account: Optional[Account] = None, wallet_name: Optional[str] = None
 ) -> User:
     if not settings.new_accounts_allowed:
-        print("### self.lnbits_allow_new_accounts", settings.lnbits_allow_new_accounts)
-        print("### self.lnbits_allowed_users", settings.lnbits_allowed_users)
-
         raise ValueError("Account creation is disabled.")
     if account:
         if account.username and await get_account_by_username(account.username):
