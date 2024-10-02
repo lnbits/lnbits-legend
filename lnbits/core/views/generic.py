@@ -14,7 +14,7 @@ from pydantic.types import UUID4
 from lnbits.core.extensions.models import Extension, ExtensionMeta, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, create_user_account
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
@@ -22,7 +22,6 @@ from lnbits.wallets import get_funding_source
 
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
-    create_account,
     create_wallet,
     get_dbversions,
     get_installed_extensions,
@@ -424,7 +423,7 @@ async def lnurlwallet(request: Request):
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
-        account = await create_account()
+        account = await create_user_account()
         wallet = await create_wallet(user_id=account.id)
         _, payment_request = await create_invoice(
             wallet_id=wallet.id,

@@ -54,6 +54,7 @@ from .crud import (
     create_wallet,
     get_account,
     get_account_by_email,
+    get_account_by_pubkey,
     get_account_by_username,
     get_payments,
     get_standalone_payment,
@@ -849,8 +850,10 @@ async def create_user_account(
         if account.email and await get_account_by_email(account.email):
             raise ValueError("Email already exists.")
 
+        if account.pubkey and await get_account_by_pubkey(account.pubkey):
+            raise ValueError("Pubkey already exists.")
+
         if account.id:
-            print("### account", account)
             user_uuid4 = UUID(hex=account.id, version=4)
             assert user_uuid4.hex == account.id, "User ID is not valid UUID4 hex string"
         else:

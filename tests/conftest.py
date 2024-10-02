@@ -16,15 +16,15 @@ from httpx import ASGITransport, AsyncClient
 
 from lnbits.app import create_app
 from lnbits.core.crud import (
-    create_account,
     create_wallet,
+    delete_account,
     get_account,
     get_account_by_username,
     get_user,
     update_payment_status,
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState
-from lnbits.core.services import update_wallet_balance
+from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, settings
@@ -46,6 +46,7 @@ def run_before_and_after_tests():
     ##### BEFORE TEST RUN #####
 
     settings.lnbits_allow_new_accounts = True
+    settings.lnbits_allowed_users = []
     settings.auth_allowed_methods = AuthMethods.all()
     settings.auth_credetials_update_threshold = 120
     settings.lnbits_reserve_fee_percent = 1
@@ -103,20 +104,23 @@ async def db():
 @pytest_asyncio.fixture(scope="session")
 async def user_alan():
     account = await get_account_by_username("alan")
-    if not account:
-        account = Account(
-            id=uuid4().hex,
-            email="alan@lnbits.com",
-            username="alan",
-        )
-        account.hash_password("secret1234")
-        account = await create_account(account)
-    yield account
+    if account:
+        await delete_account(account.id)
+
+    account = Account(
+        id=uuid4().hex,
+        email="alan@lnbits.com",
+        username="alan",
+    )
+    account.hash_password("secret1234")
+    user = await create_user_account(account)
+
+    yield user
 
 
 @pytest_asyncio.fixture(scope="session")
 async def from_user():
-    user = await create_account()
+    user = await create_user_account()
     yield user
 
 
@@ -141,7 +145,7 @@ async def from_wallet_ws(from_wallet, test_client):
 
 @pytest_asyncio.fixture(scope="session")
 async def to_user():
-    user = await create_account()
+    user = await create_user_account()
     yield user
 
 

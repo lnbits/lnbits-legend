@@ -176,6 +176,7 @@ async def get_user(
         id=account.id,
         email=account.email,
         username=account.username,
+        pubkey=account.pubkey,
         extra=account.extra,
         created_at=account.created_at,
         updated_at=account.updated_at,

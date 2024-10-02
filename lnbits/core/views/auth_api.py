@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
     create_access_token,
@@ -18,13 +19,11 @@ from lnbits.helpers import (
     encrypt_internal_message,
     is_valid_email_address,
     is_valid_username,
-    urlsafe_short_hash,
 )
 from lnbits.settings import AuthMethods, settings
 from lnbits.utils.nostr import normalize_public_key, verify_event
 
 from ..crud import (
-    create_account,
     get_account,
     get_account_by_email,
     get_account_by_pubkey,
@@ -84,7 +83,7 @@ async def nostr_login(request: Request) -> JSONResponse:
             pubkey=event["pubkey"],
             extra=UserExtra(provider="nostr"),
         )
-        await create_account(account)
+        await create_user_account(account)
     return _auth_success_response(account.username or "", account.id, account.email)
 
 
@@ -182,12 +181,12 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Invalid email.")
 
     account = Account(
-        id=urlsafe_short_hash(),
+        id=uuid4().hex,
         email=data.email,
         username=data.username,
     )
     account.hash_password(data.password)
-    await create_account(account)
+    await create_user_account(account)
     return _auth_success_response(account.username, account.id, account.email)
 
 
@@ -225,36 +224,22 @@ async def update_password(
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     if data.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid user ID."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
+    _validate_auth_timeout(payload.auth_time)
     if (
         data.username
         and user.username != data.username
         and await get_account_by_username(data.username)
     ):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     account = await get_account(user.id)
-    if not account:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
-        )
+    assert account, "Account not found."
 
     # old accounts do not have a password
     if account.password_hash:
-        if not data.password_old:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="Missing old password."
-            )
-        if not account.verify_password(data.password_old):
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="Invalid credentials."
-            )
-
-    _validate_auth_timeout(payload.auth_time)
+        assert data.password_old, "Missing old password."
+        assert account.verify_password(data.password_old), "Invalid old password."
 
     account.username = data.username
     account.hash_password(data.password)
@@ -275,9 +260,12 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
     assert data.password == data.password_repeat, "Passwords do not match."
     assert data.reset_key[:10].startswith("reset_key_"), "This is not a reset key."
 
-    reset_data_json = decrypt_internal_message(
-        base64.b64decode(data.reset_key[10:]).decode()
-    )
+    try:
+        reset_key = base64.b64decode(data.reset_key[10:]).decode()
+        reset_data_json = decrypt_internal_message(reset_key)
+    except Exception as exc:
+        raise ValueError("Invalid reset key.") from exc
+
     assert reset_data_json, "Cannot process reset key."
 
     action, user_id, request_time = json.loads(reset_data_json)
@@ -384,12 +372,10 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
         account.extra.email_verified = True
         await update_account(account)
     else:
-        if not settings.new_accounts_allowed:
-            raise HTTPException(HTTPStatus.BAD_REQUEST, "Account creation is disabled.")
         account = Account(
             id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
         )
-        await create_account(account)
+        await create_user_account(account)
     return _auth_redirect_response(redirect_path, email)
 
 
@@ -476,40 +462,35 @@ def _nostr_nip98_event(request: Request) -> dict:
         event = json.loads(event_json)
     except Exception as exc:
         logger.warning(exc)
-    if not event:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "Nostr login event cannot be parsed."
-        )
+    assert event, "Nostr login event cannot be parsed."
+
     if not verify_event(event):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Nostr login event is not valid.")
-    if event["kind"] != 27_235:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid event kind.")
+    assert event["kind"] == 27_235, "Invalid event kind."
+
     auth_threshold = settings.auth_credetials_update_threshold
-    if abs(time() - event["created_at"]) > auth_threshold:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            f"{auth_threshold} seconds have passed since the event was signed.",
-        )
+    assert (
+        abs(time() - event["created_at"]) < auth_threshold
+    ), f"More than {auth_threshold} seconds have passed since the event was signed."
+
     method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
-    if not method:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Tag 'method' is missing.")
-    if method.upper() != "POST":
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid value for tag 'method'.")
+    assert method, "Tag 'method' is missing."
+    assert method.upper() == "POST", "Invalid value for tag 'method'."
 
     url = next((v for k, v in event["tags"] if k == "u"), None)
-    if not url:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Tag 'u' for URL is missing.")
+
+    assert url, "Tag 'u' for URL is missing."
     accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
-    if url not in accepted_urls:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid value for tag 'u'.")
+    assert url in accepted_urls, f"Invalid value for tag 'u': '{url}'."
+
     return event
 
 
-def _validate_auth_timeout(auth_time: Optional[int] = None):
-    if int(time()) - int(auth_time or 0) > settings.auth_credetials_update_threshold:
+def _validate_auth_timeout(auth_time: Optional[int] = 0):
+    if abs(time() - (auth_time or 0)) > settings.auth_credetials_update_threshold:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
             "You can only update your credentials in the first"
-            f" {settings.auth_credetials_update_threshold} seconds after login."
-            " Please login again!",
+            f" {settings.auth_credetials_update_threshold} seconds."
+            " Please login again or ask a new reset key!",
         )

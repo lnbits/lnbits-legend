@@ -255,7 +255,8 @@ async def test_register_email_twice(http_client: AsyncClient):
             "email": f"u21.{tiny_id}@lnbits.com",
         },
     )
-    assert response.status_code == 403, "Not allowed."
+
+    assert response.status_code == 400, "Not allowed."
     assert response.json().get("detail") == "Email already exists."
 
 
@@ -285,7 +286,7 @@ async def test_register_username_twice(http_client: AsyncClient):
             "email": f"u21.{tiny_id_2}@lnbits.com",
         },
     )
-    assert response.status_code == 403, "Not allowed."
+    assert response.status_code == 400, "Not allowed."
     assert response.json().get("detail") == "Username already exists."
 
 
@@ -414,8 +415,8 @@ async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncC
         },
     )
 
-    assert response.status_code == 403, "Old password bad."
-    assert response.json().get("detail") == "Invalid credentials."
+    assert response.status_code == 400, "Old password bad."
+    assert response.json().get("detail") == "Invalid old password."
 
 
 @pytest.mark.asyncio
@@ -469,7 +470,7 @@ async def test_alan_change_password_auth_threshold_expired(
         },
     )
 
-    assert response.status_code == 403, "Treshold expired."
+    assert response.status_code == 400
     assert (
         response.json().get("detail") == "You can only update your credentials"
         " in the first 1 seconds."
@@ -507,6 +508,7 @@ async def test_register_nostr_ok(http_client: AsyncClient):
     response = await http_client.get(
         "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
     )
+
     user = User(**response.json())
     assert user.username is None, "No username."
     assert user.email is None, "No email."
@@ -547,13 +549,13 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
     )
 
     assert response.status_code == 401, "Non nostr header."
-    assert response.json().get("detail") == "Authorization header is not nostr."
+    assert response.json().get("detail") == "Invalid Authorization scheme."
 
     response = await http_client.post(
         "/api/v1/auth/nostr",
         headers={"Authorization": "nostr xyz"},
     )
-    assert response.status_code == 401, "Nostr not base64."
+    assert response.status_code == 400, "Nostr not base64."
     assert response.json().get("detail") == "Nostr login event cannot be parsed."
 
 
@@ -565,7 +567,7 @@ async def test_register_nostr_bad_event(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event}"},
     )
-    assert response.status_code == 401, "Nostr event expired."
+    assert response.status_code == 400, "Nostr event expired."
     assert (
         response.json().get("detail")
         == f"More than {settings.auth_credetials_update_threshold}"
@@ -581,7 +583,7 @@ async def test_register_nostr_bad_event(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event}"},
     )
-    assert response.status_code == 401, "Nostr event signature invalid."
+    assert response.status_code == 400, "Nostr event signature invalid."
     assert response.json().get("detail") == "Nostr login event is not valid."
 
 
@@ -598,7 +600,7 @@ async def test_register_nostr_bad_event_kind(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event_bad_kind}"},
     )
-    assert response.status_code == 401, "Nostr event kind invalid."
+    assert response.status_code == 400, "Nostr event kind invalid."
     assert response.json().get("detail") == "Invalid event kind."
 
 
@@ -617,7 +619,7 @@ async def test_register_nostr_bad_event_tag_u(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event_tag_kind}"},
     )
-    assert response.status_code == 401, "Nostr event tag missing."
+    assert response.status_code == 400, "Nostr event tag missing."
     assert response.json().get("detail") == "Tag 'method' is missing."
 
     event_bad_kind["tags"] = [["u", "http://localhost:5000/nostr"], ["method", "XYZ"]]
@@ -630,8 +632,8 @@ async def test_register_nostr_bad_event_tag_u(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event_tag_kind}"},
     )
-    assert response.status_code == 401, "Nostr event tag invalid."
-    assert response.json().get("detail") == "Incorrect value for tag 'method'."
+    assert response.status_code == 400, "Nostr event tag invalid."
+    assert response.json().get("detail") == "Invalid value for tag 'method'."
 
 
 @pytest.mark.asyncio
@@ -649,7 +651,7 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event}"},
     )
-    assert response.status_code == 401, "Nostr event tag missing."
+    assert response.status_code == 400, "Nostr event tag missing."
     assert response.json().get("detail") == "Tag 'u' for URL is missing."
 
     event_bad_kind["tags"] = [["u", "http://demo.lnbits.com/nostr"], ["method", "POST"]]
@@ -662,15 +664,15 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
         "/api/v1/auth/nostr",
         headers={"Authorization": f"nostr {base64_event}"},
     )
-    assert response.status_code == 401, "Nostr event tag invalid."
+    assert response.status_code == 400, "Nostr event tag invalid."
     assert (
-        response.json().get("detail") == "Incorrect value for tag 'u':"
+        response.json().get("detail") == "Invalid value for tag 'u':"
         " 'http://demo.lnbits.com/nostr'."
     )
 
 
 ################################ CHANGE PUBLIC KEY ################################
-async def test_change_pubkey_npub_ok(http_client: AsyncClient, user_alan: User):
+async def test_change_pubkey_npub_ok(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
         "/api/v1/auth/register",
@@ -790,7 +792,7 @@ async def test_change_pubkey_ok(http_client: AsyncClient, user_alan: User):
         },
     )
 
-    assert response.status_code == 403, "Pubkey already used."
+    assert response.status_code == 400, "Pubkey already used."
     assert response.json().get("detail") == "Public key already in use."
 
 
@@ -852,11 +854,11 @@ async def test_alan_change_pubkey_auth_threshold_expired(
         },
     )
 
-    assert response.status_code == 403, "Treshold expired."
+    assert response.status_code == 400, "Treshold expired."
     assert (
         response.json().get("detail") == "You can only update your credentials"
-        " in the first 1 seconds after login."
-        " Please login again!"
+        " in the first 1 seconds."
+        " Please login again or ask a new reset key!"
     )
 
 
@@ -929,7 +931,7 @@ async def test_request_reset_key_user_not_found(http_client: AsyncClient):
         },
     )
 
-    assert response.status_code == 403, "User does not exist."
+    assert response.status_code == 404, "User does not exist."
     assert response.json().get("detail") == "User not found."
 
 
@@ -975,7 +977,7 @@ async def test_reset_username_passwords_do_not_matcj(
         },
     )
 
-    assert response.status_code == 403, "Passwords do not match."
+    assert response.status_code == 400, "Passwords do not match."
     assert response.json().get("detail") == "Passwords do not match."
 
 
@@ -990,8 +992,8 @@ async def test_reset_username_password_bad_key(http_client: AsyncClient):
             "password_repeat": "secret0000",
         },
     )
-    assert response.status_code == 500, "Bad reset key."
-    assert response.json().get("detail") == "Cannot reset user password."
+    assert response.status_code == 400, "Bad reset key."
+    assert response.json().get("detail") == "Invalid reset key."
 
 
 @pytest.mark.asyncio
@@ -1013,7 +1015,7 @@ async def test_reset_password_auth_threshold_expired(
         },
     )
 
-    assert response.status_code == 403, "Treshold expired."
+    assert response.status_code == 400, "Treshold expired."
     assert (
         response.json().get("detail") == "You can only update your credentials"
         " in the first 1 seconds."

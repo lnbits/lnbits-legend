@@ -76,6 +76,14 @@ def register_exception_handlers(app: FastAPI):
             content={"detail": str(exc)},
         )
 
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        logger.warning(f"ValueError: {exc!s}")
+        return render_html_error(request, exc) or JSONResponse(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
+
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError

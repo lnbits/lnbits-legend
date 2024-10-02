@@ -15,7 +15,7 @@ from fastapi import (
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 
-from lnbits.core.crud import create_account, create_wallet, get_user_by_id
+from lnbits.core.crud import get_user_by_id
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
@@ -41,7 +41,7 @@ from lnbits.utils.exchange_rates import (
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import StatusResponse
 
-from ..services import perform_lnurlauth
+from ..services import create_user_account, perform_lnurlauth
 
 api_router = APIRouter(tags=["Core"])
 
@@ -90,14 +90,8 @@ async def api_wallets(user: User = Depends(check_user_exists)) -> list[BaseWalle
 
 @api_router.post("/api/v1/account", response_model=Wallet)
 async def api_create_account(data: CreateWallet) -> Wallet:
-    if not settings.new_accounts_allowed:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Account creation is disabled.",
-        )
-    account = await create_account()
-    wallet = await create_wallet(user_id=account.id, wallet_name=data.name)
-    return wallet
+    user = await create_user_account(wallet_name=data.name)
+    return user.wallets[0]
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
