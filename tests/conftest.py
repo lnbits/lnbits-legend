@@ -34,8 +34,6 @@ from tests.helpers import (
 )
 
 
-
-
 @pytest_asyncio.fixture(scope="session")
 def settings():
     # override settings for tests
