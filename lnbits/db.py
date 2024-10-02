@@ -643,6 +643,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
+        if issubclass(type_, datetime.datetime):
+            _dict[key] = datetime.datetime.fromtimestamp(value)
+            continue
         if issubclass(type_, bool):
             _dict[key] = bool(value)
             continue
