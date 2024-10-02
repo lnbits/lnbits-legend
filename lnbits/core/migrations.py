@@ -565,3 +565,22 @@ async def m023_add_column_column_to_apipayments(db):
 
 async def m024_drop_pending(db):
     await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+
+
+async def m025_refresh_view(db):
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+    """
+    )
