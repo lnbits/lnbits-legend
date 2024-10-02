@@ -6,7 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 from bolt11 import MilliSatoshi
@@ -18,6 +18,7 @@ from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
 from lnbits.core.db import db
+from lnbits.core.extensions.models import UserExtension
 from lnbits.db import Connection
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -52,16 +53,20 @@ from .crud import (
     create_payment,
     create_wallet,
     get_account,
+    get_account_by_email,
+    get_account_by_username,
     get_payments,
     get_standalone_payment,
     get_super_settings,
     get_total_balance,
+    get_user,
     get_wallet,
     get_wallet_payment,
     update_admin_settings,
     update_payment_details,
     update_payment_status,
     update_super_user,
+    update_user_extension,
 )
 from .helpers import to_valid_user_id
 from .models import (
@@ -70,6 +75,7 @@ from .models import (
     CreatePayment,
     Payment,
     PaymentState,
+    User,
     UserExtra,
     Wallet,
 )
@@ -826,6 +832,45 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
 
     editable_settings = EditableSettings.from_dict(settings.dict())
     return await create_admin_settings(account.id, editable_settings.dict())
+
+
+async def create_user_account(
+    account: Optional[Account] = None, wallet_name: Optional[str] = None
+) -> User:
+    if not settings.new_accounts_allowed:
+        print("### self.lnbits_allow_new_accounts", settings.lnbits_allow_new_accounts)
+        print("### self.lnbits_allowed_users", settings.lnbits_allowed_users)
+
+        raise ValueError("Account creation is disabled.")
+    if account:
+        if account.username and await get_account_by_username(account.username):
+            raise ValueError("Username already exists.")
+
+        if account.email and await get_account_by_email(account.email):
+            raise ValueError("Email already exists.")
+
+        if account.id:
+            print("### account", account)
+            user_uuid4 = UUID(hex=account.id, version=4)
+            assert user_uuid4.hex == account.id, "User ID is not valid UUID4 hex string"
+        else:
+            account.id = uuid4().hex
+
+    account = await create_account(account)
+
+    await create_wallet(
+        user_id=account.id,
+        wallet_name=wallet_name or settings.lnbits_default_wallet_name,
+    )
+
+    for ext_id in settings.lnbits_user_default_extensions:
+        user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
+        await update_user_extension(user_ext)
+
+    user = await get_user(account)
+    assert user, "Cannot find user for account."
+
+    return user
 
 
 class WebsocketConnectionManager:
