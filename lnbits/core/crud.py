@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from time import time
 from typing import Literal, Optional, Union
 from uuid import uuid4
@@ -39,14 +40,14 @@ async def create_account(
     conn: Optional[Connection] = None,
 ) -> Account:
     if not account:
-        now = int(time())
+        now = datetime.now(timezone.utc)
         account = Account(id=uuid4().hex, created_at=now, updated_at=now)
     await (conn or db).insert("accounts", account)
     return account
 
 
 async def update_account(account: Account) -> Account:
-    account.updated_at = int(time())
+    account.updated_at = datetime.now(timezone.utc)
     await db.update("accounts", account)
     return account
 

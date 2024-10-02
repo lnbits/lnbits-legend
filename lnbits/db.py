@@ -605,6 +605,9 @@ def model_to_dict(model: BaseModel) -> dict:
         if key.startswith("_"):
             continue
         type_ = model.__fields__[key].type_
+        if type_ is datetime.datetime:
+            _dict[key] = value.timestamp()
+            continue
         if type(type_) is type(BaseModel):
             _dict[key] = json.dumps(value)
             continue
