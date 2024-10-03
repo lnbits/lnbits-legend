@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -34,7 +33,7 @@ def json_custom_serialization(_, o):
     raise TypeError(f"Object is not JSON serializable: {o}")
 
 
-json.JSONEncoder.default = json_custom_serialization
+json.JSONEncoder.default = json_custom_serialization  # type: ignore[method-assign]
 
 
 class BaseWallet(BaseModel):
@@ -333,7 +332,7 @@ class Payment(BaseModel):
 
     @property
     def is_expired(self) -> bool:
-        return self.expiry < time.time() if self.expiry else False
+        return self.expiry < datetime.now(timezone.utc) if self.expiry else False
 
     @property
     def is_internal(self) -> bool:
