@@ -455,7 +455,7 @@ class WebPushSubscription(BaseModel):
     user: str
     data: str
     host: str
-    timestamp: str
+    timestamp: datetime
 
 
 class BalanceDelta(BaseModel):
