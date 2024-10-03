@@ -21,7 +21,7 @@ from lnbits.core.models import (
     AccountOverview,
     CreateTopup,
     User,
-    Wallet,
+    WalletBalance,
 )
 from lnbits.core.services import update_wallet_balance
 from lnbits.db import Filters, Page
@@ -103,7 +103,7 @@ async def api_users_toggle_admin(user_id: str) -> None:
 
 
 @users_router.get("/user/{user_id}/wallet")
-async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
+async def api_users_get_user_wallet(user_id: str) -> List[WalletBalance]:
     return await get_wallets(user_id)
 
 

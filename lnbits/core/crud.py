@@ -31,6 +31,7 @@ from .models import (
     TinyURL,
     User,
     Wallet,
+    WalletBalance,
     WebPushSubscription,
 )
 
@@ -419,7 +420,7 @@ async def delete_unused_wallets(
 
 async def get_wallet(
     wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
-) -> Optional[Wallet]:
+) -> Optional[WalletBalance]:
     where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchone(
         f"""
@@ -429,13 +430,13 @@ async def get_wallet(
         WHERE id = :wallet {where}
         """,
         {"wallet": wallet_id, "deleted": deleted},
-        Wallet,
+        WalletBalance,
     )
 
 
 async def get_wallets(
     user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
-) -> list[Wallet]:
+) -> list[WalletBalance]:
     where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchall(
         f"""
@@ -445,14 +446,14 @@ async def get_wallets(
         WHERE "user" = :user {where}
         """,
         {"user": user_id, "deleted": deleted},
-        Wallet,
+        WalletBalance,
     )
 
 
 async def get_wallet_for_key(
     key: str,
     conn: Optional[Connection] = None,
-) -> Optional[Wallet]:
+) -> Optional[WalletBalance]:
     return await (conn or db).fetchone(
         """
         SELECT *, COALESCE((
@@ -462,7 +463,7 @@ async def get_wallet_for_key(
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
         """,
         {"key": key},
-        Wallet,
+        WalletBalance,
     )
 
 

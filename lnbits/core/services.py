@@ -78,7 +78,7 @@ from .models import (
     PaymentState,
     User,
     UserExtra,
-    Wallet,
+    WalletBalance,
 )
 
 
@@ -452,7 +452,7 @@ async def _create_external_payment(
 
 
 def _check_wallet_balance(
-    wallet: Wallet,
+    wallet: WalletBalance,
     fee_reserve_total_msat: int,
     internal_checking_id: Optional[str] = None,
 ):
@@ -700,7 +700,7 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
     return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
 
 
-async def send_payment_notification(wallet: Wallet, payment: Payment):
+async def send_payment_notification(wallet: WalletBalance, payment: Payment):
     await websocket_updater(
         wallet.inkey,
         json.dumps(

@@ -42,24 +42,9 @@ class Wallet(BaseModel):
     adminkey: str
     inkey: str
     deleted: bool = False
-    balance_msat: int = 0
     created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime = datetime.now(timezone.utc)
     currency: Optional[str] = None
-
-    # @property
-    # def balance_msat(self) -> int:
-    #     return self.balance_msat // 1000
-
-    @property
-    def balance(self) -> int:
-        return self.balance_msat // 1000
-
-    @property
-    def withdrawable_balance(self) -> int:
-        from .services import fee_reserve
-
-        return self.balance_msat - fee_reserve(self.balance_msat)
 
     @property
     def lnurlwithdraw_full(self) -> str:
@@ -78,6 +63,22 @@ class Wallet(BaseModel):
         )
 
 
+class WalletBalance(Wallet):
+    """Wallet with balance properties"""
+
+    balance_msat: int = 0
+
+    @property
+    def balance(self) -> int:
+        return self.balance_msat // 1000
+
+    @property
+    def withdrawable_balance(self) -> int:
+        from .services import fee_reserve
+
+        return self.balance_msat - fee_reserve(self.balance_msat)
+
+
 class KeyType(Enum):
     admin = 0
     invoice = 1
@@ -91,7 +92,7 @@ class KeyType(Enum):
 @dataclass
 class WalletTypeInfo:
     key_type: KeyType
-    wallet: Wallet
+    wallet: WalletBalance
 
 
 class UserExtra(BaseModel):
@@ -173,7 +174,7 @@ class User(BaseModel):
     username: Optional[str] = None
     pubkey: Optional[str] = None
     extensions: list[str] = []
-    wallets: list[Wallet] = []
+    wallets: list[WalletBalance] = []
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
@@ -273,13 +274,6 @@ class CreatePayment(BaseModel):
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     fee: int = 0
-
-
-# TODO: thanks about paymeny extra
-# class PaymentExtra(Extra):
-#     tag: Optional[str] = None
-#     def __getitem__(self, key):
-#         return self[key] or self._raw_json[key]
 
 
 class Payment(BaseModel):

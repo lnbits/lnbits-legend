@@ -12,6 +12,7 @@ from lnbits.core.models import (
     CreateWallet,
     KeyType,
     Wallet,
+    WalletBalance,
 )
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -61,7 +62,7 @@ async def api_update_wallet(
     name: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
-) -> Wallet:
+) -> WalletBalance:
     wallet = await get_wallet(key_info.wallet.id)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
@@ -81,7 +82,7 @@ async def api_delete_wallet(
     )
 
 
-@wallet_router.post("", response_model=Wallet)
+@wallet_router.post("")
 async def api_create_wallet(
     data: CreateWallet,
     wallet: WalletTypeInfo = Depends(require_admin_key),
