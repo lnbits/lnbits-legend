@@ -63,9 +63,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         )
     account = await get_account_by_username_or_email(data.username)
     if not account or not account.verify_password(data.password):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid credentials."
-        )
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
     return _auth_success_response(account.username, account.id, account.email)
 
 
@@ -91,14 +89,12 @@ async def nostr_login(request: Request) -> JSONResponse:
 async def login_usr(data: LoginUsr) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Login by 'User ID' not allowed.",
+            HTTPStatus.UNAUTHORIZED,
+            "Login by 'User ID' not allowed.",
         )
     account = await get_account(data.usr)
     if not account:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="User ID does not exist."
-        )
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
     return _auth_success_response(account.username, account.id, account.email)
 
 
@@ -109,8 +105,8 @@ async def login_with_sso_provider(
     provider_sso = _new_sso(provider)
     if not provider_sso:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail=f"Login by '{provider}' not allowed.",
+            HTTPStatus.UNAUTHORIZED,
+            f"Login by '{provider}' not allowed.",
         )
 
     provider_sso.redirect_uri = str(request.base_url) + f"api/v1/auth/{provider}/token"
@@ -124,16 +120,14 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
     provider_sso = _new_sso(provider)
     if not provider_sso:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail=f"Login by '{provider}' not allowed.",
+            HTTPStatus.UNAUTHORIZED,
+            f"Login by '{provider}' not allowed.",
         )
 
     with provider_sso:
         userinfo = await provider_sso.verify_and_process(request)
         if not userinfo:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid user info."
-            )
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid user info.")
         user_id = decrypt_internal_message(provider_sso.state)
     request.session.pop("user", None)
     return await _handle_sso_login(userinfo, user_id)
@@ -141,7 +135,7 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
 
 @auth_router.post("/logout")
 async def logout() -> JSONResponse:
-    response = JSONResponse({"status": "success"}, status_code=HTTPStatus.OK)
+    response = JSONResponse({"status": "success"}, HTTPStatus.OK)
     response.delete_cookie("cookie_access_token")
     response.delete_cookie("is_lnbits_user_authorized")
     response.delete_cookie("is_access_token_expired")
@@ -154,31 +148,23 @@ async def logout() -> JSONResponse:
 async def register(data: CreateUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Register by 'Username and Password' not allowed.",
+            HTTPStatus.UNAUTHORIZED,
+            "Register by 'Username and Password' not allowed.",
         )
 
     if data.password != data.password_repeat:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Passwords do not match."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
 
     if not data.username:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Missing username."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Missing username.")
     if not is_valid_username(data.username):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid username."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
 
     if await get_account_by_username(data.username):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     if data.email and not is_valid_email_address(data.email):
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Invalid email.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
     account = Account(
         id=uuid4().hex,
@@ -244,7 +230,7 @@ async def update_password(
     await update_account(account)
     _user = await get_user(account)
     if not _user:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found.")
+        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
     return _user
 
 
@@ -287,40 +273,30 @@ async def update(
     data: UpdateUser, user: User = Depends(check_user_exists)
 ) -> Optional[User]:
     if data.user_id != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid user ID."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
     if data.username and not is_valid_username(data.username):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid username."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
     if data.email != user.email:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Email mismatch.",
+            HTTPStatus.BAD_REQUEST,
+            "Email mismatch.",
         )
     if (
         data.username
         and user.username != data.username
         and await get_account_by_username(data.username)
     ):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Username already exists."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
     if (
         data.email
         and data.email != user.email
         and await get_account_by_email(data.email)
     ):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Email already exists."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Email already exists.")
 
     account = await get_account(user.id)
     if not account:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Account not found."
-        )
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Account not found.")
 
     if data.username:
         account.username = data.username
