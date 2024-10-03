@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -12,7 +13,6 @@ from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field, validator
-import json
 
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
@@ -26,6 +26,7 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
+
 
 def json_custom_serialization(_, o):
     if isinstance(o, datetime):
