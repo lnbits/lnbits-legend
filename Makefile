@@ -50,7 +50,6 @@ test-wallets:
 
 test-unit:
 	LNBITS_DATA_FOLDER="./tests/data" \
-	LNBITS_DATABASE_URL="" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
@@ -58,7 +57,6 @@ test-unit:
 
 test-api:
 	LNBITS_DATA_FOLDER="./tests/data" \
-	LNBITS_DATABASE_URL="" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
