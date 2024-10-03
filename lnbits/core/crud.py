@@ -31,7 +31,6 @@ from .models import (
     TinyURL,
     User,
     Wallet,
-    WalletBalance,
     WebPushSubscription,
 )
 
@@ -340,7 +339,7 @@ async def create_wallet(
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
     )
-    await (conn or db).update("wallets", wallet)
+    await (conn or db).insert("wallets", wallet)
     return wallet
 
 
@@ -420,7 +419,7 @@ async def delete_unused_wallets(
 
 async def get_wallet(
     wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
-) -> Optional[WalletBalance]:
+) -> Optional[Wallet]:
     where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchone(
         f"""
@@ -430,13 +429,13 @@ async def get_wallet(
         WHERE id = :wallet {where}
         """,
         {"wallet": wallet_id, "deleted": deleted},
-        WalletBalance,
+        Wallet,
     )
 
 
 async def get_wallets(
     user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
-) -> list[WalletBalance]:
+) -> list[Wallet]:
     where = "AND deleted = :deleted" if deleted is not None else ""
     return await (conn or db).fetchall(
         f"""
@@ -446,14 +445,14 @@ async def get_wallets(
         WHERE "user" = :user {where}
         """,
         {"user": user_id, "deleted": deleted},
-        WalletBalance,
+        Wallet,
     )
 
 
 async def get_wallet_for_key(
     key: str,
     conn: Optional[Connection] = None,
-) -> Optional[WalletBalance]:
+) -> Optional[Wallet]:
     return await (conn or db).fetchone(
         """
         SELECT *, COALESCE((
@@ -463,7 +462,7 @@ async def get_wallet_for_key(
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
         """,
         {"key": key},
-        WalletBalance,
+        Wallet,
     )
 
 

@@ -11,7 +11,7 @@ from typing import Callable, Optional
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from passlib.context import CryptContext
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
@@ -45,6 +45,17 @@ class Wallet(BaseModel):
     created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime = datetime.now(timezone.utc)
     currency: Optional[str] = None
+    balance_msat: int = Field(default=0, no_database=True)
+
+    @property
+    def balance(self) -> int:
+        return self.balance_msat // 1000
+
+    @property
+    def withdrawable_balance(self) -> int:
+        from .services import fee_reserve
+
+        return self.balance_msat - fee_reserve(self.balance_msat)
 
     @property
     def lnurlwithdraw_full(self) -> str:
@@ -63,22 +74,6 @@ class Wallet(BaseModel):
         )
 
 
-class WalletBalance(Wallet):
-    """Wallet with balance properties"""
-
-    balance_msat: int = 0
-
-    @property
-    def balance(self) -> int:
-        return self.balance_msat // 1000
-
-    @property
-    def withdrawable_balance(self) -> int:
-        from .services import fee_reserve
-
-        return self.balance_msat - fee_reserve(self.balance_msat)
-
-
 class KeyType(Enum):
     admin = 0
     invoice = 1
@@ -92,7 +87,7 @@ class KeyType(Enum):
 @dataclass
 class WalletTypeInfo:
     key_type: KeyType
-    wallet: WalletBalance
+    wallet: Wallet
 
 
 class UserExtra(BaseModel):
@@ -174,7 +169,7 @@ class User(BaseModel):
     username: Optional[str] = None
     pubkey: Optional[str] = None
     extensions: list[str] = []
-    wallets: list[WalletBalance] = []
+    wallets: list[Wallet] = []
     admin: bool = False
     super_user: bool = False
     has_password: bool = False

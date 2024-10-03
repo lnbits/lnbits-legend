@@ -83,12 +83,13 @@ async def health_check(wallet: WalletTypeInfo = Depends(require_invoice_key)) ->
     "/api/v1/wallets",
     name="Wallets",
     description="Get basic info for all of user's wallets.",
+    response_model=list[BaseWallet],
 )
-async def api_wallets(user: User = Depends(check_user_exists)) -> list[BaseWallet]:
-    return [BaseWallet(**w.dict()) for w in user.wallets]
+async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
+    return user.wallets
 
 
-@api_router.post("/api/v1/account", response_model=Wallet)
+@api_router.post("/api/v1/account")
 async def api_create_account(data: CreateWallet) -> Wallet:
     user = await create_user_account(wallet_name=data.name)
     return user.wallets[0]

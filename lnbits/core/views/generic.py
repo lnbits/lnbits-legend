@@ -13,7 +13,7 @@ from pydantic.types import UUID4
 
 from lnbits.core.extensions.models import Extension, ExtensionMeta, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
-from lnbits.core.models import User, WalletBalance
+from lnbits.core.models import User
 from lnbits.core.services import create_invoice, create_user_account
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer
@@ -167,8 +167,7 @@ async def wallet(
     if wal:
         wallet = await get_wallet(wal.hex)
     elif len(user.wallets) == 0:
-        _wallet = await create_wallet(user_id=user.id)
-        wallet = WalletBalance(**_wallet.dict())
+        wallet = await create_wallet(user_id=user.id)
         user.wallets.append(wallet)
     elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
         wallet = await get_wallet(lnbits_last_active_wallet)

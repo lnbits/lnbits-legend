@@ -570,10 +570,11 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     :param model: Pydantic model
     """
     placeholders = []
-    for field in model.dict().keys():
+    keys = model_to_dict(model).keys()
+    for field in keys:
         placeholders.append(get_placeholder(model, field))
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
-    fields = ", ".join([f'"{key}"' for key in model.dict().keys()])
+    fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
@@ -586,7 +587,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "id = :id") -> 
     :param where: Where string, default to `id = :id`
     """
     fields = []
-    for field in model.dict().keys():
+    for field in model_to_dict(model).keys():
         placeholder = get_placeholder(model, field)
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
@@ -602,9 +603,9 @@ def model_to_dict(model: BaseModel) -> dict:
     """
     _dict: dict = {}
     for key, value in model.dict().items():
-        if key.startswith("_"):
-            continue
         type_ = model.__fields__[key].type_
+        if model.__fields__[key].field_info.extra.get("no_database", False):
+            continue
         if isinstance(value, datetime.datetime):
             _dict[key] = value.timestamp()
             continue
@@ -643,9 +644,6 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
-        # if issubclass(type_, datetime.datetime):
-        #     _dict[key] = datetime.datetime.fromtimestamp(value)
-        #     continue
         if issubclass(type_, bool):
             _dict[key] = bool(value)
             continue
@@ -654,4 +652,5 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             continue
         _dict[key] = value
         continue
-    return model.construct(**_dict)
+    _model = model.construct(**_dict)
+    return _model
