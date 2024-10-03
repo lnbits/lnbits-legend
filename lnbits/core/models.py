@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Optional
 
@@ -41,11 +41,15 @@ class Wallet(BaseModel):
     name: str
     adminkey: str
     inkey: str
-    currency: Optional[str]
     deleted: bool = False
-    created_at: Optional[int] = None
-    updated_at: Optional[int] = None
     balance_msat: int = 0
+    created_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now(timezone.utc)
+    currency: Optional[str] = None
+
+    # @property
+    # def balance_msat(self) -> int:
+    #     return self.balance_msat // 1000
 
     @property
     def balance(self) -> int:
@@ -72,11 +76,6 @@ class Wallet(BaseModel):
         return SigningKey.from_string(
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
         )
-
-    async def get_payment(self, payment_hash: str) -> Optional[Payment]:
-        from .crud import get_standalone_payment
-
-        return await get_standalone_payment(payment_hash)
 
 
 class KeyType(Enum):
@@ -115,8 +114,8 @@ class Account(BaseModel):
     pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
-    created_at: datetime = datetime.now()
-    updated_at: datetime = datetime.now()
+    created_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now(timezone.utc)
 
     @property
     def is_super_user(self) -> bool:

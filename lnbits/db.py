@@ -283,21 +283,19 @@ class Database(Compat):
 
             @event.listens_for(self.engine.sync_engine, "connect")
             def register_custom_types(dbapi_connection, *_):
-                def _parse_timestamp(value):
+                def _parse_date(value) -> datetime.datetime:
                     if value is None:
-                        return None
+                        value = "1970-01-01 00:00:00"
                     f = "%Y-%m-%d %H:%M:%S.%f"
                     if "." not in value:
                         f = "%Y-%m-%d %H:%M:%S"
-                    return int(
-                        time.mktime(datetime.datetime.strptime(value, f).timetuple())
-                    )
+                    return datetime.datetime.strptime(value, f)
 
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
                         "TIMESTAMP",
                         encoder=datetime.datetime,
-                        decoder=_parse_timestamp,
+                        decoder=_parse_date,
                         schema="pg_catalog",
                     )
                 )
@@ -574,7 +572,8 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     placeholders = []
     for field in model.dict().keys():
         placeholders.append(get_placeholder(model, field))
-    fields = ", ".join(model.dict().keys())
+    # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
+    fields = ", ".join([f'"{key}"' for key in model.dict().keys()])
     values = ", ".join(placeholders)
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
@@ -589,7 +588,8 @@ def update_query(table_name: str, model: BaseModel, where: str = "id = :id") -> 
     fields = []
     for field in model.dict().keys():
         placeholder = get_placeholder(model, field)
-        fields.append(f"{field} = {placeholder}")
+        # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
+        fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} WHERE {where}"
 
@@ -600,12 +600,12 @@ def model_to_dict(model: BaseModel) -> dict:
     private fields starting with _ are ignored
     :param model: Pydantic model
     """
-    _dict = {}
+    _dict: dict = {}
     for key, value in model.dict().items():
         if key.startswith("_"):
             continue
         type_ = model.__fields__[key].type_
-        if type_ is datetime.datetime:
+        if isinstance(value, datetime.datetime):
             _dict[key] = value.timestamp()
             continue
         if type(type_) is type(BaseModel):
@@ -643,9 +643,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
-        if issubclass(type_, datetime.datetime):
-            _dict[key] = datetime.datetime.fromtimestamp(value)
-            continue
+        # if issubclass(type_, datetime.datetime):
+        #     _dict[key] = datetime.datetime.fromtimestamp(value)
+        #     continue
         if issubclass(type_, bool):
             _dict[key] = bool(value)
             continue

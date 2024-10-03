@@ -126,6 +126,7 @@ async def from_user():
 @pytest_asyncio.fixture(scope="session")
 async def from_wallet(from_user):
     user = from_user
+
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await update_wallet_balance(
         wallet_id=wallet.id,

@@ -26,6 +26,7 @@ class DbTestModel2(BaseModel):
 
 class DbTestModel3(BaseModel):
     id: int
+    user: str
     child: DbTestModel2
     active: bool = False
 

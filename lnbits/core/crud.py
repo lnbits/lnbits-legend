@@ -332,55 +332,23 @@ async def create_wallet(
     conn: Optional[Connection] = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
-    await (conn or db).execute(
-        f"""
-        INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
-        VALUES (:wallet, :name, :user, :adminkey, :inkey, {now_ph}, {now_ph})
-        """,
-        {
-            "wallet": wallet_id,
-            "name": wallet_name or settings.lnbits_default_wallet_name,
-            "user": user_id,
-            "adminkey": uuid4().hex,
-            "inkey": uuid4().hex,
-            "now": now,
-        },
+    wallet = Wallet(
+        id=wallet_id,
+        name=wallet_name or settings.lnbits_default_wallet_name,
+        user=user_id,
+        adminkey=uuid4().hex,
+        inkey=uuid4().hex,
     )
-
-    new_wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
-    assert new_wallet, "Newly created wallet couldn't be retrieved"
-
-    return new_wallet
+    await (conn or db).update("wallets", wallet)
+    return wallet
 
 
 async def update_wallet(
-    wallet_id: str,
-    name: Optional[str] = None,
-    currency: Optional[str] = None,
+    wallet: Wallet,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
-    set_clause = []
-    set_clause.append(f"updated_at = {db.timestamp_placeholder('now')}")
-    values: dict = {
-        "wallet": wallet_id,
-        "now": int(time()),
-    }
-    if name:
-        set_clause.append("name = :name")
-        values["name"] = name
-    if currency is not None:
-        set_clause.append("currency = :currency")
-        values["currency"] = currency
-    await (conn or db).execute(
-        f"""
-        UPDATE wallets SET {', '.join(set_clause)} WHERE id = :wallet
-        """,
-        values,
-    )
-    wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
-    assert wallet, "updated created wallet couldn't be retrieved"
+    wallet.updated_at = datetime.now(timezone.utc)
+    await (conn or db).update("wallets", wallet)
     return wallet
 
 
