@@ -21,7 +21,8 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     ext_id = ext_info.id
     extension = Extension.from_installable_ext(ext_info)
     installed_ext = await get_installed_extension(ext_id)
-    ext_info.payments = installed_ext.payments if installed_ext else []
+    if installed_ext:
+        ext_info.meta = installed_ext.meta
 
     await ext_info.download_archive()
 

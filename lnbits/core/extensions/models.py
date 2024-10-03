@@ -551,10 +551,10 @@ class InstallableExtension(BaseModel):
     def find_existing_payment(
         self, pay_link: Optional[str]
     ) -> Optional[ReleasePaymentInfo]:
-        if not pay_link:
+        if not pay_link or not self.meta or not self.meta.payments:
             return None
         return next(
-            (p for p in self.payments if p.pay_link == pay_link),
+            (p for p in self.meta.payments if p.pay_link == pay_link),
             None,
         )
 
@@ -582,10 +582,10 @@ class InstallableExtension(BaseModel):
             pay_link=self.meta.installed_release.pay_link,
             payment_hash=self.meta.installed_release.payment_hash,
         )
-        self.payments = [
-            p for p in self.payments if p.pay_link != payment_info.pay_link
+        self.meta.payments = [
+            p for p in self.meta.payments if p.pay_link != payment_info.pay_link
         ]
-        self.payments.append(payment_info)
+        self.meta.payments.append(payment_info)
 
     @classmethod
     async def from_github_release(
