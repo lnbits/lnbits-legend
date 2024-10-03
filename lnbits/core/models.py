@@ -49,7 +49,7 @@ class Wallet(BaseModel):
 
     @property
     def balance(self) -> int:
-        return self.balance_msat // 1000
+        return int(self.balance_msat // 1000)
 
     @property
     def withdrawable_balance(self) -> int:
