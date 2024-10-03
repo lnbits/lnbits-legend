@@ -470,7 +470,7 @@
                       v-model="reactionChoice"
                       :options="reactionOptions"
                       label="Reactions"
-                      @input="reactionChoiceFunc"
+                      @update:model-value="reactionChoiceFunc"
                     >
                       <q-tooltip
                         ><span v-text="$t('payment_reactions')"></span

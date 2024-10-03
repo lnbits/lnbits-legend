@@ -301,7 +301,7 @@
           v-if="o.options?.length"
           :options="o.options"
           v-model="formData[o.name]"
-          @input="handleValueChanged"
+          @update:model-value="handleValueChanged"
           class="q-ml-xl"
         >
         </lnbits-dynamic-fields>
@@ -310,7 +310,7 @@
             v-if="o.type === 'number'"
             type="number"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :rules="applyRules(o.required)"
@@ -322,7 +322,7 @@
             type="textarea"
             rows="5"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :rules="applyRules(o.required)"
@@ -332,7 +332,7 @@
           <q-input
             v-else-if="o.type === 'password'"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             type="password"
             :label="o.label || o.name"
             :hint="o.description"
@@ -343,7 +343,7 @@
           <q-select
             v-else-if="o.type === 'select'"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :options="o.values"
@@ -352,7 +352,7 @@
           <q-select
             v-else-if="o.isList"
             v-model.trim="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             input-debounce="0"
             new-value-mode="add-unique"
             :label="o.label || o.name"
@@ -371,7 +371,7 @@
               <q-item-section avatar top>
                 <q-checkbox
                   v-model="formData[o.name]"
-                  @input="handleValueChanged"
+                  @update:model-value="handleValueChanged"
                 />
               </q-item-section>
               <q-item-section>
@@ -394,7 +394,7 @@
           <q-input
             v-else
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :hint="o.description"
             :label="o.label || o.name"
             :rules="applyRules(o.required)"
