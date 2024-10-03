@@ -107,7 +107,7 @@
                 color="secondary"
                 style=""
                 v-model="extension.isActive"
-                @input="toggleExtension(extension)"
+                @update:model-value="toggleExtension(extension)"
                 ><q-tooltip>
                   &nbsp;
                   <span
@@ -1058,7 +1058,7 @@
             extension.inProgress = false
           })
       },
-      toggleExtension: function (extension) {
+      toggleExtension(extension) {
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
           .request(
