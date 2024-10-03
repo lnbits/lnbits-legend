@@ -12,6 +12,7 @@ from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field, validator
+import json
 
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
@@ -25,6 +26,14 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
+
+def json_custom_serialization(_, o):
+    if isinstance(o, datetime):
+        return o.isoformat()
+    raise TypeError(f"Object is not JSON serializable: {o}")
+
+
+json.JSONEncoder.default = json_custom_serialization
 
 
 class BaseWallet(BaseModel):
@@ -279,9 +288,9 @@ class Payment(BaseModel):
     amount: int
     fee: int
     memo: Optional[str]
-    time: int
+    time: datetime
     bolt11: str
-    expiry: Optional[float]
+    expiry: Optional[datetime]
     extra: Optional[dict]
     webhook: Optional[str]
     webhook_status: Optional[int] = None
