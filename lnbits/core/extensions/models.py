@@ -523,7 +523,7 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
-        logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
+        logger.success(f"Extension {self.name} ({self.installed_version}) extracted.")
 
     def clean_extension_files(self):
         # remove downloaded archive
