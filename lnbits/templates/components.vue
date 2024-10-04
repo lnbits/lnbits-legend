@@ -793,7 +793,7 @@
   </q-form>
 </template>
 
-<template id="lnbits-extension-btn-dialog">
+<template id="lnbits-extension-settings-btn-dialog">
   <q-btn
     v-if="options"
     unelevated
