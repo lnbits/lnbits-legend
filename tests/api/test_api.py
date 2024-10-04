@@ -513,7 +513,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     await update_currency("EUR")
 
     payment = await create_invoice()
-    extra = json.loads(payment["extra"])
+    extra = payment["extra"]
     assert extra["wallet_fiat_currency"] == "EUR"
     assert extra["wallet_fiat_amount"] != payment["amount"]
     assert extra["wallet_fiat_rate"]
