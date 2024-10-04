@@ -148,7 +148,7 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     )
     assert response.is_success
     res_data = response.json()
-    extra = json.loads(res_data["details"]["extra"])
+    extra = res_data["details"]["extra"]
     assert extra["fiat_amount"] == data["amount"]
     assert extra["fiat_currency"] == data["unit"]
     assert extra["fiat_rate"]
@@ -505,7 +505,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
 
     settings.lnbits_default_accounting_currency = "USD"
     payment = await create_invoice()
-    extra = json.loads(payment["extra"])
+    extra = payment["extra"]
     assert extra["wallet_fiat_currency"] == "USD"
     assert extra["wallet_fiat_amount"] != payment["amount"]
     assert extra["wallet_fiat_rate"]
