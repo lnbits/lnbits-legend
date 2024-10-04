@@ -773,7 +773,7 @@ async def update_payment_extra(
 
     row: dict = await (conn or db).fetchone(
         f"""
-        SELECT payment_hash, extra from apipayments WHERE hash = :hash {amount_clause}
+        SELECT payment_hash, extra from apipayments WHERE payment_hash = :hash {amount_clause}
         """,
         {"hash": payment_hash},
     )
