@@ -1,5 +1,4 @@
 import hashlib
-import json
 
 import pytest
 
