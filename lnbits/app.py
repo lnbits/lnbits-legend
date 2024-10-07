@@ -314,7 +314,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
     register_ext_routes(app, extension)
 
     current_version = (await get_dbversions()).get(ext.id, 0)
-    await migrate_extension_database(extension, current_version)
+    await migrate_extension_database(ext, current_version)
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)

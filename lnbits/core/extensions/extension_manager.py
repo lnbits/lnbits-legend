@@ -29,7 +29,7 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     ext_info.extract_archive()
 
     db_version = (await get_dbversions()).get(ext_id, 0)
-    await migrate_extension_database(extension, db_version)
+    await migrate_extension_database(ext_info, db_version)
 
     await create_installed_extension(ext_info)
 

@@ -579,12 +579,14 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
 
-def update_query(table_name: str, model: BaseModel, where: str = "id = :id") -> str:
+def update_query(
+    table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+) -> str:
     """
     Generate an update query with placeholders for a given table and model
     :param table_name: Name of the table
     :param model: Pydantic model
-    :param where: Where string, default to `id = :id`
+    :param where: Where string, default to `WHERE id = :id`
     """
     fields = []
     for field in model_to_dict(model).keys():
@@ -592,7 +594,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "id = :id") -> 
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} WHERE {where}"
+    return f"UPDATE {table_name} SET {query} {where}"
 
 
 def model_to_dict(model: BaseModel) -> dict:

@@ -405,7 +405,7 @@ window.app.component('lnbits-notifications-btn', {
 window.app.component('lnbits-dynamic-fields', {
   template: '#lnbits-dynamic-fields',
   mixins: [window.windowMixin],
-  props: ['options', 'value'],
+  props: ['options', 'modelValue'],
   data() {
     return {
       formData: null,
@@ -427,11 +427,11 @@ window.app.component('lnbits-dynamic-fields', {
       }, {})
     },
     handleValueChanged() {
-      this.$emit('input', this.formData)
+      this.$emit('update:model-value', this.formData)
     }
   },
   created() {
-    this.formData = this.buildData(this.options, this.value)
+    this.formData = this.buildData(this.options, this.modelValue)
   }
 })
 
