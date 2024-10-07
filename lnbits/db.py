@@ -349,7 +349,7 @@ class Database(Compat):
             await conn.insert(table_name, model)
 
     async def update(
-        self, table_name: str, model: BaseModel, where: str = "id = :id"
+        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
     ) -> None:
         async with self.connect() as conn:
             await conn.update(table_name, model, where)
