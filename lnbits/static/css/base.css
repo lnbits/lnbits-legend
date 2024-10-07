@@ -526,7 +526,7 @@ video {
   word-break: break-word;
 }
 
-.q-card--dark {
+.q-card--dark, .q-date--dark {
   box-shadow: none;
 }
 
