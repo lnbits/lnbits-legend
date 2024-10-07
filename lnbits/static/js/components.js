@@ -409,7 +409,7 @@ window.app.component('lnbits-dynamic-fields', {
   data() {
     return {
       formData: null,
-      rules: [val => !!val || 'Field is required']
+      rules: [val => !!val || 'Field is required'],
     }
   },
   methods: {
@@ -428,11 +428,43 @@ window.app.component('lnbits-dynamic-fields', {
     },
     handleValueChanged() {
       this.$emit('update:model-value', this.formData)
-    }
+    },
   },
   created() {
     this.formData = this.buildData(this.options, this.modelValue)
   }
+})
+
+window.app.component('lnbits-dynamic-chips', {
+  template: '#lnbits-dynamic-chips',
+  mixins: [window.windowMixin],
+  props: ['modelValue'],
+  data() {
+    return {
+      chip: '',
+      chips: []
+    }
+  },
+  methods: {
+    addChip() {
+      if (!this.chip) return
+      this.chips.push(this.chip)
+      this.chip = ''
+      this.modelValue = this.chips.join(',')
+    },
+    removeChip(index) {
+      this.chips.splice(index, 1)
+      this.$emit('update:model-value', this.chips.join(','))
+    }
+  },
+  created() {
+    if (typeof this.modelValue === 'string') {
+      this.chips = this.modelValue.split(',')
+    } else {
+      this.chips = [...this.modelValue]
+    }
+  }
+
 })
 
 window.app.component('lnbits-update-balance', {

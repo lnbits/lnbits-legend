@@ -391,6 +391,12 @@
             style="display: none"
             :rules="applyRules(o.required)"
           ></q-input>
+          <div v-else-if="o.type === 'chips'">
+            <lnbits-dynamic-chips
+              :model-value="formData[o.name]"
+              @update:model-value="handleValueChanged"
+            ></lnbits-dynamic-chips>
+          </div>
           <q-input
             v-else
             v-model="formData[o.name]"
@@ -404,6 +410,32 @@
         </div>
       </div>
     </div>
+  </div>
+</template>
+
+<template id="lnbits-dynamic-chips">
+  <q-input
+    filled
+    v-model="chip"
+    @keydown.enter.prevent="addChip"
+    type="text"
+    label="wss://...."
+    hint="Add relays"
+    class="q-mb-md"
+  >
+    <q-btn @click="addChip" dense flat icon="add"></q-btn>
+  </q-input>
+  <div>
+    <q-chip
+      v-for="(chip, i) in chips"
+      :key="chip"
+      removable
+      @remove="removeChip(i)"
+      color="primary"
+      text-color="white"
+      :label="chip"
+    >
+    </q-chip>
   </div>
 </template>
 
