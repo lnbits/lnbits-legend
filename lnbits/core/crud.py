@@ -304,7 +304,7 @@ async def create_user_extension(
 async def update_user_extension(
     user_extension: UserExtension, conn: Optional[Connection] = None
 ) -> None:
-    where = """extension = :extension AND "user" = :user"""
+    where = """WHERE extension = :extension AND "user" = :user"""
     await (conn or db).update("extensions", user_extension, where)
 
 
