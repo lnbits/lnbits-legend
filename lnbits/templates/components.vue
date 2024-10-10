@@ -489,8 +489,8 @@
 
 <template id="lnbits-qrcode">
   <div class="qrcode__wrapper">
-    <qrcode-vue :value="value" size="350" class="rounded-borders"></qrcode-vue>
-    <img class="qrcode__image" :src="logo" alt="..." />
+    <qrcode-vue :value="value" level="Q" render-as="svg" margin="1" size="350" class="rounded-borders"></qrcode-vue>
+    <img class="qrcode__image" :src="logo" alt="qrcode icon" />
   </div>
 </template>
 
