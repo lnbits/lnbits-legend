@@ -450,7 +450,7 @@ window.app.component('lnbits-dynamic-chips', {
       if (!this.chip) return
       this.chips.push(this.chip)
       this.chip = ''
-      this.modelValue = this.chips.join(',')
+      this.$emit('update:model-value', this.chips.join(','))
     },
     removeChip(index) {
       this.chips.splice(index, 1)
