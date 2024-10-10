@@ -526,10 +526,6 @@ video {
   word-break: break-word;
 }
 
-.q-card--dark, .q-date--dark {
-  box-shadow: none;
-}
-
 .q-card code {
   overflow-wrap: break-word;
 }

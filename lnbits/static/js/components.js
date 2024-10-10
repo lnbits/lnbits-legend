@@ -409,7 +409,7 @@ window.app.component('lnbits-dynamic-fields', {
   data() {
     return {
       formData: null,
-      rules: [val => !!val || 'Field is required'],
+      rules: [val => !!val || 'Field is required']
     }
   },
   methods: {
@@ -428,7 +428,7 @@ window.app.component('lnbits-dynamic-fields', {
     },
     handleValueChanged() {
       this.$emit('update:model-value', this.formData)
-    },
+    }
   },
   created() {
     this.formData = this.buildData(this.options, this.modelValue)
@@ -464,7 +464,6 @@ window.app.component('lnbits-dynamic-chips', {
       this.chips = [...this.modelValue]
     }
   }
-
 })
 
 window.app.component('lnbits-update-balance', {

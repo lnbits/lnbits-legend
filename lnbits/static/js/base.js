@@ -278,7 +278,7 @@ window.LNbits = {
         preimage: data.preimage,
         payment_hash: data.payment_hash,
         expiry: data.expiry,
-        extra: data.extra ? JSON.parse(data.extra) : {},
+        extra: data.extra ?? {},
         wallet_id: data.wallet_id,
         webhook: data.webhook,
         webhook_status: data.webhook_status,
