@@ -621,8 +621,8 @@
             <div v-else>
               <q-responsive :ratio="1">
                 <qrcode-stream
-                  @decode="decodeQR"
-                  @init="onInitQR"
+                  @detect="decodeQR"
+                  @camera-on="onInitQR"
                   class="rounded-borders"
                 ></qrcode-stream>
               </q-responsive>
@@ -645,8 +645,8 @@
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
-              @decode="decodeQR"
-              @init="onInitQR"
+              @detect="decodeQR"
+              @camera-on="onInitQR"
               class="rounded-borders"
             ></qrcode-stream>
           </div>

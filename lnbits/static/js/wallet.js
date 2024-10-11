@@ -257,7 +257,7 @@ window.app = Vue.createApp({
         })
     },
     decodeQR: function (res) {
-      this.parse.data.request = res
+      this.parse.data.request = res[0].rawValue
       this.decodeRequest()
       this.parse.camera.show = false
     },
