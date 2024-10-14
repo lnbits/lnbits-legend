@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.0.0-rc3"
+version = "1.0.0-rc4"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
