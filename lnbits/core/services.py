@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
@@ -813,22 +812,16 @@ def update_cached_settings(sets_dict: dict):
 
 
 async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
-    async def new_account(account_id: str) -> Account:
-        now = datetime.now()
-        account = Account(
-            id=account_id,
-            extra=UserExtra(provider="env"),
-            created_at=now,
-            updated_at=now,
-        )
-        await create_account(account)
-        return account
-
     account = None
     if super_user:
         account = await get_account(super_user)
     if not account:
-        account = await new_account(super_user or uuid4().hex)
+        account_id = super_user or uuid4().hex
+        account = Account(
+            id=account_id,
+            extra=UserExtra(provider="env"),
+        )
+        await create_account(account)
         await create_wallet(user_id=account.id)
 
     editable_settings = EditableSettings.from_dict(settings.dict())
