@@ -77,7 +77,6 @@ async def load_disabled_extension_list() -> None:
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
-    current_versions = await get_db_versions()
     async with core_db.connect() as conn:
         exists = False
         if conn.type == SQLITE:
@@ -93,6 +92,7 @@ async def migrate_databases():
         if not exists:
             await core_migrations.m000_create_migrations_table(conn)
 
+        current_versions = await get_db_versions(conn)
         core_version = next(
             (v for v in current_versions if v.db == "core"),
             DbVersion(db="core", version=0),
