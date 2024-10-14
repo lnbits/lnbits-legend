@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -25,15 +24,6 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
-
-
-def json_custom_serialization(_, o):
-    if isinstance(o, datetime):
-        return o.isoformat()
-    raise TypeError(f"Object is not JSON serializable: {o}")
-
-
-json.JSONEncoder.default = json_custom_serialization  # type: ignore[method-assign]
 
 
 class BaseWallet(BaseModel):

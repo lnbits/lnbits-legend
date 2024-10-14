@@ -562,6 +562,8 @@ async def m023_add_column_column_to_apipayments(db):
     await db.execute("ALTER TABLE apipayments RENAME COLUMN wallet TO wallet_id")
     await db.execute("ALTER TABLE accounts RENAME COLUMN pass TO password_hash")
 
+    await db.execute("CREATE INDEX by_hash ON apipayments (payment_hash)")
+
 
 async def m024_drop_pending(db):
     await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
