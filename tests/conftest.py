@@ -20,8 +20,9 @@ from lnbits.core.crud import (
     delete_account,
     get_account,
     get_account_by_username,
+    get_payment,
     get_user,
-    update_payment_status,
+    update_payment,
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -250,7 +251,9 @@ async def fake_payments(client, adminkey_headers_from):
         assert response.is_success
         data = response.json()
         assert data["checking_id"]
-        await update_payment_status(data["checking_id"], status=PaymentState.SUCCESS)
+        payment = await get_payment(data["checking_id"])
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params

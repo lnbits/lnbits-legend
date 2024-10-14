@@ -175,7 +175,9 @@ class Connection(Compat):
             return dict_to_model(row, model)
         return row
 
-    async def update(self, table_name: str, model: BaseModel, where: str = "id = :id"):
+    async def update(
+        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+    ):
         await self.conn.execute(
             text(update_query(table_name, model, where)), model_to_dict(model)
         )

@@ -20,8 +20,7 @@ from lnbits.core.crud import (
     delete_webpush_subscriptions,
     get_payments,
     get_standalone_payment,
-    update_payment_details,
-    update_payment_status,
+    update_payment,
 )
 from lnbits.core.models import Payment, PaymentState
 from lnbits.settings import settings
@@ -181,17 +180,14 @@ async def check_pending_payments():
                 status = await payment.check_status()
                 prefix = f"payment ({i+1} / {count})"
                 if status.failed:
-                    await update_payment_status(
-                        payment.checking_id, status=PaymentState.FAILED
-                    )
+                    payment.status = PaymentState.FAILED
+                    await update_payment(payment)
                     logger.debug(f"{prefix} failed {payment.checking_id}")
                 elif status.success:
-                    await update_payment_details(
-                        checking_id=payment.checking_id,
-                        fee=status.fee_msat,
-                        preimage=status.preimage,
-                        status=PaymentState.SUCCESS,
-                    )
+                    payment.fee = status.fee_msat or 0
+                    payment.preimage = status.preimage
+                    payment.status = PaymentState.SUCCESS
+                    await update_payment(payment)
                     logger.debug(f"{prefix} success {payment.checking_id}")
                 else:
                     logger.debug(f"{prefix} pending {payment.checking_id}")
@@ -211,14 +207,10 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
         status = await payment.check_status()
-        await update_payment_details(
-            checking_id=payment.checking_id,
-            fee=status.fee_msat,
-            preimage=status.preimage,
-            status=PaymentState.SUCCESS,
-        )
-        payment = await get_standalone_payment(checking_id, incoming=True)
-        assert payment, "updated payment not found"
+        payment.fee = status.fee_msat or 0
+        payment.preimage = status.preimage
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
         internal = "internal" if is_internal else ""
         logger.success(f"{internal} invoice {checking_id} settled")
         for name, send_chan in invoice_listeners.items():

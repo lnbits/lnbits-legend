@@ -4,7 +4,7 @@ import hashlib
 import pytest
 
 from lnbits import bolt11
-from lnbits.core.crud import get_standalone_payment, update_payment_details
+from lnbits.core.crud import get_standalone_payment, update_payment
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta
 from lnbits.tasks import create_task, wait_for_paid_invoices
@@ -303,7 +303,8 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         assert payment
 
         # set the incoming invoice to pending
-        await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
+        payment.status = PaymentState.PENDING
+        await update_payment(payment)
 
         payment_pending = await get_standalone_payment(
             invoice["payment_hash"], incoming=True

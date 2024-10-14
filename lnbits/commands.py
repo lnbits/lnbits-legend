@@ -20,9 +20,10 @@ from lnbits.core.crud import (
     get_db_versions,
     get_installed_extension,
     get_installed_extensions,
+    get_payment,
     get_payments,
     remove_deleted_wallets,
-    update_payment_status,
+    update_payment,
 )
 from lnbits.core.extensions.models import (
     CreateExtension,
@@ -172,9 +173,10 @@ async def database_delete_wallet_payment(wallet: str, checking_id: str):
 async def database_revert_payment(checking_id: str):
     """Mark payment as pending"""
     async with core_db.connect() as conn:
-        await update_payment_status(
-            status=PaymentState.PENDING, checking_id=checking_id, conn=conn
-        )
+        payment = await get_payment(checking_id=checking_id, conn=conn)
+        payment.status = PaymentState.PENDING
+        await update_payment(payment, conn)
+        click.echo(f"Payment '{checking_id}' marked as pending.")
 
 
 @db.command("cleanup-accounts")

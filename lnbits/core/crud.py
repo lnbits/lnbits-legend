@@ -480,6 +480,14 @@ async def get_total_balance(conn: Optional[Connection] = None):
 # ---------------
 
 
+async def get_payment(checking_id: str, conn: Optional[Connection] = None) -> Payment:
+    return await (conn or db).fetchone(
+        "SELECT * FROM apipayments WHERE checking_id = :checking_id",
+        {"checking_id": checking_id},
+        Payment,
+    )
+
+
 async def get_standalone_payment(
     checking_id_or_hash: str,
     conn: Optional[Connection] = None,
@@ -716,47 +724,12 @@ async def create_payment(
     return new_payment
 
 
-async def update_payment_status(
-    checking_id: str, status: PaymentState, conn: Optional[Connection] = None
-) -> None:
-    await (conn or db).execute(
-        "UPDATE apipayments SET status = :status WHERE checking_id = :checking_id",
-        {"status": status.value, "checking_id": checking_id},
-    )
-
-
-async def update_payment_details(
-    checking_id: str,
-    status: Optional[PaymentState] = None,
-    fee: Optional[int] = None,
-    preimage: Optional[str] = None,
-    new_checking_id: Optional[str] = None,
+async def update_payment(
+    payment: Payment,
     conn: Optional[Connection] = None,
 ) -> None:
-    set_variables: dict = {
-        "checking_id": checking_id,
-        "new_checking_id": new_checking_id,
-        "status": status.value if status else None,
-        "fee": fee,
-        "preimage": preimage,
-    }
-
-    set_clause: list[str] = []
-    if new_checking_id is not None:
-        set_clause.append("checking_id = :checking_id")
-    if status is not None:
-        set_clause.append("status = :status")
-    if fee is not None:
-        set_clause.append("fee = :fee")
-    if preimage is not None:
-        set_clause.append("preimage = :preimage")
-
-    await (conn or db).execute(
-        f"""
-        UPDATE apipayments SET {', '.join(set_clause)}
-        WHERE checking_id = :checking_id
-        """,
-        set_variables,
+    await (conn or db).update(
+        "apipayments", payment, "WHERE checking_id = :checking_id"
     )
 
 
@@ -838,12 +811,12 @@ async def delete_wallet_payment(
 
 async def check_internal(
     payment_hash: str, conn: Optional[Connection] = None
-) -> Optional[str]:
+) -> Optional[Payment]:
     """
     Returns the checking_id of the internal payment if it exists,
     otherwise None
     """
-    payment = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         f"""
         SELECT * FROM apipayments
         WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
@@ -851,10 +824,6 @@ async def check_internal(
         {"hash": payment_hash},
         Payment,
     )
-    if not payment:
-        return None
-    else:
-        return payment.checking_id
 
 
 async def is_internal_status_success(
