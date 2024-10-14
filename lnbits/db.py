@@ -613,7 +613,7 @@ def model_to_dict(model: BaseModel) -> dict:
         if isinstance(value, datetime.datetime):
             _dict[key] = value.timestamp()
             continue
-        if type(type_) is type(BaseModel):
+        if type(type_) is type(BaseModel) or type_ is dict:
             _dict[key] = json.dumps(value)
             continue
         _dict[key] = value
