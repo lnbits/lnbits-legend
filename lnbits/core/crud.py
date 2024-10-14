@@ -25,6 +25,7 @@ from .models import (
     AccountFilters,
     AccountOverview,
     CreatePayment,
+    DbVersion,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
@@ -842,35 +843,37 @@ async def check_internal(
     Returns the checking_id of the internal payment if it exists,
     otherwise None
     """
-    row: dict = await (conn or db).fetchone(
+    payment = await (conn or db).fetchone(
         f"""
-        SELECT checking_id FROM apipayments
+        SELECT * FROM apipayments
         WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
         """,
         {"hash": payment_hash},
+        Payment,
     )
-    if not row:
+    if not payment:
         return None
     else:
-        return row["checking_id"]
+        return payment.checking_id
 
 
-async def check_internal_status(
+async def is_internal_status_success(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
     """
-    Returns True if the internal payment was successful
+    Returns True if the internal payment was found and has the given status,
     """
-    row: dict = await (conn or db).fetchone(
+    payment = await (conn or db).fetchone(
         """
-        SELECT status FROM apipayments
+        SELECT * FROM apipayments
         WHERE payment_hash = :payment_hash AND amount > 0
         """,
         {"payment_hash": payment_hash},
+        Payment,
     )
-    if not row:
+    if not payment:
         return True
-    return row["status"] == PaymentState.SUCCESS.value
+    return payment.status == PaymentState.SUCCESS.value
 
 
 async def mark_webhook_sent(payment_hash: str, status: int) -> None:
@@ -950,12 +953,18 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 
 # db versions
 # --------------
-async def get_dbversions(conn: Optional[Connection] = None) -> dict:
-    result = await (conn or db).execute("SELECT db, version FROM dbversions")
-    _dict = {}
-    for row in result.mappings().all():
-        _dict[row["db"]] = row["version"]
-    return _dict
+async def get_db_version(
+    ext_id: str, conn: Optional[Connection] = None
+) -> Optional[DbVersion]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM dbversions WHERE db = :ext_id",
+        {"ext_id": ext_id},
+        model=DbVersion,
+    )
+
+
+async def get_db_versions(conn: Optional[Connection] = None) -> list[DbVersion]:
+    return await (conn or db).fetchall("SELECT * FROM dbversions", model=DbVersion)
 
 
 async def update_migration_version(conn, db_name, version):

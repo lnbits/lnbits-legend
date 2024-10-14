@@ -469,3 +469,8 @@ class BalanceDelta(BaseModel):
 class SimpleStatus(BaseModel):
     success: bool
     message: str
+
+
+class DbVersion(BaseModel):
+    db: str
+    version: int

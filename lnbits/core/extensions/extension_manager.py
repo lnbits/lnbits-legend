@@ -7,7 +7,7 @@ from lnbits.core import core_app_extra
 from lnbits.core.crud import (
     create_installed_extension,
     delete_installed_extension,
-    get_dbversions,
+    get_db_version,
     get_installed_extension,
     update_installed_extension_state,
 )
@@ -28,7 +28,7 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
 
     ext_info.extract_archive()
 
-    db_version = (await get_dbversions()).get(ext_id, 0)
+    db_version = await get_db_version(ext_id)
     await migrate_extension_database(ext_info, db_version)
 
     await create_installed_extension(ext_info)

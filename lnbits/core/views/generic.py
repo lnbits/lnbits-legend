@@ -23,7 +23,7 @@ from lnbits.wallets import get_funding_source
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_wallet,
-    get_dbversions,
+    get_db_versions,
     get_installed_extensions,
     get_user_by_id,
     get_wallet,
@@ -104,7 +104,8 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 
     all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
     inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
-    db_version = await get_dbversions()
+    db_versions = await get_db_versions()
+
     extensions = [
         {
             "id": ext.id,
@@ -115,7 +116,9 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
             "isFeatured": ext.meta.featured if ext.meta else False,
             "dependencies": ext.meta.dependencies if ext.meta else "",
             "isInstalled": ext.id in installed_exts_ids,
-            "hasDatabaseTables": ext.id in db_version,
+            "hasDatabaseTables": next(
+                (True for version in db_versions if version.db == ext.id), False
+            ),
             "isAvailable": ext.id in all_ext_ids,
             "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
             "isActive": ext.id not in inactive_extensions,

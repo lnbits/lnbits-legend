@@ -40,7 +40,7 @@ from ..crud import (
     create_user_extension,
     delete_dbversion,
     drop_extension_db,
-    get_dbversions,
+    get_db_version,
     get_installed_extension,
     get_installed_extensions,
     get_user_extension,
@@ -474,7 +474,7 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
 )
 async def delete_extension_db(ext_id: str):
     try:
-        db_version = (await get_dbversions()).get(ext_id, None)
+        db_version = await get_db_version(ext_id)
         if not db_version:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

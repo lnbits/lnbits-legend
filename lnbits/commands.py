@@ -17,7 +17,7 @@ from lnbits.core.crud import (
     delete_unused_wallets,
     delete_wallet_by_id,
     delete_wallet_payment,
-    get_dbversions,
+    get_db_versions,
     get_installed_extension,
     get_installed_extensions,
     get_payments,
@@ -122,7 +122,7 @@ def database_migrate():
 async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
-        click.echo(await get_dbversions(conn))
+        click.echo(await get_db_versions(conn))
 
 
 @db.command("cleanup-wallets")
