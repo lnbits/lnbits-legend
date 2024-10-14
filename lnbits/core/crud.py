@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 from time import time
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 from uuid import uuid4
 
 import shortuuid
@@ -161,15 +161,18 @@ async def get_account_by_username_or_email(
     )
 
 
-async def get_user(
-    account_or_id: Union[Account, str], conn: Optional[Connection] = None
+async def get_user_by_id(
+    user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
-    if isinstance(account_or_id, str):
-        account = await get_account(account_or_id, conn)
-        if not account:
-            return None
-    else:
-        account = account_or_id
+    account = await get_account(user_id, conn)
+    if not account:
+        return None
+    return await get_user(account, conn)
+
+
+async def get_user(
+    account: Account, conn: Optional[Connection] = None
+) -> Optional[User]:
     extensions = await get_user_active_extensions_ids(account.id, conn)
     wallets = await get_wallets(account.id, False, conn=conn)
     return User(
@@ -753,41 +756,6 @@ async def update_payment_details(
         WHERE checking_id = :checking_id
         """,
         set_variables,
-    )
-
-
-# TODO: should not be needed use update_payment instead
-async def update_payment_extra(
-    payment_hash: str,
-    extra: dict,
-    outgoing: bool = False,
-    conn: Optional[Connection] = None,
-) -> None:
-    """
-    Only update the `extra` field for the payment.
-    Old values in the `extra` JSON object will be kept
-    unless the new `extra` overwrites them.
-    """
-
-    amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
-
-    row: dict = await (conn or db).fetchone(
-        f"""
-        SELECT payment_hash, extra from apipayments
-        WHERE payment_hash = :hash {amount_clause}
-        """,
-        {"hash": payment_hash},
-    )
-    if not row:
-        return
-    db_extra = json.loads(row["extra"] if row["extra"] else "{}")
-    db_extra.update(extra)
-
-    await (conn or db).execute(
-        f"""
-        UPDATE apipayments SET extra = :extra WHERE payment_hash = :hash {amount_clause}
-        """,
-        {"extra": json.dumps(db_extra), "hash": payment_hash},
     )
 
 
