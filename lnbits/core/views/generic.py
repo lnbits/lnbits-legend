@@ -25,7 +25,7 @@ from ..crud import (
     create_wallet,
     get_db_versions,
     get_installed_extensions,
-    get_user_by_id,
+    get_user,
     get_wallet,
 )
 
@@ -232,7 +232,7 @@ async def service_worker(request: Request):
 @generic_router.get("/manifest/{usr}.webmanifest")
 async def manifest(request: Request, usr: str):
     host = urlparse(str(request.url)).netloc
-    user = await get_user_by_id(usr)
+    user = await get_user(usr)
     if not user:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
     return {

@@ -21,7 +21,7 @@ from lnbits.core.crud import (
     get_account,
     get_account_by_username,
     get_payment,
-    get_user,
+    get_user_from_account,
     update_payment,
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
@@ -161,7 +161,7 @@ def from_super_user(from_user: User, settings: Settings):
 async def superuser(settings: Settings):
     account = await get_account(settings.super_user)
     assert account, "Superuser not found"
-    user = await get_user(account)
+    user = await get_user_from_account(account)
     yield user
 
 

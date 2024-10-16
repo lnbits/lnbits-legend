@@ -15,7 +15,7 @@ from fastapi import (
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 
-from lnbits.core.crud import get_user_by_id
+from lnbits.core.crud import get_user
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
@@ -61,7 +61,7 @@ async def health_check(wallet: WalletTypeInfo = Depends(require_invoice_key)) ->
         "up_time": int(time() - settings.server_startup_time),
     }
 
-    user = await get_user_by_id(wallet.wallet.user)
+    user = await get_user(wallet.wallet.user)
     if not user:
         return stat
 

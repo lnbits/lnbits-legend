@@ -29,7 +29,7 @@ from ..crud import (
     get_account_by_pubkey,
     get_account_by_username,
     get_account_by_username_or_email,
-    get_user,
+    get_user_from_account,
     update_account,
 )
 from ..models import (
@@ -199,7 +199,7 @@ async def update_pubkey(
 
     account.pubkey = normalize_public_key(data.pubkey)
     await update_account(account)
-    return await get_user(account)
+    return await get_user_from_account(account)
 
 
 @auth_router.put("/password")
@@ -228,7 +228,7 @@ async def update_password(
     account.username = data.username
     account.hash_password(data.password)
     await update_account(account)
-    _user = await get_user(account)
+    _user = await get_user_from_account(account)
     if not _user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
     return _user
@@ -306,7 +306,7 @@ async def update(
         account.extra = data.extra
 
     await update_account(account)
-    return await get_user(account)
+    return await get_user_from_account(account)
 
 
 @auth_router.put("/first_install")

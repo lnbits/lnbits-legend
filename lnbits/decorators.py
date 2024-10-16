@@ -14,8 +14,8 @@ from lnbits.core.crud import (
     get_account,
     get_account_by_email,
     get_account_by_username,
-    get_user,
     get_user_active_extensions_ids,
+    get_user_from_account,
     get_wallet_for_key,
 )
 from lnbits.core.models import (
@@ -151,7 +151,7 @@ async def check_user_exists(
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
-    user = await get_user(account)
+    user = await get_user_from_account(account)
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
     await _check_user_extension_access(user.id, r["path"])

@@ -57,7 +57,7 @@ from .crud import (
     get_standalone_payment,
     get_super_settings,
     get_total_balance,
-    get_user,
+    get_user_from_account,
     get_wallet,
     get_wallet_payment,
     is_internal_status_success,
@@ -841,7 +841,7 @@ async def create_user_account(
         user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
         await update_user_extension(user_ext)
 
-    user = await get_user(account)
+    user = await get_user_from_account(account)
     assert user, "Cannot find user for account."
 
     return user

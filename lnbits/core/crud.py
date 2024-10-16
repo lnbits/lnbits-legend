@@ -166,16 +166,14 @@ async def get_account_by_username_or_email(
     )
 
 
-async def get_user_by_id(
-    user_id: str, conn: Optional[Connection] = None
-) -> Optional[User]:
+async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     account = await get_account(user_id, conn)
     if not account:
         return None
-    return await get_user(account, conn)
+    return await get_user_from_account(account, conn)
 
 
-async def get_user(
+async def get_user_from_account(
     account: Account, conn: Optional[Connection] = None
 ) -> Optional[User]:
     extensions = await get_user_active_extensions_ids(account.id, conn)
