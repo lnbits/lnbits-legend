@@ -70,6 +70,8 @@ def register_exception_handlers(app: FastAPI):
 
     @app.exception_handler(AssertionError)
     async def assert_error_handler(request: Request, exc: AssertionError):
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
         logger.warning(f"AssertionError: {exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -78,6 +80,8 @@ def register_exception_handlers(app: FastAPI):
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
         logger.warning(f"ValueError: {exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
