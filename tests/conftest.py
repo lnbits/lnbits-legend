@@ -26,7 +26,6 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.services import create_user_account, update_wallet_balance
-from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, Settings
 from lnbits.settings import settings as lnbits_settings
@@ -222,12 +221,16 @@ async def adminkey_headers_to(to_wallet):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def invoice(to_wallet):
+async def invoice(client, adminkey_headers_from):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
-    invoice = await api_payments_create_invoice(invoice_data, to_wallet)
-    yield invoice
-    del invoice
+    response = await client.post(
+        "/api/v1/payments", headers=adminkey_headers_from, json=invoice_data.dict()
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["checking_id"]
+    yield data["bolt11"]
 
 
 @pytest_asyncio.fixture(scope="session")

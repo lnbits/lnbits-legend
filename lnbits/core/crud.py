@@ -36,6 +36,10 @@ from .models import (
 )
 
 
+def update_payment_extra():
+    pass
+
+
 async def create_account(
     account: Optional[Account] = None,
     conn: Optional[Connection] = None,
@@ -689,39 +693,24 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
-    expiry_ph = db.timestamp_placeholder("expiry")
-    await (conn or db).execute(
-        f"""
-        INSERT INTO apipayments
-          (wallet_id, checking_id, bolt11, payment_hash, preimage,
-           amount, status, memo, fee, extra, webhook, expiry)
-          VALUES (:wallet_id, :checking_id, :bolt11, :hash, :preimage,
-           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph})
-        """,
-        {
-            "wallet_id": data.wallet_id,
-            "checking_id": checking_id,
-            "bolt11": data.payment_request,
-            "hash": data.payment_hash,
-            "preimage": data.preimage,
-            "amount": data.amount,
-            "status": status.value,
-            "memo": data.memo,
-            "fee": data.fee,
-            "extra": (
-                json.dumps(data.extra)
-                if data.extra and data.extra != {} and isinstance(data.extra, dict)
-                else None
-            ),
-            "webhook": data.webhook,
-            "expiry": data.expiry if data.expiry else None,
-        },
+    payment = Payment(
+        checking_id=checking_id,
+        status=status,
+        wallet_id=data.wallet_id,
+        payment_hash=data.payment_hash,
+        bolt11=data.bolt11,
+        amount=data.amount_msat,
+        memo=data.memo,
+        preimage=data.preimage,
+        expiry=data.expiry,
+        webhook=data.webhook,
+        fee=data.fee,
+        extra=data.extra or {},
     )
 
-    new_payment = await get_wallet_payment(data.wallet_id, data.payment_hash, conn=conn)
-    assert new_payment, "Newly created payment couldn't be retrieved"
+    await (conn or db).insert("apipayments", payment)
 
-    return new_payment
+    return payment
 
 
 async def update_payment(
@@ -830,7 +819,7 @@ async def is_internal_status_success(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
     """
-    Returns True if the internal payment was found and has the given status,
+    Returns True if the internal payment was found and is successful,
     """
     payment = await (conn or db).fetchone(
         """
@@ -841,7 +830,7 @@ async def is_internal_status_success(
         Payment,
     )
     if not payment:
-        return True
+        return False
     return payment.status == PaymentState.SUCCESS.value
 
 

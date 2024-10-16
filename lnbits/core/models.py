@@ -257,34 +257,62 @@ class PaymentState(str, Enum):
         return self.value
 
 
+class PaymentExtra(BaseModel):
+    comment: Optional[str] = None
+    success_action: Optional[str] = None
+    lnurl_response: Optional[str] = None
+
+
+class PayInvoice(BaseModel):
+    payment_request: str
+    description: Optional[str] = None
+    max_sat: Optional[int] = None
+    extra: Optional[dict] = {}
+
+
+class PaymentFiatAmounts(BaseModel):
+    wallet_fiat_currency: Optional[str] = None
+    wallet_fiat_amount: Optional[float] = None
+    wallet_fiat_rate: Optional[float] = None
+    fiat_currency: Optional[str] = None
+    fiat_amount: Optional[float] = None
+    fiat_rate: Optional[float] = None
+
+
 class CreatePayment(BaseModel):
     wallet_id: str
-    payment_request: str
     payment_hash: str
-    amount: int
+    bolt11: str
+    amount_msat: int
     memo: str
+    extra: Optional[dict] = {}
     preimage: Optional[str] = None
     expiry: Optional[datetime] = None
-    extra: Optional[dict] = None
     webhook: Optional[str] = None
     fee: int = 0
+    fiat_amounts: PaymentFiatAmounts = PaymentFiatAmounts()
 
 
 class Payment(BaseModel):
-    status: str
     checking_id: str
     payment_hash: str
     wallet_id: str
     amount: int
     fee: int
-    memo: Optional[str]
-    time: datetime
     bolt11: str
-    expiry: Optional[datetime]
-    extra: Optional[dict]
-    webhook: Optional[str]
+    status: str = PaymentState.PENDING
+    memo: Optional[str] = None
+    expiry: Optional[datetime] = None
+    webhook: Optional[str] = None
     webhook_status: Optional[int] = None
     preimage: Optional[str] = "0" * 64
+    tag: Optional[str] = None
+    extension: Optional[str] = None
+    time: datetime = datetime.now(timezone.utc)
+    created_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now(timezone.utc)
+    fiat_amounts: PaymentFiatAmounts = PaymentFiatAmounts()
+    extra: dict = {}
 
     @property
     def pending(self) -> bool:
@@ -297,12 +325,6 @@ class Payment(BaseModel):
     @property
     def failed(self) -> bool:
         return self.status == PaymentState.FAILED.value
-
-    @property
-    def tag(self) -> Optional[str]:
-        if self.extra is None:
-            return ""
-        return self.extra.get("tag")
 
     @property
     def msat(self) -> int:
@@ -428,7 +450,6 @@ class CreateInvoice(BaseModel):
     def unit_is_from_allowed_currencies(cls, v):
         if v != "sat" and v not in allowed_currencies():
             raise ValueError("The provided unit is not supported")
-
         return v
 
 

@@ -616,3 +616,7 @@ async def m026_update_payment_table(db):
                 "checking_id": payment.get("checking_id"),
             },
         )
+
+
+async def m027_update_payment_table(db):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_amounts TEXT")

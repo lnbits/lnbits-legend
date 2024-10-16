@@ -3,13 +3,12 @@ import json
 import uuid
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional, Union
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import httpx
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
     Header,
     HTTPException,
@@ -21,7 +20,6 @@ from loguru import logger
 from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11
-from lnbits.core.db import db
 from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
@@ -121,7 +119,7 @@ async def api_payments_paginated(
     return page
 
 
-async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
+async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     description_hash = b""
     unhashed_description = b""
     memo = data.memo or settings.lnbits_site_title
@@ -145,60 +143,42 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
 
-    async with db.connect() as conn:
-        payment_hash, payment_request = await create_invoice(
-            wallet_id=wallet.id,
-            amount=data.amount,
-            memo=memo,
-            currency=data.unit,
-            description_hash=description_hash,
-            unhashed_description=unhashed_description,
-            expiry=data.expiry,
-            extra=data.extra,
-            webhook=data.webhook,
-            internal=data.internal,
-            conn=conn,
-        )
-        # NOTE: we get the checking_id with a seperate query because create_invoice
-        # does not return it and it would be a big hustle to change its return type
-        # (used across extensions)
-        payment_db = await get_standalone_payment(payment_hash, conn=conn)
-        assert payment_db is not None, "payment not found"
-        checking_id = payment_db.checking_id
+    payment = await create_invoice(
+        wallet_id=wallet.id,
+        amount=data.amount,
+        memo=memo,
+        currency=data.unit,
+        description_hash=description_hash,
+        unhashed_description=unhashed_description,
+        expiry=data.expiry,
+        extra=data.extra,
+        webhook=data.webhook,
+        internal=data.internal,
+    )
 
-    invoice = bolt11.decode(payment_request)
-
-    lnurl_response: Union[None, bool, str] = None
+    # lnurl_response is not saved in the database
     if data.lnurl_callback:
         headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers) as client:
             try:
                 r = await client.get(
                     data.lnurl_callback,
-                    params={
-                        "pr": payment_request,
-                    },
+                    params={"pr": payment.bolt11},
                     timeout=10,
                 )
                 if r.is_error:
-                    lnurl_response = r.text
+                    payment.extra["lnurl_response"] = r.text
                 else:
                     resp = json.loads(r.text)
                     if resp["status"] != "OK":
-                        lnurl_response = resp["reason"]
+                        payment.extra["lnurl_response"] = resp["reason"]
                     else:
-                        lnurl_response = True
+                        payment.extra["lnurl_response"] = True
             except (httpx.ConnectError, httpx.RequestError) as ex:
                 logger.error(ex)
-                lnurl_response = False
+                payment.extra["lnurl_response"] = False
 
-    return {
-        "payment_hash": invoice.payment_hash,
-        "payment_request": payment_request,
-        "lnurl_response": lnurl_response,
-        # maintain backwards compatibility with API clients:
-        "checking_id": checking_id,
-    }
+    return payment
 
 
 @payment_router.post(
@@ -220,30 +200,25 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     },
 )
 async def api_payments_create(
+    invoice_data: CreateInvoice,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoice_data: CreateInvoice = Body(...),
-):
+) -> Payment:
     if invoice_data.out is True and wallet.key_type == KeyType.admin:
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="BOLT11 string is invalid or not given",
+                detail="Missing BOLT11 invoice",
             )
-
-        payment_hash = await pay_invoice(
+        payment = await pay_invoice(
             wallet_id=wallet.wallet.id,
             payment_request=invoice_data.bolt11,
             extra=invoice_data.extra,
         )
-        return {
-            "payment_hash": payment_hash,
-            # maintain backwards compatibility with API clients:
-            "checking_id": payment_hash,
-        }
+        return payment
 
     elif not invoice_data.out:
         # invoice key
-        return await api_payments_create_invoice(invoice_data, wallet.wallet)
+        return await _api_payments_create_invoice(invoice_data, wallet.wallet)
     else:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
@@ -269,7 +244,7 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
 @payment_router.post("/lnurl")
 async def api_payments_pay_lnurl(
     data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
+) -> Payment:
     domain = urlparse(data.callback).netloc
 
     headers = {"User-Agent": settings.user_agent}
@@ -313,15 +288,12 @@ async def api_payments_pay_lnurl(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=(
-                (
-                    f"{domain} returned an invalid invoice. Expected"
-                    f" {amount_msat} msat, got {invoice.amount_msat}."
-                ),
+                f"{domain} returned an invalid invoice. Expected"
+                f" {amount_msat} msat, got {invoice.amount_msat}."
             ),
         )
 
     extra = {}
-
     if params.get("successAction"):
         extra["success_action"] = params["successAction"]
     if data.comment:
@@ -330,19 +302,14 @@ async def api_payments_pay_lnurl(
         extra["fiat_currency"] = data.unit
         extra["fiat_amount"] = data.amount / 1000
     assert data.description is not None, "description is required"
-    payment_hash = await pay_invoice(
+
+    payment = await pay_invoice(
         wallet_id=wallet.wallet.id,
         payment_request=params["pr"],
         description=data.description,
         extra=extra,
     )
-
-    return {
-        "success_action": params.get("successAction"),
-        "payment_hash": payment_hash,
-        # maintain backwards compatibility with API clients:
-        "checking_id": payment_hash,
-    }
+    return payment
 
 
 async def subscribe_wallet_invoices(request: Request, wallet: Wallet):

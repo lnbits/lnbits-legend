@@ -1,8 +1,5 @@
 import pytest
 
-from lnbits.core.crud import (
-    get_standalone_payment,
-)
 from lnbits.core.services import (
     PaymentError,
     PaymentState,
@@ -14,13 +11,11 @@ description = "test pay invoice"
 
 @pytest.mark.asyncio
 async def test_services_pay_invoice(to_wallet, real_invoice):
-    payment_hash = await pay_invoice(
+    payment = await pay_invoice(
         wallet_id=to_wallet.id,
         payment_request=real_invoice.get("bolt11"),
         description=description,
     )
-    assert payment_hash
-    payment = await get_standalone_payment(payment_hash)
     assert payment
     assert not payment.status == PaymentState.SUCCESS
     assert payment.memo == description

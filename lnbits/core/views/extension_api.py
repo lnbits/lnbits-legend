@@ -1,3 +1,5 @@
+import sys
+import traceback
 from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
@@ -84,6 +86,8 @@ async def api_install_extension(data: CreateExtension):
 
     except Exception as exc:
         logger.warning(exc)
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
         ext_info.clean_extension_files()
         detail = (
             str(exc)
@@ -430,7 +434,7 @@ async def get_pay_to_enable_invoice(
             ),
         )
 
-    payment_hash, payment_request = await create_invoice(
+    payment = await create_invoice(
         wallet_id=ext.meta.pay_to_enable.wallet,
         amount=data.amount,
         memo=f"Enable '{ext.name}' extension.",
@@ -441,10 +445,10 @@ async def get_pay_to_enable_invoice(
         user_ext = UserExtension(user=user.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
     user_ext_info = user_ext.extra if user_ext.extra else UserExtensionInfo()
-    user_ext_info.payment_hash_to_enable = payment_hash
+    user_ext_info.payment_hash_to_enable = payment.payment_hash
     user_ext.extra = user_ext_info
     await update_user_extension(user_ext)
-    return {"payment_hash": payment_hash, "payment_request": payment_request}
+    return {"payment_hash": payment.payment_hash, "payment_request": payment.bolt11}
 
 
 @extension_router.get(
