@@ -338,8 +338,6 @@ async def _pay_external_invoice(
     if payment_response.checking_id and payment_response.ok is not False:
         # payment.ok can be True (paid) or None (pending)!
         logger.debug(f"updating payment {checking_id}")
-        # TODO: why? we log a warning on an unexpected checking_id
-        # should that be handled?
         # new checking id
         payment.checking_id = payment_response.checking_id
         payment.status = (
