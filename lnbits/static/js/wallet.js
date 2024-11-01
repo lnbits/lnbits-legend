@@ -701,6 +701,42 @@ window.app = Vue.createApp({
       this.onPaymentReceived(payment.payment_hash)
     })
     eventReactionWebocket(wallet.id)
+    console.log('### (this.$refs', this.$refs)
+    this.walletChart = new Chart(this.$refs.walletChart.getContext('2d'), {
+      type: 'doughnut',
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false,
+            fullSize: true,
+            position: 'bottom',
+            align: 'start',
+            layout: 'horizontal',
+            // maxHeight: 32
+            labels: {
+              textAlign: 'right',
+              boxHeight: 10
+            },
+            textAlign: 'right'
+          }
+        }
+      },
+      data: {
+        labels: ['Failed', 'Received', 'Paid'],
+        datasets: [
+          {
+            label: 'Payments',
+            data: [20, 420, 100],
+            backgroundColor: [
+              'rgb(255, 99, 132)',
+              'rgb(54, 162, 235)',
+              'rgb(255, 205, 86)'
+            ]
+          }
+        ]
+      }
+    })
   }
 })
 
