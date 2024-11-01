@@ -144,7 +144,32 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 {% endif %}
-
+                <div v-if="featuredExtensions?.length">
+                  <q-virtual-scroll
+                    :items="featuredExtensions"
+                    virtual-scroll-horizontal
+                  >
+                    <template v-slot="{ item, index }">
+                      <q-item class="cursor-pointer">
+                        <q-tooltip>
+                          <span v-text="item.shortDescription"></span>
+                        </q-tooltip>
+                        <q-item-section>
+                          <q-avatar size="xl">
+                            <q-img
+                              :src="item.tile"
+                              style="max-width: 32px"
+                            ></q-img>
+                          </q-avatar>
+                          <q-item-label
+                            ><span v-text="item.name"></span>
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-virtual-scroll>
+                  <q-separator></q-separator>
+                </div>
                 <q-expansion-item
                   group="extras"
                   icon="settings_cell"

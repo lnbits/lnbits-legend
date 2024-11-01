@@ -59,7 +59,8 @@ window.app = Vue.createApp({
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
-      nfcReaderAbortController: null
+      nfcReaderAbortController: null,
+      featuredExtensions: []
     }
   },
   computed: {
@@ -669,7 +670,7 @@ window.app = Vue.createApp({
         })
     }
   },
-  created: function () {
+  created: async function () {
     let urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
@@ -684,6 +685,22 @@ window.app = Vue.createApp({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
+
+    try {
+      const {data} = await LNbits.api.request('GET', '/api/v1/extension')
+      console.log('### data', data)
+      this.featuredExtensions = data.map(function (data) {
+        const e = LNbits.map.extension(data)
+        if (e.name?.length >= 10) {
+          e.name = e.name.substr(0, 7) + '...'
+        }
+
+        return e
+      })
+      console.log('### featuredExtensions', this.featuredExtensions)
+    } catch (e) {
+      LNbits.utils.notifyApiError(e)
+    }
   },
   watch: {
     updatePayments: function () {
