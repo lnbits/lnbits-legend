@@ -151,10 +151,11 @@
                   >
                     <template v-slot="{ item, index }">
                       <q-item class="cursor-pointer">
-                        <q-tooltip>
-                          <span v-text="item.shortDescription"></span>
-                        </q-tooltip>
+
                         <q-item-section>
+                          <q-tooltip>
+                            <span v-text="item.shortDescription"></span>
+                          </q-tooltip>
                           <q-avatar size="xl">
                             <q-img
                               :src="item.tile"
