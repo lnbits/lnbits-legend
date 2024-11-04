@@ -25,7 +25,58 @@
     } : ''"
       >
         {% endif %}
-        <div class="row">
+        <div class="row q-col-gutter-md q-mt-xs">
+          <div class="col-3">
+            <q-card
+              :style="$q.screen.lt.md ? {
+              background: $q.screen.lt.md ? 'none !important': ''
+            , boxShadow: $q.screen.lt.md ? 'none !important': ''
+            , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
+            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
+          } : ''"
+            >
+              <q-card-section>
+                <div class="row q-pb-md ">
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      class="full-width"
+                      @click="showParseDialog"
+                      :label="$t('paste_request')"
+                    ></q-btn>
+                  </div>
+                </div>
+                <div class="row q-pb-md ">
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      class="full-width"
+                      @click="showReceiveDialog"
+                      :label="$t('create_invoice')"
+                    ></q-btn>
+                  </div>
+                </div>
+                <div class="row q-pb-sm ">
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      color="secondary"
+                      icon="photo_camera"
+                      class="full-width"
+                      @click="showCamera"
+                      :label="$t('scan')"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('camera_tooltip')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
           <div class="col-9">
             <q-card
               :style="$q.screen.lt.md ? {
@@ -34,7 +85,7 @@
             , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
             , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
           } : ''"
-              class="q-mr-md"
+
             >
               <q-card-section>
                 <div class="row">
@@ -83,7 +134,7 @@
                       </div>
                     </div>
                     <div class="row q-col-gutter-md gt-sm">
-                      <div class="col-4">
+                      <!-- <div class="col-4">
                         <q-btn
                           compact
                           outline
@@ -120,7 +171,7 @@
                             >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                           </span>
                         </q-btn>
-                      </div>
+                      </div> -->
                     </div>
                   </div>
                   <div class="col-4">
@@ -135,57 +186,7 @@
               </q-card-section>
             </q-card>
           </div>
-          <div class="col-3">
-            <q-card
-              :style="$q.screen.lt.md ? {
-              background: $q.screen.lt.md ? 'none !important': ''
-            , boxShadow: $q.screen.lt.md ? 'none !important': ''
-            , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-          } : ''"
-            >
-              <q-card-section>
-                <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-                  <div class="col">
-                    <q-btn
-                      unelevated
-                      color="primary"
-                      class="full-width"
-                      @click="showParseDialog"
-                      :label="$t('paste_request')"
-                    ></q-btn>
-                  </div>
-                </div>
-                <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-                  <div class="col">
-                    <q-btn
-                      unelevated
-                      color="primary"
-                      class="full-width"
-                      @click="showReceiveDialog"
-                      :label="$t('create_invoice')"
-                    ></q-btn>
-                  </div>
-                </div>
-                <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-                  <div class="col">
-                    <q-btn
-                      unelevated
-                      color="secondary"
-                      icon="photo_camera"
-                      class="full-width"
-                      @click="showCamera"
-                      :label="$t('scan')"
-                    >
-                      <q-tooltip
-                        ><span v-text="$t('camera_tooltip')"></span
-                      ></q-tooltip>
-                    </q-btn>
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
+
         </div>
 
         <payment-list
