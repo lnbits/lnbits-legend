@@ -10,6 +10,16 @@ LNbits can run on top of many Lightning Network funding sources with more being 
 
 A backend wallet can be configured using the following LNbits environment variables:
 
+### CLNRest (using [runes](https://docs.corelightning.org/reference/lightning-createrune))
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **CLNRestWallet**
+- `CLNREST_URL`: `https://127.0.0.1:3010`
+- `CLNREST_CERT`: `/home/lightningd/.lightning/bitcoin/server.pem` (or the content of the `server.pem` file)
+- `CLNREST_READONLY_RUNE`: `lightning-cli createrune restrictions='[["method=listfunds", "method=listpays", "method=listinvoices", "method=getinfo", "method=summary", "method=waitanyinvoice"]]' | jq -r .rune`
+- `CLNREST_INVOICE_RUNE`: `lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pnamelabel^LNbits"], ["rate=60"]]' | jq -r .rune`
+- `CLNREST_PAY_RUNE`: `lightning-cli createrune restrictions='[["method=pay"], ["pinvbolt11_amount<1001"], ["pnamelabel^LNbits"], ["rate=1"]]' | jq -r .rune`
+- `CLNREST_NODEID`: `lightning-cli getinfo | jq -r .id` (only required for v23.08)
+
 ### CoreLightning
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**

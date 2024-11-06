@@ -12,6 +12,7 @@ from .blink import BlinkWallet
 from .boltz import BoltzWallet
 from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
+from .clnrest import CLNRestWallet
 from .corelightning import CoreLightningWallet
 
 # The following import is intentional to keep backwards compatibility
@@ -59,6 +60,7 @@ __all__ = [
     "BoltzWallet",
     "BreezSdkWallet",
     "ClicheWallet",
+    "CLNRestWallet",
     "CoreLightningWallet",
     "CLightningWallet",
     "CoreLightningRestWallet",
