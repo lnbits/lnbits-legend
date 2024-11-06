@@ -40,6 +40,18 @@ window.app.component('lnbits-funding-sources', {
           }
         ],
         [
+          'CLNRestWallet',
+          'Core Lightning CLNRest',
+          {
+            clnrest_url: 'Endpoint',
+            clnrest_cert: 'Certificate',
+            clnrest_readonly_rune: 'Rune used for readonly requests',
+            clnrest_invoice_rune: 'Rune used for creating invoices',
+            clnrest_pay_rune: 'Rune used for paying invoices',
+            clnrest_nodeid: 'Node id',
+          }
+        ],
+        [
           'CoreLightningWallet',
           'Core Lightning',
           {
