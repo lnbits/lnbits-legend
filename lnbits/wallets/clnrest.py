@@ -477,14 +477,14 @@ class CLNRestWallet(Wallet):
             return PaymentResponse(False, None, None, None, str(exc))
 
         # Determine the endpoint based on the use_rene flag
-        if invoice.description is not None and settings.clnrest_renepay_rune:
+        dafault_to_renepay_first = True
+        if invoice.description is not None and settings.clnrest_renepay_rune and default_to_renepay_first:
             payment_endpoint = "v1/renepay"
         elif settings.clnrest_pay_rune:
             payment_endpoint = "v1/pay"
         else:
             return PaymentResponse( False, None, None, "Unable to invoice without a pay or renepay rune")
 
-        # Call pay_invoice_rene with the determined payment endpoint
         response = await self.pay_invoice_via_endpoint(
             bolt11=bolt11,
             fee_limit_msat=fee_limit_msat,
