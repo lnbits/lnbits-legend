@@ -10,6 +10,7 @@ from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
 
+from urllib.parse import urlparse
 from lnbits.settings import settings
 
 from .base import (
@@ -36,24 +37,6 @@ class CLNRestWallet(Wallet):
             )
             raise ValueError("Cannot initialize CLNRestWallet: missing CLNREST_URL")
 
-        if settings.clnrest_url.startswith("https://"):
-            logger.info(f"Using SSL to connect to {settings.clnrest_url}")
-            if not settings.clnrest_cert:
-                logger.warning(
-                        "No certificate provided for CLNRestWallet. "
-                        "This setup requires a publicly issued certificate or self-signed certificate trust settings. "
-                        "Set CLNREST_CERT to the certificate file path or the conents of the cert."
-                    )
-                raise ValueError("if using https, there should be a cert")
-            logger.info(f"cert: {settings.clnrest_cert}")
-
-        elif any(settings.clnrest_url.startswith(prefix) for prefix in ["http://localhost", "http://127.0.0.1", "http://[::1]"]):
-            logger.warning("Not using SSL for connection to CLNRestWallet")
-        elif (settings.clnrest_url.startswith("http://")):
-            raise ValueError(
-                "Insecure HTTP connections are only allowed for localhost or equivalent IP addresses. "
-                "Set CLNREST_URL to https:// for external connections or use localhost."
-            )
 
         if not settings.clnrest_readonly_rune:
             raise ValueError(
@@ -65,24 +48,11 @@ class CLNRestWallet(Wallet):
         logger.debug(f"TODO: validate and check permissions of readonly_rune: {settings.clnrest_readonly_rune}")
 
 
-        if settings.clnrest_pay_rune:
-            self.pay_endpoint = "v1/pay"
-            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
-            self.pay_rune = settings.clnrest_pay_rune
-            logger.debug(self.pay_rune)
-            # logger.debug(json.dumps(self.pay_rune.to_dict()))
-        else:
-            self.pay_endpoint = None
-            self.pay_rune = None
-            logger.warning(
-                "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'. Please create one with one of the following commands:\n"
-                """ lightning-cli createrune restrictions='[["method=pay"], ["pnameamount_msat<1000001"], ["rate=60"]]' """
-            )
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
         if not settings.clnrest_nodeid:
-            logger.warning("missing CLNREST_NODEID, but this is only needed for v23.08")
+            logger.info("missing CLNREST_NODEID, but this is only needed for v23.08")
 
         self.base_headers = {
             "accept": "application/json",
@@ -97,22 +67,34 @@ class CLNRestWallet(Wallet):
 
 
         if settings.clnrest_invoice_rune:
-            self.invoice_endpoint = "v1/invoice"
             self.invoice_rune=settings.clnrest_invoice_rune
             logger.debug(self.invoice_rune)
             logger.debug(f"TODO: decode this invoice_rune and make sure that it has the correct permissions: {settings.clnrest_invoice_rune}:")
             self.invoice_headers = {**self.base_headers, "rune": settings.clnrest_invoice_rune}
             #logger.debug(json.dumps(self.invoice_rune.to_dict()))
         else:
-            self.invoice_endpoint = None
-            self.invoice_rune=None
-            self.invoice_headers=None
             logger.warning(
                 "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'. Please create one with one of the following commands:\n"
                 """ lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pname_label^LNbits"], ["rate=60"]]' """
                 )
 
-        self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
+        if settings.clnrest_pay_rune:
+            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
+            self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
+        else:
+            logger.warning(
+                "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'. Please create one with one of the following commands:\n"
+                """ lightning-cli createrune restrictions='[["method=pay"], ["pnameamount_msat<1000001"], ["rate=60"]]' """
+            )
+
+        if settings.clnrest_renepay_rune:
+            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
+            self.renepay_headers = {**self.base_headers, "rune": settings.clnrest_renepay_rune}
+        else:
+            logger.warning(
+                "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'. Please create one with one of the following commands:\n"
+                """ lightning-cli createrune restrictions='[["method=renepay"], ["pinvinvstring_amount<1000001"], ["rate=60"]]' """
+            )
 
 
         # https://docs.corelightning.org/reference/lightning-pay
@@ -126,11 +108,9 @@ class CLNRestWallet(Wallet):
         # 210: Payment timed out without a payment in progress.
         self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
 
-        self.cert = settings.clnrest_cert or False
-        #self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.client = self.create_client()
 
-        self.last_pay_index = 0
+        self.last_pay_index = settings.clnrest_last_pay_index
         self.statuses = {
             "paid": True,
             "complete": True,
@@ -138,42 +118,61 @@ class CLNRestWallet(Wallet):
             "pending": None,
         }
 
+
+
     def create_client(self) -> httpx.AsyncClient:
         """Create an HTTP client with specified headers and SSL configuration."""
 
-        if self.cert:
-            #ssl_context = ssl.create_default_context()
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        parsed_url = urlparse(self.url)
 
-            # Check if `self.cert` is a file path or a PEM string
-            if os.path.isfile(self.cert):
-                logger.error(f"loading {self.cert}")
-                ssl_context.load_verify_locations(self.cert)
+        # Validate the URL scheme
+        if parsed_url.scheme == 'http':
+            if parsed_url.hostname in ('localhost', '127.0.0.1', '::1'):
+                logger.warning("Not using SSL for connection to CLNRestWallet")
             else:
-                # Assume `self.cert` is a PEM-encoded string and load with cadata
-                ssl_context.load_verify_locations(cadata=self.cert)
-
-            #Ignore the certificate authority and hostname since we are using a hardcoded selfsigned cert
-            #ssl_context.verify_mode = ssl.CERT_REQUIRED  # Disable verification of CA
-            ssl_context.check_hostname = False  # Disable hostname checking
-            ssl_context.verify_mode = ssl.CERT_NONE #todo: fix this
-            logger.debug(ssl_context)
-            # Ignore CA verification requirements
-            if hasattr(ssl, 'VERIFY_FLAG_NO_CHECK_CA'):
-                ssl_context.verify_flags |= ssl.VERIFY_FLAG_NO_CHECK_CA  # Explicitly ignore CA chain
-
-
-
-
-            return httpx.AsyncClient(base_url=self.url, verify=ssl_context)
-        else:
-            #todo: this assertion is redundant. should it be done here or in init?
-            if not any(self.url.startswith(prefix) for prefix in ["http://localhost", "http://127.0.0.1", "http://[::1]"]):
                 raise ValueError(
                     "Insecure HTTP connections are only allowed for localhost or equivalent IP addresses. "
                     "Set CLNREST_URL to https:// for external connections or use localhost."
                 )
             return httpx.AsyncClient(base_url=self.url, verify=False)
+
+        elif parsed_url.scheme == 'https':
+            logger.info(f"Using SSL to connect to {self.url}")
+
+            # Check for CA certificate
+            if not settings.clnrest_ca:
+                logger.warning(
+                    "No CA certificate provided for CLNRestWallet. "
+                    "This setup requires a CA certificate for server authentication and trust. "
+                    "Set CLNREST_CA to the CA certificate file path or the contents of the certificate."
+                )
+                raise ValueError("CA certificate is required for secure communication.")
+            else:
+                logger.info("CA Certificate provided.")
+
+            # Create an SSL context and load the CA certificate
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+
+            # Load CA certificate
+            if os.path.isfile(settings.clnrest_ca):
+                logger.info(f"Using CA certificate file: {settings.clnrest_ca}")
+                ssl_context.load_verify_locations(cafile=settings.clnrest_ca)
+            else:
+                logger.info("Using CA certificate from PEM string")
+                ca_content = settings.clnrest_ca.replace('\\n', '\n')
+                ssl_context.load_verify_locations(cadata=ca_content)
+
+            # Optional: Disable hostname checking if necessary
+            # especially for ip addresses
+            ssl_context.check_hostname = False
+
+            # Create the HTTP client without a client certificate
+            client = httpx.AsyncClient(base_url=self.url, verify=ssl_context)
+
+            return client
+
+        else:
+            raise ValueError("CLNREST_URL must start with http:// or https://")
 
     async def cleanup(self):
         try:
@@ -219,8 +218,8 @@ class CLNRestWallet(Wallet):
 
     async def create_invoice(
             self,
-            identifier: str,
-                amount: int,
+            #identifier: str,
+            amount: int,
             memo: Optional[str] = None,
             description_hash: Optional[bytes] = None,
             unhashed_description: Optional[bytes] = None,
@@ -229,10 +228,11 @@ class CLNRestWallet(Wallet):
 
         logger.debug( f"Creating invoice with parameters: amount={amount}, memo={memo}, description_hash={description_hash}, unhashed_description={unhashed_description}, kwargs={kwargs}")
 
-        if not self.invoice_rune:
+        if not settings.clnrest_invoice_rune:
             return InvoiceResponse( False, None, None, "Unable to invoice without an invoice rune")
 
-        label_prefix = "LNbits"
+        label_prefix = "LNbits_testing"
+        identifier = "TODO: wallet.user and wallet.id goes here"
         random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
         label = f"{label_prefix} {identifier} {random_uuid}"
 
@@ -261,11 +261,11 @@ class CLNRestWallet(Wallet):
         if kwargs.get("preimage"):
             data["preimage"] = kwargs["preimage"]
 
-        logger.debug(f"REQUEST to {self.invoice_endpoint}: {json.dumps(data)}")
+        logger.debug(f"REQUEST to /v1/invoice: {json.dumps(data)}")
 
         try:
             r = await self.client.post(
-                self.invoice_endpoint,
+                "/v1/invoice",
                 json=data,
                 headers=self.invoice_headers,
             )
@@ -288,22 +288,27 @@ class CLNRestWallet(Wallet):
             return InvoiceResponse(False, None, None, f"Unable to connect to {self.url}.")
 
 
-    async def pay_invoice(
+    async def pay_invoice_via_endpoint(
             self,
             bolt11: str,
             fee_limit_msat: int,
-            identifier: str,
+            #identifier: str,
+            payment_endpoint: str,
             label_prefix: Optional[str] = "LNbits",
             **kwargs,
             ) -> PaymentResponse:
 
         #todo: rune restrictions will not be enforced for internal payments within the lnbits instance as they are not routed through to core lightning
-        #this should be a configurable option but maybe part of a seperate pull request
+        #maybe make a seperate pull request that disables internal invoice settlements to force it all to be settled by the wallet backend
 
-        if not self.pay_headers:
-            return InvoiceResponse( False, None, None, "Unable to invoice without a valid rune")
+
+        label_prefix = "LNbits_testing"
+        identifier = "TODO: wallet.user and wallet.id goes here"
+        random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
+        label = f"{label_prefix} {identifier} {random_uuid}"
 
         logger.debug( f"Pay invoice with parameters: identifier={identifier}, bolt11={bolt11}, label_prefix={label_prefix}, kwargs={kwargs}")
+
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
@@ -316,24 +321,37 @@ class CLNRestWallet(Wallet):
         random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
         label = f"{label_prefix} {identifier} {random_uuid}"
 
-        if (self.pay_endpoint == "v1/pay"):
-            fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-            data = {
-                "bolt11": bolt11,
-                "label": label,
-                "description": invoice.description,
-                "maxfeepercent": f"{fee_limit_percent}",
-                "exemptfee": 0,  # so fee_limit_percent is applied even on payments
-                # with fee < 5000 millisatoshi (which is default value of exemptfee)
-            }
+        data = {
+            "label": f"LNBits {identifier} {random_uuid}",
+            "description": invoice.description,
+        }
 
-        logger.debug(f"REQUEST to {self.pay_endpoint}: {json.dumps(data)}")
+        if payment_endpoint == "v1/renepay":
+            if not settings.clnrest_renepay_rune:
+                return InvoiceResponse( False, None, None, "Unable to invoice without a valid renepay rune")
+            #todo: fee limit enforcing
+            #data["fee_limit_percent"] = fee_limit_msat / invoice.amount_msat * 100
+            data["invstring"] = bolt11
+            header_to_use_for_payment = self.renepay_headers
+#####            assert data["invstring"] != None
+
+        fee_limit_percent=0.5
+        if payment_endpoint == "v1/pay":
+            if not settings.clnrest_pay_rune:
+                return InvoiceResponse( False, None, None, "Unable to invoice without a valid pay rune")
+            data["bolt11"] = bolt11
+            data["maxfeepercent"] = f"{fee_limit_percent}"
+            header_to_use_for_payment = self.pay_headers
+
+        assert header_to_use_for_payment != None
+
+        logger.debug(f"REQUEST to {payment_endpoint}: {json.dumps(data)}")
 
         try:
             r = await self.client.post(
-                self.pay_endpoint,
+                payment_endpoint,
                 json=data,
-                headers=self.pay_headers,
+                headers=header_to_use_for_payment,
                 timeout=None,
             )
 
@@ -385,6 +403,40 @@ class CLNRestWallet(Wallet):
             return PaymentResponse(
                 None, None, None, None, f"Unable to connect to {self.url}."
             )
+
+    async def pay_invoice(
+        self,
+        bolt11: str,
+        fee_limit_msat: int,
+  #      identifier: str,
+        **kwargs
+        ) -> PaymentResponse:
+
+        identifier="todo: insert wallet.user_wallet.id"
+        logger.debug(f"request to pay_invoice bolt11 {bolt11} identifier {identifier}")
+
+        try:
+            invoice = decode(bolt11)
+        except Bolt11Exception as exc:
+            return PaymentResponse(False, None, None, None, str(exc))
+
+        # Determine the endpoint based on the use_rene flag
+        if invoice.description is not None and settings.clnrest_renepay_rune:
+            payment_endpoint = "v1/renepay"
+        elif settings.clnrest_pay_rune:
+            payment_endpoint = "v1/pay"
+        else:
+            return PaymentResponse( False, None, None, "Unable to invoice without a pay or renepay rune")
+
+        # Call pay_invoice_rene with the determined payment endpoint
+        response = await self.pay_invoice_via_endpoint(
+            bolt11=bolt11,
+            fee_limit_msat=fee_limit_msat,
+            #identifier=identifier,
+            payment_endpoint=payment_endpoint,
+            **kwargs
+        )
+        return response
 
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

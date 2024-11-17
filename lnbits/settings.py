@@ -277,10 +277,13 @@ class ClicheFundingSource(LNbitsSettings):
 
 class CLNRestFundingSource(LNbitsSettings):
     clnrest_url: Optional[str] = Field(default=None)
+    clnrest_ca: Optional[str] = Field(default=None)
     clnrest_cert: Optional[str] = Field(default=None)
     clnrest_readonly_rune: Optional[str] = Field(default=None)
-    clnrest_pay_rune: Optional[str] = Field(default=None)
     clnrest_invoice_rune: Optional[str] = Field(default=None)
+    clnrest_pay_rune: Optional[str] = Field(default=None)
+    clnrest_renepay_rune: Optional[str] = Field(default=None)
+    clnrest_last_pay_index: Optional[str] = Field(default=None)
     clnrest_nodeid: Optional[str] = Field(default=None)
 
 class CoreLightningFundingSource(LNbitsSettings):

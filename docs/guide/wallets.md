@@ -12,12 +12,19 @@ A backend wallet can be configured using the following LNbits environment variab
 
 ### CLNRest (using [runes](https://docs.corelightning.org/reference/lightning-createrune))
 
+[Core lightning Rest API docs](https://docs.corelightning.org/docs/rest)
+
+Should also work with the [Rust version of CLNRest](https://github.com/daywalker90/clnrest-rs)
+
 - `LNBITS_BACKEND_WALLET_CLASS`: **CLNRestWallet**
 - `CLNREST_URL`: `https://127.0.0.1:3010`
+- `CLNREST_CA`: `/home/lightningd/.lightning/bitcoin/ca.pem` (or the content of the `ca.pem` file)
 - `CLNREST_CERT`: `/home/lightningd/.lightning/bitcoin/server.pem` (or the content of the `server.pem` file)
 - `CLNREST_READONLY_RUNE`: `lightning-cli createrune restrictions='[["method=listfunds", "method=listpays", "method=listinvoices", "method=getinfo", "method=summary", "method=waitanyinvoice"]]' | jq -r .rune`
 - `CLNREST_INVOICE_RUNE`: `lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pnamelabel^LNbits"], ["rate=60"]]' | jq -r .rune`
 - `CLNREST_PAY_RUNE`: `lightning-cli createrune restrictions='[["method=pay"], ["pinvbolt11_amount<1001"], ["pnamelabel^LNbits"], ["rate=1"]]' | jq -r .rune`
+- `CLNREST_RENEPAY_RUNE`: `lightning-cli createrune restrictions='[["method=renepay"], ["pinvinvstring_amount<1001"], ["pnamelabel^LNbits"], ["rate=1"]]' | jq -r .rune`
+- `CLNREST_LAST_PAY_INDEX`: `lightning-cli listinvoices | jq -r '.invoices | map(.created_index) | max' `
 - `CLNREST_NODEID`: `lightning-cli getinfo | jq -r .id` (only required for v23.08)
 
 ### CoreLightning
@@ -26,6 +33,8 @@ A backend wallet can be configured using the following LNbits environment variab
 - `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
 ### CoreLightning REST
+
+This is the old REST interface that uses [Ride The Lightning/c-lightning-REST](https://github.com/Ride-The-Lightning/c-lightning-REST)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningRestWallet**
 - `CORELIGHTNING_REST_URL`: http://127.0.0.1:8185/
