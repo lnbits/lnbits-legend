@@ -62,30 +62,29 @@ class CLNRestWallet(Wallet):
         if hasattr(settings, "clnrest_nodeid") and settings.clnrest_nodeid is not None:
             self.base_headers["nodeid"] = settings.clnrest_nodeid
 
-        self.readonly_headers = {**self.base_headers, "rune": settings.clnrest_readonly_rune}
-
-
-        if settings.clnrest_invoice_rune:
-            self.invoice_rune=settings.clnrest_invoice_rune
-            logger.debug(self.invoice_rune)
-            logger.debug(f"TODO: decode this invoice_rune and make sure that it has the correct permissions: {settings.clnrest_invoice_rune}:")
-            self.invoice_headers = {**self.base_headers, "rune": settings.clnrest_invoice_rune}
-            #logger.debug(json.dumps(self.invoice_rune.to_dict()))
+        # Ensure the readonly rune is set
+        if hasattr(settings, "clnrest_readonly_rune") and settings.clnrest_readonly_rune is not None:
+            self.readonly_headers = {**self.base_headers, "rune": settings.clnrest_readonly_rune}
         else:
-            logger.warning( "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'")
+            logger.error("Readonly rune 'CLNREST_READONLY_RUNE' is required but not set.")
 
-        if settings.clnrest_pay_rune:
-            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
+        if hasattr(settings, "clnrest_invoice_rune") and settings.clnrest_invoice_rune is not None:
+            logger.debug( f"TODO: decode this invoice_rune and make sure that it has the correct permissions: {settings.clnrest_invoice_rune[:4]}")
+            self.invoice_headers = {**self.base_headers, "rune": settings.clnrest_invoice_rune}
+        else:
+            logger.warning( "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE[:4]'")
+
+        if hasattr(settings, "clnrest_pay_rune") and settings.clnrest_pay_rune is not None:
+            logger.debug( f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune[:4]}")
             self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
         else:
-            logger.warning( "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'")
+            logger.warning( "Will be unable to call pay endpoint without setting 'CLNREST_PAY_RUNE'")
 
-        if settings.clnrest_renepay_rune:
-            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
+        if hasattr(settings, "clnrest_renepay_rune") and settings.clnrest_renepay_rune is not None:
+            logger.debug( f"TODO: decode this renepay_rune and make sure that it has the correct permissions: {settings.clnrest_renepay_rune[:4]}")
             self.renepay_headers = {**self.base_headers, "rune": settings.clnrest_renepay_rune}
         else:
-            logger.warning( "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'")
-
+            logger.warning( "Will be unable to call renepay endpoint without setting 'CLNREST_RENEPAY_RUNE'")
 
         # https://docs.corelightning.org/reference/lightning-pay
         # -32602: Invalid bolt11: Prefix bc is not for regtest
@@ -96,7 +95,9 @@ class CLNRestWallet(Wallet):
         # 206: Route too expensive.
         # 207: Invoice expired.
         # 210: Payment timed out without a payment in progress.
-        self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
+        # 401: Unauthorized. Probably a rune issue
+
+        self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210, 401]
 
         self.client = self.create_client()
 
@@ -107,8 +108,6 @@ class CLNRestWallet(Wallet):
             "failed": False,
             "pending": None,
         }
-
-
 
     def create_client(self) -> httpx.AsyncClient:
         """Create an HTTP client with specified headers and SSL configuration."""
@@ -222,7 +221,75 @@ class CLNRestWallet(Wallet):
             return InvoiceResponse( False, None, None, "Unable to invoice without an invoice rune")
 
         label_prefix = "LNbits_testing"
-        identifier = "TODO: wallet.user and wallet.id goes here"
+        identifier = "{wallet.user}_wallet.id}"
+        random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
+        label = f"{label_prefix} {identifier} {random_uuid}"
+
+        data: Dict = {
+            "amount_msat": int(amount * 1000),
+            "description": memo,
+            "label": label,
+        }
+        logger.error(data)
+
+        if description_hash and not unhashed_description:
+            raise UnsupportedError(
+                "'description_hash' unsupported by CoreLightningRest, "
+                "provide 'unhashed_description'"
+                "TODO: find out if this is also the case with CLNRest"
+            )
+
+        if unhashed_description:
+            data["description"] = unhashed_description.decode("utf-8")
+
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
+
+        if kwargs.get("preimage"):
+            data["preimage"] = kwargs["preimage"]
+
+        logger.debug(f"REQUEST to /v1/invoice: {json.dumps(data)}")
+
+        try:
+            r = await self.client.post(
+                "/v1/invoice",
+                json=data,
+                headers=self.invoice_headers,
+            )
+            r.raise_for_status()
+
+            response_data = r.json()
+
+            if "error" in response_data:
+                return InvoiceResponse(False, None, None, f"Server error: '{response_data['error']}'")
+
+            if "payment_hash" not in response_data or "bolt11" not in response_data:
+                return InvoiceResponse(False, None, None, "Server error: 'missing required fields'")
+
+            return InvoiceResponse(True, response_data["payment_hash"], response_data["bolt11"], None)
+
+        except json.JSONDecodeError:
+            return InvoiceResponse(False, None, None, "Server error: 'invalid json response'")
+        except Exception as exc:
+            logger.warning(f"Unable to connect to {self.url}: {exc}")
+            return InvoiceResponse(False, None, None, f"Unable to connect to {self.url}.")
+
+
+    async def pay_invoice_via_endpoint(
+            self,
+            bolt11: str,
+            fee_limit_msat: int,
+            #identifier: str,
+            payment_endpoint: str,
+            label_prefix: Optional[str] = "LNbits",
+            **kwargs,
+            ) -> PaymentResponse:
+
+        # todo: rune restrictions will not be enforced for payments that are internal to LNBits.
+        # maybe there should be a way to disable internal invoice settlement to always force settlement to the backing wallet
+
+        label_prefix = "LNbits_testing"
+        identifier = "{wallet.user}_allet.id goes here"
         random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
         label = f"{label_prefix} {identifier} {random_uuid}"
 
@@ -288,12 +355,11 @@ class CLNRestWallet(Wallet):
             **kwargs,
             ) -> PaymentResponse:
 
-        #todo: rune restrictions will not be enforced for internal payments within the lnbits instance as they are not routed through to core lightning
-        #maybe make a seperate pull request that disables internal invoice settlements to force it all to be settled by the wallet backend
-
+        # todo: rune restrictions will not be enforced for payments that are internal to LNBits.
+        # maybe there should be a way to disable internal invoice settlement to always force settlement to the backing wallet
 
         label_prefix = "LNbits_testing"
-        identifier = "TODO: wallet.user and wallet.id goes here"
+        identifier = "{wallet.user}_wallet.id}"
         random_uuid= base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
         label = f"{label_prefix} {identifier} {random_uuid}"
 
@@ -402,7 +468,7 @@ class CLNRestWallet(Wallet):
         **kwargs
         ) -> PaymentResponse:
 
-        identifier="todo: insert wallet.user_wallet.id"
+        identifier = "{wallet.user}_wallet.id}"
         logger.debug(f"request to pay_invoice bolt11 {bolt11} identifier {identifier}")
 
         try:
