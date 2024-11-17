@@ -42,7 +42,6 @@ class CLNRestWallet(Wallet):
             raise ValueError(
                 "cannot initialize CLNRestWallet: "
                 "missing clnrest_readonly_rune"
-                """ lightning-cli createrune restrictions='[["method=listfunds", "method=listpays", "method=listinvoices", "method=getinfo", "method=summary", "method=waitanyinvoice"]]' """
             )
 
         logger.debug(f"TODO: validate and check permissions of readonly_rune: {settings.clnrest_readonly_rune}")
@@ -73,28 +72,19 @@ class CLNRestWallet(Wallet):
             self.invoice_headers = {**self.base_headers, "rune": settings.clnrest_invoice_rune}
             #logger.debug(json.dumps(self.invoice_rune.to_dict()))
         else:
-            logger.warning(
-                "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'. Please create one with one of the following commands:\n"
-                """ lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pname_label^LNbits"], ["rate=60"]]' """
-                )
+            logger.warning( "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'")
 
         if settings.clnrest_pay_rune:
             logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
             self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
         else:
-            logger.warning(
-                "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'. Please create one with one of the following commands:\n"
-                """ lightning-cli createrune restrictions='[["method=pay"], ["pnameamount_msat<1000001"], ["rate=60"]]' """
-            )
+            logger.warning( "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'")
 
         if settings.clnrest_renepay_rune:
             logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
             self.renepay_headers = {**self.base_headers, "rune": settings.clnrest_renepay_rune}
         else:
-            logger.warning(
-                "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'. Please create one with one of the following commands:\n"
-                """ lightning-cli createrune restrictions='[["method=renepay"], ["pinvinvstring_amount<1000001"], ["rate=60"]]' """
-            )
+            logger.warning( "Will be unable to make any payments without setting 'CLNREST_PAY_RUNE'")
 
 
         # https://docs.corelightning.org/reference/lightning-pay
