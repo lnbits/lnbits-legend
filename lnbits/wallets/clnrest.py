@@ -380,23 +380,19 @@ class CLNRestWallet(Wallet):
         data = {
             "label": f"LNBits {identifier} {random_uuid}",
             "description": invoice.description,
+            "maxfee": fee_limit_msat,
         }
 
         if payment_endpoint == "v1/renepay":
             if not settings.clnrest_renepay_rune:
                 return InvoiceResponse( False, None, None, "Unable to invoice without a valid renepay rune")
-            #todo: fee limit enforcing
-            #data["fee_limit_percent"] = fee_limit_msat / invoice.amount_msat * 100
             data["invstring"] = bolt11
             header_to_use_for_payment = self.renepay_headers
-#####            assert data["invstring"] != None
 
-        fee_limit_percent=0.5
         if payment_endpoint == "v1/pay":
             if not settings.clnrest_pay_rune:
                 return InvoiceResponse( False, None, None, "Unable to invoice without a valid pay rune")
             data["bolt11"] = bolt11
-            data["maxfeepercent"] = f"{fee_limit_percent}"
             header_to_use_for_payment = self.pay_headers
 
         assert header_to_use_for_payment != None
@@ -428,6 +424,7 @@ class CLNRestWallet(Wallet):
             checking_id = data["payment_hash"]
             preimage = data["payment_preimage"]
             fee_msat = data["amount_sent_msat"] - data["amount_msat"]
+
 
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
         except httpx.HTTPStatusError as exc:
