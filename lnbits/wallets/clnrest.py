@@ -173,7 +173,6 @@ class CLNRestWallet(Wallet):
         try:
             logger.debug("REQUEST to /v1/listfunds")
             r = await self.client.post( "/v1/listfunds", timeout=15, headers=self.readonly_headers)
-            logger.error(r)
 
         except httpx.ReadTimeout:
             logger.error("Timeout error: The server did not respond in time. This also happens if the server is running https and you are trying to connect with http.")
@@ -526,7 +525,6 @@ class CLNRestWallet(Wallet):
         try:
             r.raise_for_status()
             data = r.json()
-            logger.debug(data)
 
             if r.is_error or "error" in data:
                 logger.error(f"API response error: {data}")
@@ -576,13 +574,19 @@ class CLNRestWallet(Wallet):
                                 continue
                         except Exception:
                             continue
-                        logger.trace(f"paid invoice: {inv}")
+                        logger.debug(f"paid invoice: {inv}")
 
                         # NOTE: use payment_hash when corelightning-rest returns it
                         # when using waitanyinvoice
-                        payment_hash_from_waitanyinvoice = inv["payment_hash"]
-                        #yield payment_hash_from_waitanyinvoice
+                        there_is_no_reason_to_also_check_with_listinvoices_because_we_already_know_the_payment_hash=True
 
+                        if ("payment_hash" in inv) and there_is_no_reason_to_also_check_with_listinvoices_because_we_already_know_the_payment_hash:
+                            payment_hash_from_waitanyinvoice = inv["payment_hash"]
+                            yield payment_hash_from_waitanyinvoice
+                            continue
+
+
+                        logger.error("if this error never shows up, the below code can safely be removed")
                         # TODO: explain why this would ever happen. It appears this is not necessary to run as the above code should be sufficient?
                         # corelightningrest.py has the same logic
                         # if we need this logic we should maybe use the get_invoice_status function instead of rewriting it
