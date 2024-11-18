@@ -413,12 +413,14 @@ class CLNRestWallet(Wallet):
 
             status = self.statuses.get(data["status"])
             if "payment_preimage" not in data:
+                error_message = data.get("error", "Payment failed without an error message.")
+                logger.error (error_message)
                 return PaymentResponse(
-                    status,
-                    None,
-                    None,
-                    None,
-                    data.get("error"),
+                    status=status,
+                    checking_id=None,
+                    fee_msat=None,
+                    preimage=None,
+                    error_message=error_message,
                 )
 
             checking_id = data["payment_hash"]
@@ -429,33 +431,31 @@ class CLNRestWallet(Wallet):
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
         except httpx.HTTPStatusError as exc:
             try:
-                logger.debug(exc)
                 data = exc.response.json()
-                error_code = int(data["error"]["code"])
-                if error_code in self.pay_failure_error_codes:
-                    error_message = f"Payment failed: {data['error']['message']}"
-                    return PaymentResponse(False, None, None, None, error_message)
-                error_message = f"REST failed with {data['error']['message']}."
-                return PaymentResponse(None, None, None, None, error_message)
-            except Exception as exc:
-                error_message = f"Unable to connect to {self.url}."
-                return PaymentResponse(None, None, None, None, error_message)
+                error = data.get('error', {})
+                error_code = int(error.get("code", 0))
+                error_message = error.get("message", "Unknown error")
 
-        except json.JSONDecodeError:
-            return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
-            )
-        except KeyError as exc:
-            logger.warning(exc)
-            return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
-            )
+                if error_code in self.pay_failure_error_codes:
+                    # TODO: which error codes indicate that the payment failed and which indicate that it is still pending or already happended
+                    error_message = f"Payment failed: {error_message}"
+                    return PaymentResponse(False, None, None, None, error_message)
+                else:
+                    error_message = f"REST failed with {error_message}."
+                    return PaymentResponse(None, None, None, None, error_message)
+            except json.JSONDecodeError:
+                # The response is not JSON
+                error_message = f"Server error: '{exc.response.text}'"
+                return PaymentResponse(None, None, None, None, error_message)
+            except Exception as e:
+                # Any other exception during parsing
+                error_message = f"Unable to connect to {self.url}. Exception: {str(e)}"
+                return PaymentResponse(None, None, None, None, error_message)
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.url}."
-            )
+            error_message = f"Unable to connect to {self.url}. Exception: {str(exc)}"
+            return PaymentResponse(None, None, None, None, error_message)
 
     async def pay_invoice(
         self,
@@ -480,7 +480,8 @@ class CLNRestWallet(Wallet):
         elif settings.clnrest_pay_rune:
             payment_endpoint = "v1/pay"
         else:
-            return PaymentResponse( False, None, None, "Unable to invoice without a pay or renepay rune")
+            return PaymentResponse(False, None, None, None, "Unable to pay invoice without a pay or renepay rune")
+
 
         response = await self.pay_invoice_via_endpoint(
             bolt11=bolt11,
