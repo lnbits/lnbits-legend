@@ -174,7 +174,7 @@ class CLNRestWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            logger.debug("REQUEST to /v1/listfunds", url="/v1/listfunds", headers=self.readonly_headers)
+            logger.debug("REQUEST to /v1/listfunds")
 
             r = await self.client.post( "/v1/listfunds", timeout=15, headers=self.readonly_headers)
             r.raise_for_status()
@@ -194,25 +194,25 @@ class CLNRestWallet(Wallet):
             logger.error(f"JSON decode error: {str(exc)}")
             return StatusResponse(f"Failed to decode JSON response from {self.url}", 0)
 
-		except httpx.ReadTimeout:
-			logger.error(
-				"Timeout error: The server did not respond in time. "
-				"This can happen if the server is running HTTPS but the client is using HTTP."
-			)
-			return StatusResponse(f"Unable to connect to 'v1/listfunds' due to timeout", 0)
+        except httpx.ReadTimeout:
+            logger.error(
+                "Timeout error: The server did not respond in time. "
+                "This can happen if the server is running HTTPS but the client is using HTTP."
+            )
+            return StatusResponse(f"Unable to connect to 'v1/listfunds' due to timeout", 0)
 
-		except (httpx.ConnectError, httpx.RequestError) as exc:
-			logger.error(f"Connection error: {exc}")
-			return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
+        except (httpx.ConnectError, httpx.RequestError) as exc:
+            logger.error(f"Connection error: {exc}")
+            return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
 
-		except httpx.HTTPStatusError as exc:
-			logger.error(
-				f"HTTP error: {exc.response.status_code} {exc.response.reason_phrase} "
-				f"while accessing {exc.request.url}"
-			)
-			return StatusResponse(
-				f"Failed with HTTP {exc.response.status_code} on 'v1/listfunds'", 0
-			)
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                f"HTTP error: {exc.response.status_code} {exc.response.reason_phrase} "
+                f"while accessing {exc.request.url}"
+            )
+            return StatusResponse(
+                f"Failed with HTTP {exc.response.status_code} on 'v1/listfunds'", 0
+            )
 
 
     async def create_invoice(
@@ -295,7 +295,7 @@ class CLNRestWallet(Wallet):
             **kwargs,
             ) -> PaymentResponse:
 
-        # todo: rune restrictions will not be enforced for payments that are internal to LNBits.
+        # todo: rune restrictions will not be enforced for payments that are internal to LNbits.
         # maybe there should be a way to disable internal invoice settlement to always force settlement to the backing wallet
 
         label_prefix = "LNbits_testing"
@@ -365,7 +365,7 @@ class CLNRestWallet(Wallet):
             **kwargs,
             ) -> PaymentResponse:
 
-        # todo: rune restrictions will not be enforced for payments that are internal to LNBits.
+        # todo: rune restrictions will not be enforced for payments that are internal to LNbits.
         # maybe there should be a way to disable internal invoice settlement to always force settlement to the backing wallet
 
         label_prefix = "LNbits_testing"
@@ -388,7 +388,7 @@ class CLNRestWallet(Wallet):
         label = f"{label_prefix} {identifier} {random_uuid}"
 
         data = {
-            "label": f"LNBits {identifier} {random_uuid}",
+            "label": f"LNbits {identifier} {random_uuid}",
             "description": invoice.description,
             "maxfee": fee_limit_msat,
         }
