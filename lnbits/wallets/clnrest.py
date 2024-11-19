@@ -484,8 +484,8 @@ class CLNRestWallet(Wallet):
             return PaymentResponse(False, None, None, None, str(exc))
 
         # Determine the endpoint based on the use_rene flag
-        dafault_to_renepay_first = True
-        if invoice.description is not None and settings.clnrest_renepay_rune and default_to_renepay_first:
+        default_to_renepay = True
+        if invoice.description is not None and settings.clnrest_renepay_rune and default_to_renepay:
             payment_endpoint = "v1/renepay"
         elif settings.clnrest_pay_rune:
             payment_endpoint = "v1/pay"
