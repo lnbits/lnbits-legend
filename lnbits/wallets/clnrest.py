@@ -102,6 +102,9 @@ class CLNRestWallet(Wallet):
         self.client = self.create_client()
 
         self.last_pay_index = settings.clnrest_last_pay_index
+        
+
+
         self.statuses = {
             "paid": True,
             "complete": True,
@@ -171,37 +174,45 @@ class CLNRestWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            logger.debug("REQUEST to /v1/listfunds")
+            logger.debug("REQUEST to /v1/listfunds", url="/v1/listfunds", headers=self.readonly_headers)
+
             r = await self.client.post( "/v1/listfunds", timeout=15, headers=self.readonly_headers)
+            r.raise_for_status()
 
-        except httpx.ReadTimeout:
-            logger.error("Timeout error: The server did not respond in time. This also happens if the server is running https and you are trying to connect with http.")
-            return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
-
-        except (httpx.ConnectError, httpx.RequestError) as exc:
-            logger.error(f"Connection error: {str(exc)}")
-            return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
-
-        try:
             response_data = r.json()
+
+            if not response_data:
+                logger.error("Received empty response data")
+                return StatusResponse("no data", 0)
+
+            channels = response_data.get("channels", [])
+            total_our_amount_msat = sum( channel.get("our_amount_msat", 0) for channel in channels)
+
+            return StatusResponse(None, total_our_amount_msat)
+
         except json.JSONDecodeError as exc:
             logger.error(f"JSON decode error: {str(exc)}")
             return StatusResponse(f"Failed to decode JSON response from {self.url}", 0)
 
-        if r.is_error or "error" in response_data:
-            error_message = response_data.get("error", r.text)
-            return StatusResponse(f"Failed to connect to {self.url}, got: '{error_message}'...", 0)
+		except httpx.ReadTimeout:
+			logger.error(
+				"Timeout error: The server did not respond in time. "
+				"This can happen if the server is running HTTPS but the client is using HTTP."
+			)
+			return StatusResponse(f"Unable to connect to 'v1/listfunds' due to timeout", 0)
 
-        if not response_data:
-            return StatusResponse("no data", 0)
+		except (httpx.ConnectError, httpx.RequestError) as exc:
+			logger.error(f"Connection error: {exc}")
+			return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
 
-        channels = response_data.get("channels")
-        if channels is None:
-            total_our_amount_msat = 0
-        else:
-            total_our_amount_msat = sum(channel["our_amount_msat"] for channel in channels)
-
-        return StatusResponse(None, total_our_amount_msat)
+		except httpx.HTTPStatusError as exc:
+			logger.error(
+				f"HTTP error: {exc.response.status_code} {exc.response.reason_phrase} "
+				f"while accessing {exc.request.url}"
+			)
+			return StatusResponse(
+				f"Failed with HTTP {exc.response.status_code} on 'v1/listfunds'", 0
+			)
 
 
     async def create_invoice(
@@ -540,15 +551,14 @@ class CLNRestWallet(Wallet):
                 logger.error(error_message)
                 raise Exception(error_message)
 
-            pay = pays_list[0]
-            logger.debug(f"Payment status from API: {pay['status']}")
+            pay = pays_list[-1]
+            logger.trace(f"Payment status from API: {pay['status']}")
 
             fee_msat, preimage = None, None
             if pay['status'] == 'complete':
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
-                preimage = pay["preimage"]
+                return PaymentSuccessStatus( fee_msat=fee_msat, preimage=payment_resp["preimage"])
 
-            return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
         except Exception as exc:
             logger.error(f"Error getting payment status: {exc}")
             return PaymentStatus(None)
@@ -600,7 +610,7 @@ class CLNRestWallet(Wallet):
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
                         assert self.statuses[
-                            paid_invoice["invoices"][0]["status"]
+                            paid_invoice["invoices"][-1]["status"]
                         ], "streamed invoice not paid"
                         assert "invoices" in paid_invoice, "no invoices in response"
                         assert len(paid_invoice["invoices"]), "no invoices in response"
