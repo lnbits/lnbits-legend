@@ -44,7 +44,7 @@ class CLNRestWallet(Wallet):
                 "missing clnrest_readonly_rune"
             )
 
-        logger.debug(f"TODO: validate and check permissions of readonly_rune: {settings.clnrest_readonly_rune}")
+        logger.debug(f"TODO: validate and check permissions of readonly_rune: {settings.clnrest_readonly_rune[:4]}")
 
 
 
@@ -166,8 +166,8 @@ class CLNRestWallet(Wallet):
     async def cleanup(self):
         try:
             await self.client.aclose()
-        except RuntimeError as e:
-            logger.warning(f"Error closing wallet connection: {e}")
+        except RuntimeError as exc:
+            logger.warning(f"Error closing wallet connection: {exc}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -178,14 +178,14 @@ class CLNRestWallet(Wallet):
             logger.error("Timeout error: The server did not respond in time. This also happens if the server is running https and you are trying to connect with http.")
             return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
 
-        except (httpx.ConnectError, httpx.RequestError) as e:
-            logger.error(f"Connection error: {str(e)}")
+        except (httpx.ConnectError, httpx.RequestError) as exc:
+            logger.error(f"Connection error: {str(exc)}")
             return StatusResponse(f"Unable to connect to 'v1/listfunds'", 0)
 
         try:
             response_data = r.json()
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {str(e)}")
+        except json.JSONDecodeError as exc:
+            logger.error(f"JSON decode error: {str(exc)}")
             return StatusResponse(f"Failed to decode JSON response from {self.url}", 0)
 
         if r.is_error or "error" in response_data:
@@ -448,7 +448,7 @@ class CLNRestWallet(Wallet):
                 return PaymentResponse(None, None, None, None, error_message)
             except Exception as e:
                 # Any other exception during parsing
-                error_message = f"Unable to connect to {self.url}. Exception: {str(e)}"
+                error_message = f"Unable to connect to {self.url}. Exception: {str(exc)}"
                 return PaymentResponse(None, None, None, None, error_message)
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
@@ -508,8 +508,8 @@ class CLNRestWallet(Wallet):
                 raise Exception("error in cln response")
             logger.debug(f"RESPONSE: invoice with payment_hash {data['invoices'][0]['payment_hash']} has status {data['invoices'][0]['status']}")
             return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
-        except Exception as e:
-            logger.error(f"Error getting invoice status: {e}")
+        except Exception as exc:
+            logger.error(f"Error getting invoice status: {exc}")
             return PaymentPendingStatus()
 
 
@@ -549,8 +549,8 @@ class CLNRestWallet(Wallet):
                 preimage = pay["preimage"]
 
             return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
-        except Exception as e:
-            logger.error(f"Error getting payment status: {e}")
+        except Exception as exc:
+            logger.error(f"Error getting payment status: {exc}")
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
