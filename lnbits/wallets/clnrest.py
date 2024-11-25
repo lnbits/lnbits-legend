@@ -140,7 +140,7 @@ class CLNRestWallet(Wallet):
                 )
                 raise ValueError("CA certificate is required for secure communication.")
             else:
-                logger.info("CA Certificate provided.")
+                logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
 
             # Create an SSL context and load the CA certificate
             ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -150,8 +150,9 @@ class CLNRestWallet(Wallet):
                 logger.info(f"Using CA certificate file: {settings.clnrest_ca}")
                 ssl_context.load_verify_locations(cafile=settings.clnrest_ca)
             else:
-                logger.info("Using CA certificate from PEM string")
+                logger.info("Using CA certificate from PEM string: ")
                 ca_content = settings.clnrest_ca.replace('\\n', '\n')
+                logger.info(ca_content)
                 ssl_context.load_verify_locations(cadata=ca_content)
 
             # Optional: Disable hostname checking if necessary
