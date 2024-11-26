@@ -13,8 +13,8 @@
       </div>
     </div>
     <h6 class="q-my-none q-mb-sm">Authentication</h6>
-    <div class="row">
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+    <div class="row q-col-gutter-sm">
+      <div class="col-12 col-sm-6">
         <q-input
           filled
           v-model="formData.auth_token_expire_minutes"
@@ -24,7 +24,7 @@
         >
         </q-input>
       </div>
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+      <div class="col-12 col-sm-6">
         <q-select
           filled
           v-model="formData.auth_allowed_methods"
@@ -43,8 +43,9 @@
     <strong class="q-my-none q-mb-sm">Nostr Auth</strong>
 
     <div class="row">
-      <div class="col-md-12 col-sm-12 q-pr-sm">
+      <div class="col-12">
         <q-input
+          class="q-mb-sm"
           filled
           v-model="nostrAcceptedUrl"
           @keydown.enter="addNostrUrl"
@@ -55,18 +56,18 @@
           <q-btn @click="addNostrUrl" dense flat icon="add"></q-btn>
         </q-input>
       </div>
-      <div>
-        <div>
-          <q-chip
-            v-for="url in formData.nostr_absolute_request_urls"
-            :key="url"
-            removable
-            @remove="removeNostrUrl(url)"
-            color="primary"
-            text-color="white"
-            :label="url"
-          ></q-chip>
-        </div>
+      <div class="col-12">
+        <!-- <div> -->
+        <q-chip
+          v-for="url in formData.nostr_absolute_request_urls"
+          :key="url"
+          removable
+          @remove="removeNostrUrl(url)"
+          color="primary"
+          text-color="white"
+          :label="url"
+        ></q-chip>
+        <!-- </div> -->
       </div>
     </div>
   </q-card-section>
