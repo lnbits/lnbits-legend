@@ -57,7 +57,6 @@
         </q-input>
       </div>
       <div class="col-12">
-        <!-- <div> -->
         <q-chip
           v-for="url in formData.nostr_absolute_request_urls"
           :key="url"
@@ -66,8 +65,8 @@
           color="primary"
           text-color="white"
           :label="url"
+          class="ellipsis"
         ></q-chip>
-        <!-- </div> -->
       </div>
     </div>
   </q-card-section>
@@ -221,6 +220,7 @@
                   color="primary"
                   text-color="white"
                   :label="blocked_ip"
+                  class="ellipsis"
                 ></q-chip>
               </div>
               <br />
@@ -250,6 +250,7 @@
                   color="primary"
                   text-color="white"
                   :label="allowed_ip"
+                  class="ellipsis"
                 ></q-chip>
               </div>
               <br />

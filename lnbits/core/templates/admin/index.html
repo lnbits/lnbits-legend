@@ -61,7 +61,7 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
-      <q-splitter v-model="tabsPercent">
+      <q-splitter>
         <template v-slot:before>
           <q-tabs v-model="tab" vertical active-color="primary">
             <q-tab
@@ -122,6 +122,7 @@
                 ><span v-text="$t('audit')"></span></q-tooltip
             ></q-tab>
             <q-tab
+              style="word-break: break-all"
               name="site_customisation"
               icon="language"
               :label="$q.screen.gt.sm ? $t('site_customisation') : null"

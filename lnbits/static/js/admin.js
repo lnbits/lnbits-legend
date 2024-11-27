@@ -61,7 +61,6 @@ window.app = Vue.createApp({
         'orange'
       ],
       tab: 'funding',
-      tabsPercent: 15,
       needsRestart: false
     }
   },
