@@ -13,7 +13,6 @@
       </q-item-section> -->
       <q-item-section class="q-mr-md">
         <q-icon name="pivot_table_chart" />
-
       </q-item-section>
     </q-item>
 

@@ -10,14 +10,39 @@
 <!---->
 {% block page %}
 <div class="row q-col-gutter-md">
-  <div class="col-12 q-gutter-y-md">
+  <div class="col-2">
+    <q-card class="q-mr-md cursor-pointer" color="positive">
+      <q-card-section class="">
+        <div class="row">
+          <div class="col-12">
+            <q-input filled label="Wallet Name" dense class="q-pb-lg" />
+          </div>
+          <div class="col-12"></div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-pa-none">
+        <div class="row full-width">
+          <div class="col-12">
+            <q-btn
+              unelevated
+              square
+              color="secondary"
+              class="full-width"
+              label="New Wallet"
+            ></q-btn>
+          </div>
+        </div>
+      </q-card-actions>
+    </q-card>
+  </div>
+  <div class="col-10 q-gutter-y-md">
     <q-virtual-scroll
       :items="this.g.user.wallets"
       virtual-scroll-horizontal
       v-slot="{ item, index }"
       class="hide-scrollbar"
     >
-      <!-- :class="item.id === this.g.wallet.id ? 'bg-dark text-white': ''" -->
       <q-card
         class="q-mr-md cursor-pointer"
         color="positive"
@@ -113,82 +138,7 @@
     } : ''"
       >
         {% endif %}
-        <!-- <q-card
-          :style="$q.screen.lt.md ? {
-            background: $q.screen.lt.md ? 'none !important': ''
-          , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-        } : ''"
-        >
-          <q-card-section>
-            <h3 class="q-my-none text-no-wrap">
-              <strong v-text="formattedBalance"></strong>
-              <small> {{LNBITS_DENOMINATION}}</small>
-              <lnbits-update-balance
-                :wallet_id="this.g.wallet.id"
-                flat
-                :callback="updateBalanceCallback"
-                round
-              />
-            </h3>
-            <div class="row">
-              <div class="col">
-                <div v-if="g.wallet.currency">
-                  <span
-                    class="text-h5 text-italic"
-                    v-text="formattedFiatBalance"
-                    style="opacity: 0.75"
-                  ></span>
-                </div>
-              </div>
-              <div class="col">
-                <q-btn
-                  @click="mobileSimple = !mobileSimple"
-                  color="primary"
-                  class="float-right lt-md"
-                  size="sm"
-                  flat
-                  :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
-                  :label="mobileSimple ? $t('more') : $t('less')"
-                ></q-btn>
-              </div>
-            </div>
-          </q-card-section>
-          <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-            <div class="col">
-              <q-btn
-                unelevated
-                color="primary"
-                class="full-width"
-                @click="showParseDialog"
-                :label="$t('paste_request')"
-              ></q-btn>
-            </div>
-            <div class="col">
-              <q-btn
-                unelevated
-                color="primary"
-                class="full-width"
-                @click="showReceiveDialog"
-                :label="$t('create_invoice')"
-              ></q-btn>
-            </div>
-            <div class="col">
-              <q-btn
-                unelevated
-                color="secondary"
-                icon="photo_camera"
-                @click="showCamera"
-                :label="$t('scan')"
-              >
-                <q-tooltip
-                  ><span v-text="$t('camera_tooltip')"></span
-                ></q-tooltip>
-              </q-btn>
-            </div>
-          </div>
-        </q-card> -->
+
         <q-card
           :style="
           $q.screen.lt.md
