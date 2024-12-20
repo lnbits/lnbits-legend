@@ -22,7 +22,6 @@ class BaseWallet(BaseModel):
     inkey: str
     balance_msat: int
 
-
 class Wallet(BaseModel):
     id: str
     user: str
@@ -34,6 +33,8 @@ class Wallet(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: Optional[str] = None
     balance_msat: int = Field(default=0, no_database=True)
+    icon: str
+    color: str
 
     @property
     def balance(self) -> int:

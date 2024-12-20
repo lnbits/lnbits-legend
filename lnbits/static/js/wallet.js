@@ -48,6 +48,53 @@ window.app = Vue.createApp({
         show: false,
         location: window.location
       },
+      icon:{
+        show: false,
+        data: {},
+        colorOptions: ["primary", "purple", "orange", "green", "brown", "blue", "red", "pink"],
+        options: [
+          "home",
+          "star",
+          "bolt",
+          "paid",
+          "savings",
+          "store",
+          "videocam",
+          "music_note",
+          "flight",
+          "train",
+          "directions_car",
+          "school",
+          "construction",
+          "science",
+          "sports_esports",
+          "sports_tennis",
+          "theaters",
+          "water",
+          "headset_mic",
+          "videogame_asset",
+          "person",
+          "group",
+          "pets",
+          "sunny",
+          "elderly",
+          "verified",
+          "snooze",
+          "mail",
+          "forum",
+          "shopping_cart",
+          "shopping_bag",
+          "attach_money",
+          "print_connect",
+          "dark_mode",
+          "light_mode",
+          "android",
+          "network_wifi",
+          "shield",
+          "fitness_center",
+          "lunch_dining"
+        ]
+      },
       balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
@@ -153,6 +200,16 @@ window.app = Vue.createApp({
     },
     handleBalanceUpdate(value) {
       this.balance = this.balance + value
+    },
+    setSelectedIcon(selectedIcon) {
+      this.icon.data.icon = selectedIcon;
+    },
+    setSelectedColor(selectedColor) {
+      this.icon.data.color = selectedColor;
+    },
+    setIcon() {
+      console.log(this.icon.data)
+      this.updateWallet(this.icon.data)
     },
     createInvoice() {
       this.receive.status = 'loading'
@@ -669,6 +726,7 @@ window.app = Vue.createApp({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
+    console.log('Wallet:', this.wallet)
   },
   watch: {
     updatePayments() {

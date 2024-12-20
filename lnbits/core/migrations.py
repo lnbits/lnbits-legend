@@ -684,3 +684,13 @@ async def m029_create_audit_table(db: Connection):
         );
         """
     )
+
+async def m031_add_color_and_icon_to_wallets(db: Connection):
+    """
+    Adds icon and color columns to wallets.
+    """
+    try:
+        await db.execute("ALTER TABLE wallets ADD COLUMN icon TEXT DEFAULT 'flash_on'")
+        await db.execute("ALTER TABLE wallets ADD COLUMN color TEXT DEFAULT 'primary'")
+    except OperationalError:
+        pass

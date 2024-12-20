@@ -976,8 +976,6 @@
 </template>
 
 <template id="wallet-payment-chart">
-  <q-card class="q-ml-md q-pa-none" style="height: 135px">
-    <q-card-section style="padding: 0">
       <canvas
         ref="transactionChart"
         style="
@@ -985,9 +983,7 @@
           width: 100%;
           margin: 0;
           padding: 0;
-          transform: translate(-2%, 4%);
         "
       ></canvas>
-    </q-card-section>
-  </q-card>
+
 </template>
