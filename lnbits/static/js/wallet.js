@@ -58,11 +58,7 @@ window.app = Vue.createApp({
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
-      nfcReaderAbortController: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
-      transactions: [],
-      transactionChart: null,
-      paymentsRef: null
+      nfcReaderAbortController: null
     }
   },
   computed: {
