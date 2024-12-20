@@ -58,7 +58,8 @@ window.app = Vue.createApp({
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
-      nfcReaderAbortController: null
+      nfcReaderAbortController: null,
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
   computed: {
@@ -649,33 +650,6 @@ window.app = Vue.createApp({
         })
         .catch(err => {
           dismissPaymentMsg()
-          LNbits.utils.notifyApiError(err)
-        })
-    },
-    handleWallet(wallet) {
-      console.log('Wallet from child:', wallet)
-    },
-    fetchPayments() {
-      return LNbits.api
-        .getPayments(
-          this.g.wallet,
-          'sortby=time&direction=asc&status[ne]=failed'
-        )
-        .then(response => {
-          console.log(response.data.data)
-          for (let payment of response.data.data) {
-            record = {
-              payment_hash: payment.payment_hash,
-              amount: payment.amount,
-              description: payment.description,
-              time: payment.time
-            }
-            this.transactions.push(record)
-          }
-          console.log(this.transactions)
-        })
-        .catch(err => {
-          this.paymentsTable.loading = false
           LNbits.utils.notifyApiError(err)
         })
     }
