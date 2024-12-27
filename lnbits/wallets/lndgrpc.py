@@ -5,12 +5,17 @@ from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 import grpc
+import httpx
+
 from loguru import logger
 
 import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
 import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
+import lnbits.wallets.lnd_grpc_files.invoices_pb2 as invoices
+import lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc as invoicesrpc
+
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
@@ -105,6 +110,7 @@ class LndWallet(Wallet):
         )
         self.rpc = lnrpc.LightningStub(channel)
         self.routerpc = routerrpc.RouterStub(channel)
+        self.invoicesrpc = invoicesrpc.InvoicesStub(channel)
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -283,3 +289,83 @@ class LndWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        rhash: bytes,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        data: Dict = {
+            "description_hash": b"",
+            "value": amount,
+            "hash": rhash,
+            "private": True,
+            "memo": memo or "",
+        }
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
+        if description_hash:
+            data["description_hash"] = description_hash
+        elif unhashed_description:
+            data["description_hash"] = hashlib.sha256(
+                unhashed_description
+            ).digest()  # as bytes directly
+
+        try:
+            req = invoices.AddHoldInvoiceRequest(**data)
+            resp = await self.invoicesrpc.AddHoldInvoice(req)
+         
+        except Exception as exc:
+            logger.warning(exc)
+            error_message = str(exc)
+            return InvoiceResponse(False, None, None, error_message)
+
+        checking_id = bytes_to_hex(rhash)
+        payment_request = str(resp.payment_request)
+        return InvoiceResponse(True, checking_id, payment_request, None)
+    
+    async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
+        try:
+            req = invoices.SettleInvoiceMsg(preimage=preimage)
+            await self.invoicesrpc.SettleInvoice(req)
+         
+        except Exception as exc:
+            logger.warning(exc)
+            error_message = str(exc)
+            return PaymentResponse(False, None, None, None, error_message)
+      
+        return PaymentResponse(True, None, None, None, None)
+    
+    async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
+        try:
+            req = invoices.CancelInvoiceMsg(payment_hash=payment_hash)
+            await self.invoicesrpc.CancelInvoice(req)
+         
+        except Exception as exc:
+            logger.warning(exc)
+            error_message = str(exc)
+            return PaymentResponse(False, None, None, None, error_message)
+
+        return PaymentResponse(True, None, None, None, None)
+    
+    async def hold_invoices_stream(self, payment_hash: str, webhook: str):
+        rhash = base64.urlsafe_b64encode(bytes.fromhex(payment_hash))
+        request = invoicesrpc.SubscribeSingleInvoiceRequest(
+            r_hash=rhash
+        )
+        async for response in self.invoicesrpc.SubscribeSingleInvoice(request):
+            if response.state not in ["ACCEPTED", "CANCELED"]:
+                continue
+            await self.dispatch_hold_webhook(webhook, response)
+
+    async def dispatch_hold_webhook(self, webhook, inv):
+        async with httpx.AsyncClient() as client:
+            try:
+                logger.debug("sending hold webhook", webhook, str(inv))
+                await client.post(webhook, json=inv, timeout=40)  # type: ignore
+            except (httpx.ConnectError, httpx.RequestError):
+                logger.debug("error sending hold webhook")
