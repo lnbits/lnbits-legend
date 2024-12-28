@@ -15,21 +15,20 @@
     >
       <q-item-section side>
         <q-avatar
-          size="md"
-          :color="
-            activeWallet && activeWallet.id === wallet.id
-              ? $q.dark.isActive
-                ? 'primary'
-                : 'primary'
-              : 'grey-5'
-          "
-        >
-          <q-icon
-            name="flash_on"
-            :size="$q.dark.isActive ? '21px' : '20px'"
-            :color="$q.dark.isActive ? 'blue-grey-10' : 'grey-3'"
-          ></q-icon>
-        </q-avatar>
+              size="lg"
+              :icon="wallet.icon"
+              :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+              :class="activeWallet && activeWallet.id === wallet.id
+                  ? ''
+                  : 'disabled'
+              "
+              :color="
+          activeWallet && activeWallet.id === wallet.id
+            ? wallet.color
+            : wallet.color
+        "
+            >
+            </q-avatar>
       </q-item-section>
       <q-item-section>
         <q-item-label lines="1"

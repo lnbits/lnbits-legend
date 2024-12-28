@@ -211,6 +211,12 @@ window.app = Vue.createApp({
       console.log(this.icon.data)
       this.updateWallet(this.icon.data)
     },
+    getWallet(wallet) {
+      console.log(wallet)
+      console.log(this.g.wallet)
+      this.wallet = LNbits.map.wallet(wallet)
+      console.log(this.g.wallet)
+    },
     createInvoice() {
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
@@ -566,13 +572,15 @@ window.app = Vue.createApp({
     updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
-        .then(_ => {
+        .then(response => {
+          console.log(response.data)
+          this.wallet = LNbits.map.wallet(response.data)
           Quasar.Notify.create({
             message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
+         // window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -709,7 +717,24 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    walletColorAlpha(color){
+      console.log(LNbits.utils.getPaletteColor(color))
+      console.log(LNbits.utils.hexAlpha(LNbits.utils.getPaletteColor(color),0.3))
+      return LNbits.utils.hexAlpha(LNbits.utils.getPaletteColor(color),0.3)
+    },
+    incoming(wallet){
+        // listen to incoming payments
+        LNbits.events.onInvoicePaid(wallet, data => {
+          console.log('Payment received:', data.payment.payment_hash)
+          console.log('Wallet balance:', data.wallet_balance)
+          console.log('Wallet ID:', wallet)
+          this.onPaymentReceived(data.payment.payment_hash)
+          this.balance = data.wallet_balance
+          eventReaction(data.payment.amount)
+        })
     }
+
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
@@ -726,7 +751,6 @@ window.app = Vue.createApp({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
-    console.log('Wallet:', this.wallet)
   },
   watch: {
     updatePayments() {
@@ -744,15 +768,7 @@ window.app = Vue.createApp({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-    // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, data => {
-      console.log('Payment received:', data.payment.payment_hash)
-      console.log('Wallet balance:', data.wallet_balance)
-      console.log('Wallet ID:', this.g.wallet)
-      this.onPaymentReceived(data.payment.payment_hash)
-      this.balance = data.wallet_balance
-      eventReaction(data.payment.amount)
-    })
+    this.incoming(this.g.wallet)
   }
 })
 

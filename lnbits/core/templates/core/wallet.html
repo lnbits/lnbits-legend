@@ -36,50 +36,54 @@
         >
           <div class="row no-wrap q-gutter-md q-pr-md">
             <q-card
-              v-for="wallet in g.user.wallets"
-              :key="wallet.id"
+              v-for="wallets in g.user.wallets"
+              :key="wallets.id"
               class="wallet-list-card"
               bordered
               tag="a"
-              :href="wallet.url"
+              @click="getWallet(wallets)"
               :style="
-          g.wallet && g.wallet.id === wallet.id
+          wallet && wallet.id === wallets.id
             ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
             : 'width: 250px; text-decoration: none;'
         "
               :class="{
-            'active-wallet-card': g.wallet && g.wallet.id === wallet.id
+            'active-wallet-card': wallet && wallet.id === wallets.id
           }"
             >
               <q-card-section>
                 <div class="row items-center">
+
                   <q-avatar
-                    size="lg"
-                    :color="
-                g.wallet && g.wallet.id === wallet.id
-                  ? $q.dark.isActive
-                    ? 'primary'
-                    : 'primary'
-                  : 'grey-5'
+                  size="lg"
+                  :icon="
+              wallet && wallet.id === wallets.id
+                ? wallet.icon
+                : wallets.icon
+            "
+                  :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                  :class="wallet && wallet.id === wallet.id
+                  ? ''
+                  : 'disabled'
               "
-                  >
-                    <q-icon
-                      :name="g.wallet.icon"
-                      :size="$q.dark.isActive ? '21px' : '20px'"
-                      :color="$q.dark.isActive ? 'black' : 'grey-3'"
-                    ></q-icon>
-                  </q-avatar>
+                  :color="
+              wallet && wallet.id === wallets.id
+                ? wallet.color
+                : wallets.color
+            "
+                >
+                </q-avatar>
                   <div
                     class="text-h6 q-pl-md"
                     :class="{
-                'text-bold': g.wallet && g.wallet.id === wallet.id
+                'text-bold': wallet && wallet.id === wallet.id
               }"
-                    v-text="wallet.name"
+                    v-text="wallets.name"
                   ></div>
                 </div>
                 <div class="row items-center q-pt-sm">
                   <h6 class="q-my-none text-no-wrap">
-                    <strong v-text="wallet.fsat"></strong>
+                    <strong v-text="wallets.fsat"></strong>
                     <small> {{LNBITS_DENOMINATION}}</small>
                   </h6>
                 </div>
@@ -102,7 +106,7 @@
                   <strong v-text="formattedBalance"></strong>
                   <small> {{LNBITS_DENOMINATION}}</small>
                   <lnbits-update-balance
-                    :wallet_id="this.g.wallet.id"
+                    :wallet_id="wallet.id"
                     @credit-value="handleBalanceUpdate"
                     class="q-ml-md"
                   ></lnbits-update-balance>
@@ -110,7 +114,7 @@
 
                 <div class="row">
                   <div class="col">
-                    <div v-if="g.wallet.currency">
+                    <div v-if="wallet.currency">
                       <span
                         class="text-h5 text-italic"
                         v-text="formattedFiatBalance"
@@ -182,7 +186,7 @@
           <q-card-section>
             <payment-list
               :update="updatePayments"
-              :wallet="this.g.wallet"
+              :wallet="wallet"
               :mobile-simple="mobileSimple"
             />
           </q-card-section>
@@ -200,15 +204,16 @@
             <div class="row items-center">
 
               <q-avatar
-              size="xl"
-              color="primary">
-                <q-icon
-                  :name="g.wallet.icon"
-                  :size="$q.dark.isActive ? '21px' : '20px'"
-                  :color="$q.dark.isActive ? 'blue-grey-10' : 'grey-3'"
-                ></q-icon>
-                
-              </q-avatar>
+              size="lg"
+              :icon="wallet.icon"
+              :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+              :color="
+          wallet && wallet.id === wallet.id
+            ? wallet.color
+            : wallet.color
+        "
+            >
+            </q-avatar>
               <q-btn @click="icon.show = true" round color="grey-5" text-color="black" size="xs" icon="add" style="position: relative; left: -20px; bottom: -10px;"></q-btn>
               <div class="text-subtitle1 q-mt-none q-mb-none">
                 {{ SITE_TITLE }} Wallet:
@@ -223,7 +228,7 @@
           </q-card-section>
           <q-card-section style="padding: 0">
           <wallet-payment-chart
-            :wallet="this.g.wallet"
+            :wallet="this.wallet"
           ></wallet-payment-chart>
         </q-card-section>
       </q-card>
