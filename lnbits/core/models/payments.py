@@ -175,3 +175,11 @@ class CreateInvoice(BaseModel):
         if v != "sat" and v not in allowed_currencies():
             raise ValueError("The provided unit is not supported")
         return v
+
+
+class SettleInvoice(BaseModel):
+    preimage: str
+
+
+class CancelInvoice(BaseModel):
+    payment_hash: str
