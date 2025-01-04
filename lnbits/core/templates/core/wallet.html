@@ -5,6 +5,7 @@
 {% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
+<script src="{{ static_url_for('static', 'js/base.js') }}"></script>
 <script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
 {% endblock %}
 <!---->
