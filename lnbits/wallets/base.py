@@ -119,6 +119,18 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
+    def create_hold_invoice(
+        self,
+        amount: int,
+        rhash: str,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
+    ) -> Coroutine[None, None, InvoiceResponse]:
+        pass
+
+    @abstractmethod
     def pay_invoice(
         self, bolt11: str, fee_limit_msat: int
     ) -> Coroutine[None, None, PaymentResponse]:
@@ -134,6 +146,24 @@ class Wallet(ABC):
     def get_payment_status(
         self, checking_id: str
     ) -> Coroutine[None, None, PaymentStatus]:
+        pass
+
+    @abstractmethod
+    def settle_hold_invoice(
+        self, preimage: str
+    ) -> Coroutine[None, None, PaymentResponse]:
+        pass
+
+    @abstractmethod
+    def cancel_hold_invoice(
+        self, payment_hash: str
+    ) -> Coroutine[None, None, PaymentResponse]:
+        pass
+
+    @abstractmethod
+    def hold_invoices_stream(
+        self, payment_hash: str, webhook: str
+    ) -> Coroutine[None, None, None]:
         pass
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

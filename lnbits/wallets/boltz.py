@@ -18,6 +18,7 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
+    UnsupportedError,
     Wallet,
 )
 
@@ -28,6 +29,18 @@ class BoltzWallet(Wallet):
 
     gRPC Bindings can be updated by running lnbits/wallets/boltz_grpc_files/update.sh
     """
+
+    async def create_hold_invoice(self, *_, **__) -> InvoiceResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def settle_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def cancel_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def hold_invoices_stream(self, *_, **__) -> None:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
     async def cleanup(self):
         logger.warning("Cleaning up BoltzWallet...")
