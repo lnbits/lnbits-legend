@@ -1,7 +1,6 @@
 import binascii
 from http import HTTPStatus
 
-from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
     Body,
@@ -10,12 +9,13 @@ from fastapi import (
 )
 
 from lnbits.core.db import db
-from lnbits.core.models import (
+from lnbits.core.models.payments import (
     CancelInvoice,
     CreateHoldInvoice,
+    Payment,
     SettleInvoice,
 )
-from lnbits.core.services import (
+from lnbits.core.services.payments import (
     cancel_hold_invoice,
     create_hold_invoice,
     settle_hold_invoice,
@@ -23,8 +23,8 @@ from lnbits.core.services import (
 )
 from lnbits.decorators import (
     WalletTypeInfo,
-    require_invoice_key,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.exceptions import InvoiceError
 from lnbits.settings import settings
@@ -50,7 +50,7 @@ hold_invoice_router = APIRouter(prefix="/api/v1/hold_invoice", tags=["Hold Invoi
 async def api_hold_invoice_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
     data: CreateHoldInvoice = Body(...),
-):
+) -> Payment:
 
     if data.description_hash:
         description_hash = binascii.unhexlify(data.description_hash)
@@ -63,40 +63,31 @@ async def api_hold_invoice_create(
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
-    if not data.hash:
+    if not data.preimage_hash:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail="Hash is required for hold invoices",
+            detail="payment_hash is required for hold invoices",
         )
-    rhash = binascii.unhexlify(data.hash)
-
     async with db.connect() as conn:
         try:
-            _, payment_request = await create_hold_invoice(
+            payment = await create_hold_invoice(
                 wallet_id=wallet.wallet.id,
                 amount=amount,
-                rhash=rhash,
+                rhash=data.preimage_hash,
                 memo=memo,
                 description_hash=description_hash,
                 extra=data.extra,
                 webhook=data.webhook,
                 conn=conn,
             )
+            await subscribe_hold_invoice_internal(
+                payment_hash=data.preimage_hash,
+            )
+            return payment
         except InvoiceError as e:
-            raise HTTPException(status_code=520, detail=str(e))
+            raise HTTPException(status_code=520, detail=str(e)) from e
         except Exception as exc:
             raise exc
-
-    invoice = bolt11_decode(payment_request)
-
-    await subscribe_hold_invoice_internal(
-        payment_hash=data.hash,
-    )
-
-    return {
-        "payment_hash": invoice.payment_hash,
-        "payment_request": payment_request,
-    }
 
 
 @hold_invoice_router.post(
@@ -110,11 +101,9 @@ async def api_hold_invoice_create(
         400: {"description": "Invalid preimage."},
         520: {"description": "Invoice error."},
     },
+    dependencies=[Depends(require_admin_key)],
 )
-async def api_hold_invoice_settle(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-    data: SettleInvoice = Body(...),
-):
+async def api_hold_invoice_settle(data: SettleInvoice = Body(...)):
 
     # Validate preimage length (32 bytes = 64 hex characters)
     if len(data.preimage) != 64:
@@ -125,10 +114,10 @@ async def api_hold_invoice_settle(
 
     try:
         settle_result = await settle_hold_invoice(
-            preimage=binascii.unhexlify(data.preimage),
+            preimage=data.preimage,
         )
     except InvoiceError as e:
-        raise HTTPException(status_code=520, detail=str(e))
+        raise HTTPException(status_code=520, detail=str(e)) from e
     except Exception as exc:
         raise exc
 
@@ -148,11 +137,9 @@ async def api_hold_invoice_settle(
         400: {"description": "Invalid payment hash."},
         520: {"description": "Invoice error."},
     },
+    dependencies=[Depends(require_admin_key)],
 )
-async def api_hold_invoice_cancel(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-    data: CancelInvoice = Body(...),
-):
+async def api_hold_invoice_cancel(data: CancelInvoice = Body(...)):
 
     # Validate payment_hash length (32 bytes = 64 hex characters)
     if len(data.payment_hash) != 64:
@@ -162,12 +149,9 @@ async def api_hold_invoice_cancel(
         )
 
     try:
-        cancel_result = await cancel_hold_invoice(
-            wallet_id=wallet.wallet.id,
-            payment_hash=binascii.unhexlify(data.payment_hash),
-        )
+        cancel_result = await cancel_hold_invoice(payment_hash=data.payment_hash)
     except InvoiceError as e:
-        raise HTTPException(status_code=520, detail=str(e))
+        raise HTTPException(status_code=520, detail=str(e)) from e
     except Exception as exc:
         raise exc
 
