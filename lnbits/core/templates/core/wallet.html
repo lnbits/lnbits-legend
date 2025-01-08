@@ -3,6 +3,25 @@
 {% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
+<style scoped>
+  @media (max-width: 1024px) {
+    /* Adjust the breakpoint if needed */
+    .mobile-simple,
+    .q-dark.mobile-simple {
+      background: none !important;
+      box-shadow: none !important;
+      margin: auto !important;
+      width: 90% !important;
+    }
+
+    .mobile-no-style,
+    .q-dark.mobile-no-style {
+      background: none !important;
+      background-color: 'none' !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
 <script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
 {% endblock %}
 <!---->
@@ -88,12 +107,10 @@
           </div>
         </q-scroll-area>
         <q-card
-          :style="$q.screen.lt.md ? {
-            background: $q.screen.lt.md ? 'none !important': ''
-          , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-        } : ''"
+          :class="{
+            'mobile-simple': $q.screen.lt.md && mobileSimple,
+            'mobile-no-style': $q.screen.lt.md && !mobileSimple
+          }"
         >
           <q-card-section>
             <h3 class="q-my-none text-no-wrap">
