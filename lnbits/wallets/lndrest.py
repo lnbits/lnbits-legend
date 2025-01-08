@@ -323,9 +323,12 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = await self.client.post(url="/v2/invoices/hodl", json=data)
-        r.raise_for_status()
-        data = r.json()
+        try:
+            r = await self.client.post(url="/v2/invoices/hodl", json=data)
+            r.raise_for_status()
+            data = r.json()
+        except httpx.HTTPStatusError as exc:
+            return InvoiceResponse(False, None, None, exc.response.text)
 
         payment_request = data["payment_request"]
         payment_hash = base64.b64encode(bytes.fromhex(rhash)).decode("ascii")
@@ -334,20 +337,27 @@ class LndRestWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
-        data: dict = {"preimage": base64.b64encode(preimage.encode()).decode("ascii")}
-        r = await self.client.post(url="/v2/invoices/settle", json=data)
-        r.raise_for_status()
-
-        return PaymentResponse(True, None, None, None, None)
+        data: dict = {
+            "preimage": base64.b64encode(bytes.fromhex(preimage)).decode("ascii")
+        }
+        try:
+            r = await self.client.post(url="/v2/invoices/settle", json=data)
+            r.raise_for_status()
+            return PaymentResponse(True, None, None, None, None)
+        except httpx.HTTPStatusError as exc:
+            return PaymentResponse(False, None, None, None, exc.response.text)
 
     async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
-        data: dict = {
-            "payment_hash": base64.b64encode(payment_hash.encode()).decode("ascii")
-        }
-        r = await self.client.post(url="/v2/invoices/cancel", json=data)
-        r.raise_for_status()
-
-        return PaymentResponse(True, None, None, None, None)
+        rhash = bytes.fromhex(payment_hash)
+        try:
+            r = await self.client.post(
+                url="/v2/invoices/cancel",
+                json={"payment_hash": base64.b64encode(rhash).decode("ascii")},
+            )
+            r.raise_for_status()
+            return PaymentResponse(True, None, None, None, None)
+        except httpx.HTTPStatusError as exc:
+            return PaymentResponse(False, None, None, None, exc.response.text)
 
     async def hold_invoices_stream(self, payment_hash: str, webhook: str):
         try:

@@ -20,6 +20,7 @@ from lnbits.wallets.base import (
     PaymentResponse,
     PaymentStatus,
     PaymentSuccessStatus,
+    UnsupportedError,
 )
 
 from ..crud import (
@@ -637,17 +638,15 @@ async def create_hold_invoice(
     invoice_memo = None if description_hash else memo
 
     funding_source = get_funding_source()
-    if funding_source.__class__.__name__ not in ["LndRestWallet", "LndWallet"]:
-        raise InvoiceError(
-            "Hold invoices are only supported with LND.", status="failed"
+    try:
+        res = await funding_source.create_hold_invoice(
+            amount=amount,
+            memo=invoice_memo,
+            rhash=rhash,
+            description_hash=description_hash,
         )
-
-    res = await funding_source.create_hold_invoice(
-        amount=amount,
-        memo=invoice_memo,
-        rhash=rhash,
-        description_hash=description_hash,
-    )
+    except UnsupportedError as exc:
+        raise InvoiceError(str(exc), status="failed") from exc
 
     if not res.ok:
         raise InvoiceError(
@@ -677,23 +676,24 @@ async def create_hold_invoice(
     )
 
 
+# TODO: should return payment
+# TODO: update payment status to success
 async def settle_hold_invoice(
     *,
     preimage: str,
 ) -> bool:
-    if len(preimage) != 32:
+    if len(bytes.fromhex(preimage)) != 32:
         raise InvoiceError(
             "Invalid preimage length. Must be 32 bytes",
             status="failed",
         )
 
     funding_source = get_funding_source()
-    if funding_source.__class__.__name__ not in ["LndRestWallet", "LndWallet"]:
-        raise InvoiceError(
-            "Hold invoices are only supported with LND.", status="failed"
-        )
 
-    response = await funding_source.settle_hold_invoice(preimage=preimage)
+    try:
+        response = await funding_source.settle_hold_invoice(preimage=preimage)
+    except UnsupportedError as exc:
+        raise InvoiceError(str(exc), status="failed") from exc
 
     if not response.ok:
         raise InvoiceError("Unexpected backend error.", status="failed")
@@ -701,32 +701,38 @@ async def settle_hold_invoice(
     return True
 
 
-async def cancel_hold_invoice(payment_hash: str) -> bool:
+async def cancel_hold_invoice(payment_hash: str) -> Payment:
+    payment = await get_standalone_payment(payment_hash, incoming=True)
+    if not payment:
+        raise InvoiceError("Payment not found.", status="failed")
+
     funding_source = get_funding_source()
-    if funding_source.__class__.__name__ not in ["LndRestWallet", "LndWallet"]:
-        raise InvoiceError(
-            "Hold invoices are only supported with LND.", status="failed"
-        )
-    response = await funding_source.cancel_hold_invoice(payment_hash=payment_hash)
+    try:
+        response = await funding_source.cancel_hold_invoice(payment_hash=payment_hash)
+    except UnsupportedError as exc:
+        raise InvoiceError(str(exc), status="failed") from exc
     if not response.ok:
-        raise InvoiceError("Unexpected backend error.", status="failed")
-
-    return True
+        raise InvoiceError(
+            response.error_message or "Unexpected backend error.", status="failed"
+        )
+    payment.status = PaymentState.FAILED
+    await update_payment(payment)
+    return payment
 
 
 async def subscribe_hold_invoice(payment_hash: str) -> bool:
     payment = await get_standalone_payment(payment_hash, incoming=True)
     if not payment:
         raise InvoiceError("Payment not found.", status="failed")
-    funding_source = get_funding_source()
-    if funding_source.__class__.__name__ not in ["LndRestWallet", "LndWallet"]:
-        raise InvoiceError(
-            "Hold invoices are only supported with LND.", status="failed"
-        )
-    # if payment.webhook:
-    #     asyncio. create_task(
-    #         funding_source.hold_invoices_stream(
-    #             payment_hash=payment_hash, webhook=payment.webhook
-    #         )
-    #     )
+    # funding_source = get_funding_source()
+    try:
+        # if payment.webhook:
+        #     asyncio. create_task(
+        #         funding_source.hold_invoices_stream(
+        #             payment_hash=payment_hash, webhook=payment.webhook
+        #         )
+        #     )
+        pass
+    except UnsupportedError as exc:
+        raise InvoiceError(str(exc), status="failed") from exc
     return True
