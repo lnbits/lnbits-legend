@@ -90,7 +90,6 @@ window.localisation.en = {
   date: 'Date',
   payment_processing: 'Processing payment...',
   payment_successful: 'Payment successful!',
-  payment_failed: 'Payment failed!',
   payment_pending: 'Payment pending...',
   not_enough_funds: 'Not enough funds!',
   search_by_tag_memo_amount: 'Search by tag, memo, amount',

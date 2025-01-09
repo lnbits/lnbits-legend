@@ -377,12 +377,6 @@ window.app = Vue.createApp({
               message: this.$t('payment_successful')
             })
           }
-          if (response.data.status == 'failed') {
-            Quasar.Notify.create({
-              type: 'negative',
-              message: this.$t('payment_failed')
-            })
-          }
           if (response.data.status == 'pending') {
             Quasar.Notify.create({
               type: 'info',
