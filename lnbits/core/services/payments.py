@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from typing import Optional
@@ -12,6 +13,7 @@ from lnbits.db import Connection
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
+from lnbits.tasks import create_task
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -488,29 +490,23 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    from lnbits.tasks import create_task
-
-    create_task(_background_pay_external_invoice(payment, wallet, conn))
-
-    return payment
-
-
-async def _background_pay_external_invoice(
-    payment: Payment, wallet: Wallet, conn: Optional[Connection] = None
-):
-
     fee_reserve_msat = fee_reserve(payment.amount, internal=False)
     service_fee_msat = service_fee(payment.amount, internal=False)
 
-    funding_source = get_funding_source()
+    task = create_task(
+        _fundingsource_pay_invoice(
+            payment.checking_id, payment.bolt11, fee_reserve_msat
+        )
+    )
 
-    logger.debug(f"fundingsource: sending payment {payment.checking_id}")
-    payment_response: PaymentResponse = await funding_source.pay_invoice(
-        payment.bolt11, fee_reserve_msat
-    )
-    logger.debug(
-        f"backend: pay_invoice finished {payment.checking_id}, {payment_response}"
-    )
+    # make sure a hold invoice or deferred payment is not blocking the server
+    try:
+        payment_response = await asyncio.wait_for(task, 5)
+    except asyncio.TimeoutError:
+        # return pending payment on timeout
+        logger.debug(f"payment timeout, {payment.checking_id} is still pending")
+        return payment
+
     if (
         payment_response.checking_id
         and payment_response.checking_id != payment.checking_id
@@ -551,6 +547,20 @@ async def _background_pay_external_invoice(
             "didn't receive checking_id from backend, payment may be stuck in"
             f" database: {payment.checking_id}"
         )
+
+    return payment
+
+
+async def _fundingsource_pay_invoice(
+    checking_id: str, bolt11: str, fee_reserve_msat: int
+) -> PaymentResponse:
+    logger.debug(f"fundingsource: sending payment {checking_id}")
+    funding_source = get_funding_source()
+    payment_response: PaymentResponse = await funding_source.pay_invoice(
+        bolt11, fee_reserve_msat
+    )
+    logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+    return payment_response
 
 
 async def _verify_external_payment(
