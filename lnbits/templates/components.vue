@@ -806,11 +806,12 @@
                   :payment="props.row"
                 ></lnbits-payment-details>
                 <q-btn
+                  outline
+                  color="grey"
                   @click="checkPayment(props.row.payment_hash)"
                   class="q-mr-xs"
                   icon="refresh"
                   :label="$t('payment_check')"
-                  color="primary"
                 ></q-btn>
               </div>
               <div v-else-if="props.row.isPaid && props.row.isIn">
