@@ -490,13 +490,11 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    fee_reserve_msat = fee_reserve(payment.amount, internal=False)
-    service_fee_msat = service_fee(payment.amount, internal=False)
+    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
+    service_fee_msat = service_fee(amount_msat, internal=False)
 
     task = create_task(
-        _fundingsource_pay_invoice(
-            payment.checking_id, payment.bolt11, fee_reserve_msat
-        )
+        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server
@@ -504,20 +502,17 @@ async def _pay_external_invoice(
         payment_response = await asyncio.wait_for(task, 5)
     except asyncio.TimeoutError:
         # return pending payment on timeout
-        logger.debug(f"payment timeout, {payment.checking_id} is still pending")
+        logger.debug(f"payment timeout, {checking_id} is still pending")
         return payment
 
-    if (
-        payment_response.checking_id
-        and payment_response.checking_id != payment.checking_id
-    ):
+    if payment_response.checking_id and payment_response.checking_id != checking_id:
         logger.warning(
-            f"backend sent unexpected checking_id (expected: {payment.checking_id} got:"
+            f"backend sent unexpected checking_id (expected: {checking_id} got:"
             f" {payment_response.checking_id})"
         )
     if payment_response.checking_id and payment_response.ok is not False:
         # payment.ok can be True (paid) or None (pending)!
-        logger.debug(f"updating payment {payment.checking_id}")
+        logger.debug(f"updating payment {checking_id}")
         payment.status = (
             PaymentState.SUCCESS
             if payment_response.ok is True
@@ -532,9 +527,7 @@ async def _pay_external_invoice(
         logger.success(f"payment successful {payment_response.checking_id}")
     elif payment_response.checking_id is None and payment_response.ok is False:
         # payment failed
-        logger.debug(
-            f"payment failed {payment.checking_id}, {payment_response.error_message}"
-        )
+        logger.debug(f"payment failed {checking_id}, {payment_response.error_message}")
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         raise PaymentError(
@@ -545,7 +538,7 @@ async def _pay_external_invoice(
     else:
         logger.warning(
             "didn't receive checking_id from backend, payment may be stuck in"
-            f" database: {payment.checking_id}"
+            f" database: {checking_id}"
         )
 
     return payment
