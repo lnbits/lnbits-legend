@@ -1,5 +1,6 @@
 import asyncio
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger

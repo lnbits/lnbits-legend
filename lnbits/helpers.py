@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional, Type
+from typing import Any, Optional
 from urllib import request
 
 import jinja2
@@ -144,7 +144,7 @@ def get_current_extension_name() -> str:
     return ext_name
 
 
-def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False):
+def generate_filter_params_openapi(model: type[FilterModel], keep_optional=False):
     """
     Generate openapi documentation for Filters. This is intended to be used along
     parse_filters (see example)

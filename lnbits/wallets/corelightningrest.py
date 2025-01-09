@@ -1,7 +1,8 @@
 import asyncio
 import json
 import random
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from bolt11 import Bolt11Exception
@@ -109,7 +110,7 @@ class CoreLightningRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         label = kwargs.get("label", f"lbl{random.random()}")
-        data: Dict = {
+        data: dict = {
             "amount": amount * 1000,
             "description": memo,
             "label": label,

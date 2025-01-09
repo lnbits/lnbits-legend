@@ -1,9 +1,9 @@
 import asyncio
 import hashlib
 
+import bolt11
 import pytest
 
-from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta

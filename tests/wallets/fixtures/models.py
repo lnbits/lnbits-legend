@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -41,24 +41,24 @@ class Mock(FunctionMock, TestMock):
 
 
 class FunctionMocks(BaseModel):
-    mocks: Dict[str, FunctionMock]
+    mocks: dict[str, FunctionMock]
 
 
 class FunctionTest(BaseModel):
     description: str
     call_params: dict
     expect: dict
-    mocks: Dict[str, List[Dict[str, TestMock]]]
+    mocks: dict[str, list[dict[str, TestMock]]]
 
 
 class FunctionData(BaseModel):
     """Data required for testing this function"""
 
     "Function level mocks that apply for all tests of this function"
-    mocks: List[FunctionMock] = []
+    mocks: list[FunctionMock] = []
 
     "All the tests for this function"
-    tests: List[FunctionTest] = []
+    tests: list[FunctionTest] = []
 
 
 class WalletTest(BaseModel):
@@ -69,7 +69,7 @@ class WalletTest(BaseModel):
     call_params: Optional[dict] = {}
     expect: Optional[dict]
     expect_error: Optional[dict]
-    mocks: List[Mock] = []
+    mocks: list[Mock] = []
 
     @staticmethod
     def tests_for_funding_source(
@@ -77,7 +77,7 @@ class WalletTest(BaseModel):
         fn_name: str,
         fn,
         test,
-    ) -> List["WalletTest"]:
+    ) -> list["WalletTest"]:
         t = WalletTest(
             **{
                 "funding_source": fs,
@@ -96,7 +96,7 @@ class WalletTest(BaseModel):
 
         return [t]
 
-    def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> List["WalletTest"]:
+    def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> list["WalletTest"]:
 
         fs_mocks = fn["mocks"][fs_name]
         test_mocks = test["mocks"][fs_name]
@@ -132,7 +132,7 @@ class WalletTest(BaseModel):
 
     def _tests_from_mock(self, mock_obj) -> "WalletTest":
 
-        test_mocks: List[Mock] = [
+        test_mocks: list[Mock] = [
             Mock.combine_mocks(
                 mock_name,
                 mock_obj[mock_name]["fs_mock"],

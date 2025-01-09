@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
+from collections.abc import AsyncGenerator, Coroutine
+from typing import TYPE_CHECKING, NamedTuple, Optional
 
 from loguru import logger
 

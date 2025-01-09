@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import sys
+from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
-from typing import Callable
 
 from loguru import logger
 

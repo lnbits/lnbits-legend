@@ -3,7 +3,8 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -100,7 +101,7 @@ class PhoenixdWallet(Wallet):
 
         try:
             msats_amount = amount
-            data: Dict = {
+            data: dict = {
                 "amountSat": f"{msats_amount}",
                 "externalId": "",
             }

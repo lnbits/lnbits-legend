@@ -1,9 +1,10 @@
 import base64
 import importlib
 import json
+from collections.abc import Callable
 from http import HTTPStatus
 from time import time
-from typing import Callable, Optional
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request

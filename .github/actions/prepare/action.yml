@@ -7,7 +7,7 @@ inputs:
     default: "3.10"
   poetry-version:
     description: "Poetry Version"
-    default: "1.7.0"
+    default: "2.0.0"
   node-version:
     description: "Node Version"
     default: "20.x"
@@ -28,7 +28,7 @@ runs:
         cache: "pip"
 
     - name: Set up Poetry ${{ inputs.poetry-version }}
-      uses: abatilo/actions-poetry@v2
+      uses: abatilo/actions-poetry@v4
       with:
         poetry-version: ${{ inputs.poetry-version }}
 

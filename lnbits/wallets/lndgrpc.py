@@ -1,8 +1,9 @@
 import asyncio
 import base64
 import hashlib
+from collections.abc import AsyncGenerator
 from os import environ
-from typing import AsyncGenerator, Dict, Optional
+from typing import Optional
 
 import grpc
 from loguru import logger
@@ -128,7 +129,7 @@ class LndWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {
+        data: dict = {
             "description_hash": b"",
             "value": amount,
             "private": True,

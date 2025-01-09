@@ -4,9 +4,10 @@ import importlib
 import os
 import shutil
 import sys
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

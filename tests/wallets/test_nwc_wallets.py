@@ -2,7 +2,7 @@ import base64
 import hashlib
 import json
 import time
-from typing import Dict, cast
+from typing import cast
 
 import pytest
 import secp256k1
@@ -49,7 +49,7 @@ def decrypt_content(priv_key, source_pub_key, content):
 
 
 def json_dumps(data):
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 

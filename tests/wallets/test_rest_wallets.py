@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Union
+from typing import Union
 from urllib.parse import urlencode
 
 import pytest
@@ -59,7 +59,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
 
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
-    request_data: Dict[str, Union[str, dict, list]] = {}
+    request_data: dict[str, Union[str, dict, list]] = {}
     request_type = getattr(mock.dict(), "request_type", None)
     # request_type = mock.request_type <--- this des not work for whatever reason!!!
 

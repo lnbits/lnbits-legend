@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, Optional, Union
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -74,7 +74,7 @@ async def robots():
 
 @generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
 async def extensions(request: Request, user: User = Depends(check_user_exists)):
-    installed_exts: List[InstallableExtension] = await get_installed_extensions()
+    installed_exts: list[InstallableExtension] = await get_installed_extensions()
     installed_exts_ids = [e.id for e in installed_exts]
 
     installable_exts = await InstallableExtension.get_installable_extensions()

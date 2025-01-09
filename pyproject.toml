@@ -1,69 +1,71 @@
-[tool.poetry]
+[project]
 name = "lnbits"
 version = "1.0.0-rc7"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
-authors = ["Alan Bits <alan@lnbits.com>"]
+authors = [{name = "Alan Bits", email = "alan@lnbits.com"}]
 readme = "README.md"
 repository = "https://github.com/lnbits/lnbits"
 homepage = "https://lnbits.com"
-packages = [
-  {include = "lnbits"},
-  {include = "lnbits/py.typed"},
+license = "MIT"
+requires-python = ">=3.10,<4.0"
+requires-poetry = ">=2.0"
+
+dependencies = [
+    "bech32>=1.2.0",
+    "click>=8.1.7",
+    "ecdsa>=0.19.0",
+    "fastapi>=0.115.2",
+    "httpx>=0.27.0",
+    "jinja2>=3.1.4",
+    "lnurl>=0.5.3",
+    "pydantic>=1.10.18",
+    "pyqrcode>=1.2.1",
+    "shortuuid>=1.0.13",
+    "sse-starlette>=1.8.2",
+    "typing-extensions>=4.12.2",
+    "uvicorn>=0.30.6",
+    "sqlalchemy>=1.4.54",
+    "aiosqlite>=0.20.0",
+    "asyncpg>=0.29.0",
+    "uvloop>=0.19.0",
+    "websockets>=11.0.3",
+    "loguru>=0.7.2",
+    "grpcio>=1.66.1",
+    "protobuf>=5.28.0",
+    "pyln-client>=24.11",
+    "pywebpush>=1.14.1",
+    "slowapi>=0.1.9",
+    "websocket-client>=1.8.0",
+    "pycryptodomex>=3.20.0",
+    "packaging>=24.0",
+    "bolt11>=2.1.0",
+    "jsonpath-ng>=1.7.0",
+    # needed for new login methods: username-password, google-auth, github-auth
+    "bcrypt>=4.2.0",
+    "pyjwt>=2.9.0",
+    "passlib>=1.7.4",
+    "itsdangerous>=2.2.0",
+    "fastapi-sso>=0.15.0",
+    # needed for boltz, lnurldevice, watchonly extensions
+    "embit>=0.8.0",
+    # needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
+    "secp256k1>=0.14.0",
+    # keep for backwards compatibility with lnurlp and cashu
+    "environs>=9.5.0",
+    # needed for scheduler extension
+    "python-crontab>=3.2.0",
+    "greenlet>=3.1.1",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.12 | ^3.11 | ^3.10 | ^3.9"
-bech32 = "1.2.0"
-click = "8.1.7"
-ecdsa = "0.19.0"
-fastapi = "0.115.2"
-httpx = "0.27.0"
-jinja2 = "3.1.4"
-lnurl = "0.5.3"
-pydantic = "1.10.18"
-pyqrcode = "1.2.1"
-shortuuid = "1.0.13"
-sse-starlette = "1.8.2"
-typing-extensions = "4.12.2"
-uvicorn = "0.30.6"
-sqlalchemy = "1.4.54"
-aiosqlite = "0.20.0"
-asyncpg = "0.29.0"
-uvloop = "0.19.0"
-websockets = "11.0.3"
-loguru = "0.7.2"
-grpcio = "1.66.1"
-protobuf = "5.28.0"
-pyln-client = "24.11"
-pywebpush = "1.14.1"
-slowapi = "0.1.9"
-websocket-client = "1.8.0"
-pycryptodomex = "3.20.0"
-packaging = "24.0"
-bolt11 = "2.1.0"
-# needed for new login methods: username-password, google-auth, github-auth
-bcrypt = "4.2.0"
-pyjwt = "2.9.0"
-passlib = "1.7.4"
-itsdangerous = "2.2.0"
-fastapi-sso = "0.15.0"
-# needed for boltz, lnurldevice, watchonly extensions
-embit = "0.8.0"
-# needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
-secp256k1 = "0.14.0"
-# keep for backwards compatibility with lnurlp and cashu
-environs = "9.5.0"
-# needed for scheduler extension
-python-crontab = "3.2.0"
+[project.optional-dependencies]
 # needed for liquid support boltz
-wallycore = {version = "1.3.0", optional = true}
+liquid = [ "wallycore>=1.3.0" ]
 # needed for breez funding source
-breez-sdk = {version = "0.5.2", optional = true}
+breez = [ "breez-sdk>=0.5.2" ]
 
-jsonpath-ng = "^1.7.0"
-[tool.poetry.extras]
-breez = ["breez-sdk"]
-liquid = ["wallycore"]
+[project.scripts]
+lnbits = "lnbits.server:main"
+lnbits-cli = "lnbits.commands:main"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
@@ -87,12 +89,14 @@ mock = "^5.1.0"
 grpcio-tools = "^1.66.1"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-lnbits = "lnbits.server:main"
-lnbits-cli = "lnbits.commands:main"
+[tool.poetry]
+packages = [
+  {include = "lnbits"},
+  {include = "lnbits/py.typed"},
+]
 
 [tool.pyright]
 include = [

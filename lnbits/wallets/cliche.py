@@ -1,7 +1,8 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 from loguru import logger
 from websocket import create_connection

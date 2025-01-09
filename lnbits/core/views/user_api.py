@@ -2,7 +2,7 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Optional
 from uuid import uuid4
 
 import shortuuid
@@ -204,7 +204,7 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
+async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
     return await get_wallets(user_id)
 
 

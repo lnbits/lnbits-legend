@@ -2,10 +2,10 @@ import json
 from time import time
 from typing import Any
 
+import bolt11
 from loguru import logger
 from sqlalchemy.exc import OperationalError
 
-from lnbits import bolt11
 from lnbits.db import Connection
 
 

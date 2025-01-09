@@ -1,8 +1,9 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime
 from hashlib import sha256
 from os import urandom
-from typing import AsyncGenerator, Dict, Optional, Set
+from typing import Optional
 
 from bolt11 import (
     Bolt11,
@@ -34,8 +35,8 @@ class FakeWallet(Wallet):
 
     def __init__(self) -> None:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        self.payment_secrets: Dict[str, str] = {}
-        self.paid_invoices: Set[str] = set()
+        self.payment_secrets: dict[str, str] = {}
+        self.paid_invoices: set[str] = set()
         self.secret = settings.fake_wallet_secret
         self.privkey = fake_privkey(self.secret)
 

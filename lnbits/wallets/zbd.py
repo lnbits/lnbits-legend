@@ -1,11 +1,12 @@
 import asyncio
 import hashlib
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
+import bolt11
 import httpx
 from loguru import logger
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -66,7 +67,7 @@ class ZBDWallet(Wallet):
         # https://api.zebedee.io/v0/charges
 
         msats_amount = amount * 1000
-        data: Dict = {
+        data: dict = {
             "amount": f"{msats_amount}",
             "expiresIn": 3600,
             "callbackUrl": "",

@@ -2,7 +2,7 @@ from .funding_source import (
     get_balance_delta,
     switch_to_voidwallet,
 )
-from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
+from .lnurl import LnurlErrorResponseHandler, perform_lnurlauth, redeem_lnurl_withdraw
 from .payments import (
     calculate_fiat_amounts,
     check_transaction_status,
@@ -37,6 +37,7 @@ __all__ = [
     # lnurl
     "redeem_lnurl_withdraw",
     "perform_lnurlauth",
+    "LnurlErrorResponseHandler",
     # payments
     "calculate_fiat_amounts",
     "check_transaction_status",

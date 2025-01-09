@@ -1,6 +1,7 @@
 import asyncio
 import random
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Any, Optional
 
 from bolt11.decode import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception

@@ -2,7 +2,6 @@ import functools
 import importlib
 import json
 import operator
-from typing import Dict, List
 
 import pytest
 
@@ -12,7 +11,7 @@ from tests.wallets.fixtures.models import FundingSourceConfig, WalletTest
 wallets_module = importlib.import_module("lnbits.wallets")
 
 
-def wallet_fixtures_from_json(path) -> List["WalletTest"]:
+def wallet_fixtures_from_json(path) -> list["WalletTest"]:
     with open(path) as f:
         data = json.load(f)
 
@@ -20,7 +19,7 @@ def wallet_fixtures_from_json(path) -> List["WalletTest"]:
             FundingSourceConfig(name=fs_name, **data["funding_sources"][fs_name])
             for fs_name in data["funding_sources"]
         ]
-        tests: Dict[str, List[WalletTest]] = {}
+        tests: dict[str, list[WalletTest]] = {}
         for fn_name in data["functions"]:
             fn = data["functions"][fn_name]
             fn_tests = _tests_for_function(funding_sources, fn_name, fn)
@@ -33,9 +32,9 @@ def wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
 
 def _tests_for_function(
-    funding_sources: List[FundingSourceConfig], fn_name: str, fn
-) -> Dict[str, List[WalletTest]]:
-    tests: Dict[str, List[WalletTest]] = {}
+    funding_sources: list[FundingSourceConfig], fn_name: str, fn
+) -> dict[str, list[WalletTest]]:
+    tests: dict[str, list[WalletTest]] = {}
     for test in fn["tests"]:
         """create an unit test for each funding source"""
 
@@ -46,9 +45,9 @@ def _tests_for_function(
 
 
 def _tests_for_funding_source(
-    funding_sources: List[FundingSourceConfig], fn_name: str, fn, test
-) -> Dict[str, List[WalletTest]]:
-    tests: Dict[str, List[WalletTest]] = {fs.name: [] for fs in funding_sources}
+    funding_sources: list[FundingSourceConfig], fn_name: str, fn, test
+) -> dict[str, list[WalletTest]]:
+    tests: dict[str, list[WalletTest]] = {fs.name: [] for fs in funding_sources}
     for fs in funding_sources:
         tests[fs.name] += WalletTest.tests_for_funding_source(fs, fn_name, fn, test)
     return tests
@@ -132,7 +131,7 @@ async def _assert_error(wallet, tested_func, call_params, expect_error):
     assert e_info.match(expect_error["message"])
 
 
-def _merge_dict_of_lists(v1: Dict[str, List], v2: Dict[str, List]):
+def _merge_dict_of_lists(v1: dict[str, list], v2: dict[str, list]):
     """Merge v2 into v1"""
     for k in v2:
         v1[k] = v2[k] if k not in v1 else v1[k] + v2[k]

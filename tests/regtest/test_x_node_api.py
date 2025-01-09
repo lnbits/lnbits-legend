@@ -2,10 +2,10 @@ import asyncio
 import random
 from http import HTTPStatus
 
+import bolt11
 import pytest
 from pydantic import parse_obj_as
 
-from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
 
 from ..helpers import (

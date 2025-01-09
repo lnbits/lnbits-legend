@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -78,7 +79,7 @@ class LNPayWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **_,
     ) -> InvoiceResponse:
-        data: Dict = {"num_satoshis": f"{amount}"}
+        data: dict = {"num_satoshis": f"{amount}"}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:

@@ -1,5 +1,6 @@
 import asyncio
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 from bolt11.decode import decode
 from grpc.aio import AioRpcError

@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -61,7 +61,7 @@ class InstalledExtensionMiddleware:
         await self.app(scope, receive, send)
 
     def _response_by_accepted_type(
-        self, scope: Scope, headers: List[Any], msg: str, status_code: HTTPStatus
+        self, scope: Scope, headers: list[Any], msg: str, status_code: HTTPStatus
     ) -> Union[HTMLResponse, JSONResponse]:
         """
         Build an HTTP response containing the `msg` as HTTP body and the `status_code`

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -91,7 +91,7 @@ async def api_get_info(
 @node_router.get("/channels")
 async def api_get_channels(
     node: Node = Depends(require_node),
-) -> Optional[List[NodeChannel]]:
+) -> Optional[list[NodeChannel]]:
     return await node.get_channels()
 
 
@@ -121,7 +121,7 @@ async def api_delete_channel(
     output_index: Optional[int],
     force: bool = False,
     node: Node = Depends(require_node),
-) -> Optional[List[NodeChannel]]:
+) -> Optional[list[NodeChannel]]:
     return await node.close_channel(
         short_id,
         (
@@ -170,7 +170,7 @@ async def api_get_invoices(
 
 
 @node_router.get("/peers")
-async def api_get_peers(node: Node = Depends(require_node)) -> List[NodePeerInfo]:
+async def api_get_peers(node: Node = Depends(require_node)) -> list[NodePeerInfo]:
     return await node.get_peers()
 
 

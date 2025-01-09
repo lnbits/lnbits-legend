@@ -15,6 +15,10 @@ on:
         description: "python version"
         type: string
         default: "3.10"
+      poetry-version:
+        description: "Poetry Version"
+        type: string
+        default: "2.0.0"
 
 jobs:
   make:
@@ -29,6 +33,7 @@ jobs:
       - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
           python-version: ${{ inputs.python-version }}
+          poetry-version: ${{ inputs.poetry-version }}
           node-version: ${{ matrix.node-version }}
           npm: ${{ inputs.npm }}
       - run: make ${{ inputs.make }}

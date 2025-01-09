@@ -14,6 +14,7 @@ from fastapi import (
 )
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
+from lnurl import decode as lnurl_decode
 
 from lnbits.core.crud import get_user
 from lnbits.core.models import (
@@ -30,7 +31,6 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,

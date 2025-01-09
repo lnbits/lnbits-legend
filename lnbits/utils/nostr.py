@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import json
-from typing import Dict, Union
+from typing import Union
 
 import secp256k1
 from bech32 import bech32_decode, bech32_encode, convertbits
@@ -73,7 +73,7 @@ def decrypt_content(
     return decrypted
 
 
-def verify_event(event: Dict) -> bool:
+def verify_event(event: dict) -> bool:
     """
     Verify the event signature
 
@@ -106,8 +106,8 @@ def verify_event(event: Dict) -> bool:
 
 
 def sign_event(
-    event: Dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
-) -> Dict:
+    event: dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
+) -> dict:
     """
     Signs the event (in place) with the service secret
 
@@ -140,7 +140,7 @@ def sign_event(
     return event
 
 
-def json_dumps(data: Union[Dict, list]) -> str:
+def json_dumps(data: Union[dict, list]) -> str:
     """
     Converts a Python dictionary to a JSON string with compact encoding.
 
@@ -150,7 +150,7 @@ def json_dumps(data: Union[Dict, list]) -> str:
     Returns:
         str: The compact JSON string.
     """
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 

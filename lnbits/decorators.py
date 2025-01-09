@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated, Literal, Optional, Type, Union
+from typing import Annotated, Literal, Optional, Union
 
 import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
@@ -200,7 +200,7 @@ async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) ->
     return user
 
 
-def parse_filters(model: Type[TFilterModel]):
+def parse_filters(model: type[TFilterModel]):
     """
     Parses the query params as filters.
     :param model: model used for validation of filter values

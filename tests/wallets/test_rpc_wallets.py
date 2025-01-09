@@ -1,5 +1,5 @@
 import importlib
-from typing import Dict, List, Optional
+from typing import Optional
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -93,7 +93,7 @@ def _check_calls(expected_calls):
 
 
 def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet):
-    expected_calls: Dict[str, List] = {}
+    expected_calls: dict[str, list] = {}
     for mock in test_data.mocks:
         client_field = getattr(wallet, mock.name)
         spy = _spy_mock(mocker, mock, client_field)
@@ -104,7 +104,7 @@ def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet)
 
 def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
 
-    expected_calls: Dict[str, List] = {}
+    expected_calls: dict[str, list] = {}
     assert isinstance(mock.response, dict), "Expected data RPC response"
     for field_name in mock.response:
         value = mock.response[field_name]

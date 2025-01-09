@@ -2,10 +2,10 @@ import hashlib
 from http import HTTPStatus
 from unittest.mock import AsyncMock, Mock
 
+import bolt11
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.payment_api import api_payment
 from lnbits.settings import Settings

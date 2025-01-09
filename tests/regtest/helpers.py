@@ -3,7 +3,6 @@ import json
 import os
 import time
 from subprocess import PIPE, Popen, TimeoutExpired
-from typing import Tuple
 
 from loguru import logger
 
@@ -73,7 +72,7 @@ def run_cmd_json(cmd: list) -> dict:
         raise
 
 
-def get_hold_invoice(sats: int) -> Tuple[str, dict]:
+def get_hold_invoice(sats: int) -> tuple[str, dict]:
     preimage = os.urandom(32)
     preimage_hash = hashlib.sha256(preimage).hexdigest()
     cmd = docker_lightning_cli.copy()

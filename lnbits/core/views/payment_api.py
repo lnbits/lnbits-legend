@@ -1,9 +1,10 @@
 import json
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
+import bolt11
 import httpx
 from fastapi import (
     APIRouter,
@@ -13,9 +14,9 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import JSONResponse
+from lnurl import decode as lnurl_decode
 from loguru import logger
 
-from lnbits import bolt11
 from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
@@ -35,7 +36,6 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import filter_dict_keys, generate_filter_params_openapi
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
@@ -62,7 +62,7 @@ payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
     name="Payment List",
     summary="get list of payments",
     response_description="list of payments",
-    response_model=List[Payment],
+    response_model=list[Payment],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
@@ -81,7 +81,7 @@ async def api_payments(
 @payment_router.get(
     "/history",
     name="Get payments history",
-    response_model=List[PaymentHistoryPoint],
+    response_model=list[PaymentHistoryPoint],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_history(

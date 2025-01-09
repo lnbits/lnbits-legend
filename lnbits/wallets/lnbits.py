@@ -1,6 +1,7 @@
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -74,7 +75,7 @@ class LNbitsWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"out": False, "amount": amount, "memo": memo or ""}
+        data: dict = {"out": False, "amount": amount, "memo": memo or ""}
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
         if description_hash:
