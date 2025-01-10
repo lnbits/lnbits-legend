@@ -175,3 +175,29 @@ class CreateInvoice(BaseModel):
         if v != "sat" and v not in allowed_currencies():
             raise ValueError("The provided unit is not supported")
         return v
+
+
+class CreateHoldInvoice(BaseModel):
+    unit: str = "sat"
+    amount: float = Query(None, ge=0)
+    preimage_hash: str
+    memo: Optional[str] = None
+    description_hash: Optional[str] = None
+    extra: Optional[dict] = None
+    webhook: Optional[str] = None
+
+    @validator("unit")
+    @classmethod
+    def unit_is_from_allowed_currencies(cls, v):
+        if v != "sat" and v not in allowed_currencies():
+            raise ValueError("The provided unit is not supported")
+
+        return v
+
+
+class SettleInvoice(BaseModel):
+    preimage: str
+
+
+class CancelInvoice(BaseModel):
+    payment_hash: str

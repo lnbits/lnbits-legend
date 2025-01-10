@@ -9,6 +9,7 @@ from .views.extension_api import extension_router
 
 # this compat is needed for usermanager extension
 from .views.generic import generic_router
+from .views.hold_invoice_api import hold_invoice_router
 from .views.node_api import node_router, public_node_router, super_node_router
 from .views.payment_api import payment_router
 from .views.tinyurl_api import tinyurl_router
@@ -31,6 +32,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(super_node_router)
     app.include_router(public_node_router)
     app.include_router(payment_router)
+    app.include_router(hold_invoice_router)
     app.include_router(wallet_router)
     app.include_router(api_router)
     app.include_router(websocket_router)
