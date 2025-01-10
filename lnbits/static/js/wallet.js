@@ -362,28 +362,27 @@ window.app = Vue.createApp({
     payInvoice() {
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
-        message: this.$t('processing_payment')
+        message: this.$t('payment_processing')
       })
 
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
         .then(response => {
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(res => {
-                if (res.data.paid) {
-                  dismissPaymentMsg()
-                  clearInterval(this.parse.paymentChecker)
-                  this.updatePayments = !this.updatePayments
-                  this.parse.show = false
-                }
-              })
-          }, 2000)
+          dismissPaymentMsg()
+          this.updatePayments = !this.updatePayments
+          this.parse.show = false
+          if (response.data.status == 'success') {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('payment_successful')
+            })
+          }
+          if (response.data.status == 'pending') {
+            Quasar.Notify.create({
+              type: 'info',
+              message: this.$t('payment_pending')
+            })
+          }
         })
         .catch(err => {
           dismissPaymentMsg()
