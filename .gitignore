@@ -36,6 +36,7 @@ coverage.xml
 node_modules
 lnbits/static/bundle.js
 lnbits/static/bundle-components.js
+lnbits/static/bundle-components.min.js.old
 lnbits/static/bundle.css
 lnbits/static/bundle.min.js.old
 lnbits/static/bundle.min.css.old
