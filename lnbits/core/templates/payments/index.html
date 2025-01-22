@@ -1,0 +1,29 @@
+{% if not ajax %} {% extends "base.html" %} {% endif %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }} {% endblock %} {% block page %}
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
+    <q-card>
+      <div class="q-pa-sm q-pl-lg">
+        <div class="row items-center justify-between q-gutter-xs">
+          <div class="col">
+            <!-- Optional: Add content here if needed -->
+          </div>
+          <div>
+            <q-btn
+              v-if="g.user.admin"
+              flat
+              round
+              icon="settings"
+              to="/admin#audit"
+            >
+              <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </q-card>
+  </div>
+</div>
