@@ -7,10 +7,12 @@ window.PaymentsPageLogic = {
         wallet_id: null,
         payment_hash: null,
         status: null,
-        memo: null
+        memo: null,
+        tag: null
       },
       searchOptions: {
-        status: []
+        status: [],
+        tag: []
       },
       paymentsTable: {
         columns: [
@@ -50,6 +52,13 @@ window.PaymentsPageLogic = {
             sortable: false
           },
           {
+            name: 'tag',
+            align: 'left',
+            label: 'Ext. Tag',
+            field: 'tag',
+            sortable: false
+          },
+          {
             name: 'payment_hash',
             align: 'left',
             label: 'Payment Hash',
@@ -75,7 +84,9 @@ window.PaymentsPageLogic = {
         hideEmpty: true,
         loading: true
       },
-      chartsReady: false
+      chartsReady: false,
+      showDetails: false,
+      paymentDetails: null
       // showInternal: false
     }
   },
@@ -98,11 +109,19 @@ window.PaymentsPageLogic = {
           'GET',
           `/api/v1/payments/all/paginated?${params}`
         )
-        console.log(data)
+
         this.paymentsTable.pagination.rowsNumber = data.total
-        this.payments = data.data
+        this.payments = data.data.map(p => {
+          if (p.extra && p.extra.tag) {
+            p.tag = p.extra.tag
+          }
+          return p
+        })
         this.searchOptions.status = Array.from(
           new Set(data.data.map(p => p.status))
+        )
+        this.searchOptions.tag = Array.from(
+          new Set(data.data.map(p => p.extra && p.extra.tag))
         )
       } catch (error) {
         console.error(error)
@@ -124,8 +143,9 @@ window.PaymentsPageLogic = {
 
       await this.fetchPayments()
     },
-    showDetailsDialog(payment) {
-      return
+    showDetailsToggle(payment) {
+      this.paymentDetails = payment
+      return (this.showDetails = !this.showDetails)
     },
     formatDate(dateString) {
       return LNbits.utils.formatDateString(dateString)
