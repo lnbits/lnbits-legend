@@ -75,7 +75,7 @@ window.PaymentsPageLogic = {
         ],
         pagination: {
           sortBy: 'created_at',
-          rowsPerPage: 10,
+          rowsPerPage: 25,
           page: 1,
           descending: true,
           rowsNumber: 10
@@ -229,9 +229,10 @@ window.PaymentsPageLogic = {
       }, {})
 
       const balances = Object.values(wallets).map(w => w.balance)
+      const counts = Object.values(wallets).map(w => w.count)
 
-      const min = Math.min(...balances)
-      const max = Math.max(...balances)
+      const min = Math.min(...counts)
+      const max = Math.max(...counts)
 
       const scale = balance => {
         return 3 + ((balance - min) * (30 - 3)) / (max - min)
@@ -242,7 +243,7 @@ window.PaymentsPageLogic = {
           return {
             x: count,
             y: balance,
-            r: scale(balance)
+            r: scale(count)
           }
         }
       )
