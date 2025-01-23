@@ -153,6 +153,15 @@ const routes = [
     }
   },
   {
+    path: '/payments',
+    name: 'Payments',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/payments',
+      scripts: ['/static/js/payments.js']
+    }
+  },
+  {
     path: '/extensions',
     name: 'Extensions',
     component: DynamicComponent,

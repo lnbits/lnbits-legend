@@ -30,6 +30,7 @@ from lnbits.core.models import (
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_admin,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -173,6 +174,23 @@ async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
                 payment.extra["lnurl_response"] = False
 
     return payment
+
+
+@payment_router.get(
+    "/all/paginated",
+    name="Payment List",
+    summary="get paginated list of payments",
+    response_description="list of payments",
+    response_model=Page[Payment],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+    dependencies=[Depends(check_admin)],
+)
+async def api_all_payments_paginated(
+    filters: Filters = Depends(parse_filters(PaymentFilters)),
+):
+    return await get_payments_paginated(
+        filters=filters,
+    )
 
 
 @payment_router.post(
@@ -366,7 +384,6 @@ async def api_payment_pay_with_nfc(
     payment_request: str,
     lnurl_data: PayLnurlWData,
 ) -> JSONResponse:
-
     lnurl = lnurl_data.lnurl_w.lower()
 
     # Follow LUD-17 -> https://github.com/lnurl/luds/blob/luds/17.md

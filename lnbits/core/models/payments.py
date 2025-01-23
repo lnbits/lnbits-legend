@@ -127,6 +127,8 @@ class Payment(BaseModel):
 class PaymentFilters(FilterModel):
     __search_fields__ = ["memo", "amount"]
 
+    __sort_fields__ = ["created_at", "amount", "wallet_id", "memo", "status", "time"]
+
     status: str
     checking_id: str
     amount: int
