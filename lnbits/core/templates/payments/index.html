@@ -27,3 +27,142 @@
     </q-card>
   </div>
 </div>
+
+<div class="row q-col-gutter-md justify-center q-mb-lg">
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong v-text="$t('payment_chart_flow')"></strong>
+      <div style="height: 300px" class="q-pa-sm">
+        <canvas v-if="chartsReady" ref="paymentsFlowChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong v-text="$t('payment_chart_status')"></strong>
+      <div style="height: 300px" class="q-pa-sm">
+        <canvas v-if="chartsReady" ref="paymentsStatusChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong v-text="$t('payment_chart_tx_per_wallet')"></strong>
+      <div style="height: 300px" class="q-pa-sm">
+        <canvas v-if="chartsReady" ref="paymentsWalletsChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <!-- <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong v-text="$t('http_response_codes')"></strong>
+      <div style="width: 250px; height: 250px" class="q-pa-sm">
+        <canvas v-if="chartsReady" ref="responseCodeChart"></canvas>
+      </div>
+    </q-card>
+  </div> -->
+</div>
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col">
+    <q-card class="q-pa-md">
+      <q-table
+        row-key="payment_hash"
+        :rows="payments"
+        :columns="paymentsTable.columns"
+        v-model:pagination="paymentsTable.pagination"
+        :filter="paymentsTable.search"
+        :loading="paymentsTable.loading"
+        @request="fetchPayments"
+      >
+        <!-- <template v-slot:top>
+          <q-toggle
+            :label="$t('payment_show_internal')"
+            v-model="showInternal"
+          ></q-toggle>
+          <q-space />
+        </template> -->
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+              <q-input
+                v-if="['wallet_id', 'payment_hash', 'memo'].includes(col.name)"
+                v-model="searchData[col.name]"
+                @keydown.enter="searchPaymentsBy()"
+                @update:model-value="searchPaymentsBy()"
+                dense
+                type="text"
+                filled
+                clearable
+                :label="col.label"
+              >
+                <template v-slot:append>
+                  <q-icon
+                    name="search"
+                    @click="searchPaymentsBy()"
+                    class="cursor-pointer"
+                  />
+                </template>
+              </q-input>
+              <q-select
+                v-else-if="['status'].includes(col.name)"
+                v-model="searchData[col.name]"
+                :options="searchOptions[col.name]"
+                @update:model-value="searchPaymentsBy()"
+                :label="col.label"
+                clearable
+                style="width: 100px"
+              ></q-select>
+              <span v-else v-text="col.label"></span>
+            </q-th>
+          </q-tr>
+        </template>
+        <template v-slot:body="props">
+          <q-tr auto-width :props="props">
+            <q-td auto-width>
+              <q-btn
+                icon="description"
+                size="sm"
+                flat
+                class="cursor-pointer q-mr-xs"
+                @click="showDetailsDialog(props.row)"
+              >
+                <q-tooltip
+                  ><span v-text="$t('payment_details')"></span
+                ></q-tooltip>
+              </q-btn>
+            </q-td>
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              <div v-if="col.name == 'created_at'">
+                <span v-text="formatDate(props.row.created_at)"></span>
+              </div>
+              <div v-else-if="['wallet_id', 'payment_hash'].includes(col.name)">
+                <q-btn
+                  v-if="props.row[col.name]"
+                  icon="content_copy"
+                  size="sm"
+                  flat
+                  class="cursor-pointer q-mr-xs"
+                  @click="copyText(props.row[col.name])"
+                >
+                  <q-tooltip anchor="top middle">Copy</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row[col.name])"> </span>
+                <q-tooltip>
+                  <span v-text="props.row[col.name]"></span>
+                </q-tooltip>
+              </div>
+              <span
+                v-else
+                v-text="props.row[col.name]"
+                class="cursor-pointer"
+              ></span>
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </q-card>
+  </div>
+</div>
+{% endblock %}

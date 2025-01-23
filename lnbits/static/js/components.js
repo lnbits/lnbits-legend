@@ -103,7 +103,14 @@ window.app.component('lnbits-extension-list', {
 window.app.component('lnbits-manage', {
   mixins: [window.windowMixin],
   template: '#lnbits-manage',
-  props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers', 'showAudit'],
+  props: [
+    'showAdmin',
+    'showNode',
+    'showExtensions',
+    'showUsers',
+    'showAudit',
+    'showPayments'
+  ],
   methods: {
     isActive(path) {
       return window.location.pathname === path

@@ -209,7 +209,6 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
-
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
@@ -405,6 +404,18 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
     )
 
 
+@generic_router.get("/payments", response_class=HTMLResponse)
+async def payments_index(request: Request, user: User = Depends(check_admin)):
+    return template_renderer().TemplateResponse(
+        "payments/index.html",
+        {
+            "request": request,
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
@@ -433,7 +444,6 @@ async def lnurlwallet(request: Request):
     lnurl = lnurl_decode(lightning_param)
 
     async with httpx.AsyncClient() as client:
-
         res1 = await client.get(lnurl, timeout=2)
         res1.raise_for_status()
         data1 = res1.json()
