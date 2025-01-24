@@ -7,12 +7,12 @@ window.PaymentsPageLogic = {
         wallet_id: null,
         payment_hash: null,
         status: null,
-        memo: null,
-        tag: null
+        memo: null
+        //tag: null // not used, payments don't have tag, only the extra
       },
       searchOptions: {
-        status: [],
-        tag: []
+        status: []
+        // tag: [] // not used, payments don't have tag, only the extra
       },
       paymentsTable: {
         columns: [
