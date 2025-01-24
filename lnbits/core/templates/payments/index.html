@@ -17,7 +17,7 @@
               flat
               round
               icon="settings"
-              to="/admin#payments"
+              to="/admin#server"
             >
               <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
             </q-btn>
@@ -31,21 +31,21 @@
   <div class="row q-col-gutter-md justify-center q-mb-md">
     <div class="col-lg-3 col-md-6 col-sm-12 text-center">
       <q-card class="q-pt-sm">
-        <strong v-text="$t('payment_chart_flow')"></strong>
-        <div style="height: 300px" class="q-pa-sm">
-          <canvas v-if="chartsReady" ref="paymentsFlowChart"></canvas>
-        </div>
-      </q-card>
-    </div>
-    <div class="col-lg-3 col-md-6 col-sm-12 text-center">
-      <q-card class="q-pt-sm">
         <strong v-text="$t('payment_chart_status')"></strong>
         <div style="height: 300px" class="q-pa-sm">
           <canvas v-if="chartsReady" ref="paymentsStatusChart"></canvas>
         </div>
       </q-card>
     </div>
-    <div class="col-md-6 col-sm-12 text-center">
+    <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+      <q-card class="q-pt-sm">
+        <strong v-text="$t('payment_chart_tags')"></strong>
+        <div style="height: 300px" class="q-pa-sm">
+          <canvas v-if="chartsReady" ref="paymentsTagsChart"></canvas>
+        </div>
+      </q-card>
+    </div>
+    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_chart_tx_per_wallet')"></strong>
         <div style="height: 300px" class="q-pa-sm">
@@ -53,14 +53,6 @@
         </div>
       </q-card>
     </div>
-    <!-- <div class="col-lg-3 col-md-6 col-sm-12 text-center">
-    <q-card class="q-pt-sm">
-      <strong v-text="$t('http_response_codes')"></strong>
-      <div style="width: 250px; height: 250px" class="q-pa-sm">
-        <canvas v-if="chartsReady" ref="responseCodeChart"></canvas>
-      </div>
-    </q-card>
-  </div> -->
   </div>
 
   <div class="row q-col-gutter-md justify-center">

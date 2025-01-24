@@ -99,7 +99,6 @@ window.PaymentsPageLogic = {
   computed: {},
   methods: {
     async fetchPayments(props) {
-      console.log('fetchPayments')
       try {
         const params = LNbits.utils.prepareFilterQuery(
           this.paymentsTable,
@@ -162,8 +161,6 @@ window.PaymentsPageLogic = {
         return
       }
 
-      const payIn = this.payments.filter(p => p.amount > 0)
-      const payOut = this.payments.filter(p => p.amount < 0)
       const paymentsStatus = this.payments.reduce((acc, p) => {
         acc[p.status] = (acc[p.status] || 0) + 1
         return acc
@@ -186,39 +183,6 @@ window.PaymentsPageLogic = {
         return acc
       }, [])
 
-      const incomingData = dates.map(date => {
-        return payIn
-          .filter(
-            p =>
-              Quasar.date.formatDate(new Date(p.created_at), 'MM/YYYY') === date
-          )
-          .reduce((sum, p) => sum + p.amount, 0)
-      })
-
-      const outgoingData = dates.map(date => {
-        return payOut
-          .filter(
-            p =>
-              Quasar.date.formatDate(new Date(p.created_at), 'MM/YYYY') === date
-          )
-          .reduce((sum, p) => sum + p.amount, 0)
-      })
-
-      this.paymentsFlowChart.data.labels = dates
-      this.paymentsFlowChart.data.datasets = [
-        {
-          label: 'Incoming',
-          data: incomingData,
-          backgroundColor: 'rgb(54, 162, 235)'
-        },
-        {
-          label: 'Outgoing',
-          data: outgoingData,
-          backgroundColor: 'rgb(255, 99, 132)'
-        }
-      ]
-      this.paymentsFlowChart.update()
-
       const wallets = this.payments.reduce((acc, p) => {
         if (!acc[p.wallet_id]) {
           acc[p.wallet_id] = {count: 0, balance: 0}
@@ -228,18 +192,17 @@ window.PaymentsPageLogic = {
         return acc
       }, {})
 
-      const balances = Object.values(wallets).map(w => w.balance)
       const counts = Object.values(wallets).map(w => w.count)
 
       const min = Math.min(...counts)
       const max = Math.max(...counts)
 
-      const scale = balance => {
-        return 3 + ((balance - min) * (30 - 3)) / (max - min)
+      const scale = val => {
+        return Math.floor(3 + ((val - min) * (25 - 3)) / (max - min))
       }
 
       const walletsData = Object.entries(wallets).map(
-        ([wallet_id, {count, balance}]) => {
+        ([_, {count, balance}]) => {
           return {
             x: count,
             y: balance,
@@ -248,63 +211,37 @@ window.PaymentsPageLogic = {
         }
       )
 
-      this.paymentsWalletsChart.data.datasets = [
+      this.paymentsWalletsChart.data.datasets = walletsData.map((w, i) => {
+        return {
+          label: Object.keys(wallets)[i],
+          data: [w]
+          // backgroundColor: walletsData.map(
+          //   () => `hsl(${Math.random() * 360}, 100%, 50%)`
+          // )
+        }
+      })
+
+      this.paymentsWalletsChart.update()
+
+      const tags = this.payments.reduce((acc, p) => {
+        const tag = p.extra && p.extra.tag ? p.extra.tag : 'wallet'
+        acc[tag] = (acc[tag] || 0) + 1
+        return acc
+      }, {})
+      this.paymentsTagsChart.data.datasets = [
         {
-          label: 'Wallets',
-          data: walletsData,
-          backgroundColor: walletsData.map(
-            () => `hsl(${Math.random() * 360}, 100%, 50%)`
-          )
+          label: 'Tags',
+          data: Object.values(tags)
         }
       ]
-      this.paymentsWalletsChart.update()
+      this.paymentsTagsChart.data.labels = Object.keys(tags)
+      this.paymentsTagsChart.update()
     },
     async initCharts() {
       if (!this.chartsReady) {
         console.warn('Charts are not ready yet. Initialization delayed.')
         return
       }
-      this.paymentsFlowChart = new Chart(
-        this.$refs.paymentsFlowChart.getContext('2d'),
-        {
-          type: 'bar',
-
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              title: {
-                display: false
-              }
-            },
-            scales: {
-              x: {
-                stacked: true
-              },
-              y: {
-                stacked: true
-              }
-            }
-          },
-          data: {
-            datasets: [
-              {
-                label: '',
-                data: [],
-                backgroundColor: [
-                  'rgb(255, 99, 132)',
-                  'rgb(54, 162, 235)',
-                  'rgb(255, 205, 86)',
-                  'rgb(255, 5, 86)',
-                  'rgb(25, 205, 86)',
-                  'rgb(255, 205, 250)'
-                ],
-                hoverOffset: 4
-              }
-            ]
-          }
-        }
-      )
       this.paymentsStatusChart = new Chart(
         this.$refs.paymentsStatusChart.getContext('2d'),
         {
@@ -316,6 +253,12 @@ window.PaymentsPageLogic = {
             plugins: {
               title: {
                 display: false
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].index
+                this.searchPaymentsBy('status', chart.data.labels[i])
               }
             }
           },
@@ -342,6 +285,48 @@ window.PaymentsPageLogic = {
         this.$refs.paymentsWalletsChart.getContext('2d'),
         {
           type: 'bubble',
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              title: {
+                display: false
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].datasetIndex
+                this.searchPaymentsBy('wallet_id', chart.data.datasets[i].label)
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: '',
+                data: [],
+                backgroundColor: [
+                  'rgb(255, 99, 132)',
+                  'rgb(54, 162, 235)',
+                  'rgb(255, 205, 86)',
+                  'rgb(255, 5, 86)',
+                  'rgb(25, 205, 86)',
+                  'rgb(255, 205, 250)'
+                ],
+                hoverOffset: 4
+              }
+            ]
+          }
+        }
+      )
+      this.paymentsTagsChart = new Chart(
+        this.$refs.paymentsTagsChart.getContext('2d'),
+        {
+          type: 'doughnut',
 
           options: {
             responsive: true,
