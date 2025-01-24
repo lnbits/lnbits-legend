@@ -67,7 +67,8 @@
           :loading="paymentsTable.loading"
           @request="fetchPayments"
         >
-          <!-- <template v-slot:top>
+          <!-- MAYBE LATER
+        <template v-slot:top>
           <q-toggle
             :label="$t('payment_show_internal')"
             v-model="showInternal"
@@ -98,7 +99,7 @@
                   </template>
                 </q-input>
                 <q-select
-                  v-else-if="['status', 'tag'].includes(col.name)"
+                  v-else-if="['status'].includes(col.name)"
                   v-model="searchData[col.name]"
                   :options="searchOptions[col.name]"
                   @update:model-value="searchPaymentsBy()"
