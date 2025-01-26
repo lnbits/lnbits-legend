@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check install has not already run
-if [ ! -d lnbits/data ]; then
+if [ ! -d ~/lnbits_data ]; then
 
   # Update package list and install prerequisites non-interactively
   sudo apt update -y
@@ -31,8 +31,8 @@ if [ ! -d lnbits/data ]; then
   fi
 
   git checkout main
-  # Make data folder
-  mkdir data
+  # Make data folder in the home directory
+  mkdir -p ~/lnbits_data
 
   # Copy the .env.example to .env
   cp .env.example .env
