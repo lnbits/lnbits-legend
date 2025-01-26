@@ -30,3 +30,62 @@ jobs:
         uses: JRubics/poetry-publish@v1.15
         with:
           pypi_token: ${{ secrets.PYPI_API_KEY }}
+
+  pullrequest:
+    needs: [pypi]
+    strategy:
+      matrix:
+        os-version: ["ubuntu-24.04"]
+        python-version: ["3.12"]
+    runs-on: ${{ matrix.os-version }}
+    steps:
+      - uses: lnbits/lnbits/.github/actions/prepare@dev
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: wait 5 minutes for pypi to release
+        run: |
+          sleep 5m
+
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.EXT_GITHUB }}
+          repository: lnbits/lnbits-extensions
+          path: './lnbits-extensions'
+
+      - name: setup git user
+        run: |
+          git config --global user.name "alan"
+          git config --global user.email "alan@lnbits.com"
+
+      - name: Create pull request in extensions repo
+        env:
+          GH_TOKEN: ${{ secrets.EXT_GITHUB }}
+          tag: '${{ github.ref_name }}'
+          branch: 'update-lnbits-${{ github.ref_name }}'
+          title: '[UPDATE] poetry.lock for to LNbits ${{ github.ref_name }}'
+          body: 'https://github.com/lnbits/lnbits/releases/tag/${{ github.ref_name }}'
+        run: |
+          cd lnbits-extensions
+
+          mkdir extensions
+          sh util.sh clone
+
+          for ext in $(ls); do
+            cd $ext
+
+            git checkout -b $branch
+
+            poetry lock
+
+            git add -A
+            git commit -am "$title"
+            git push origin $branch
+
+            # check if pr exists before creating it
+            gh config set pager cat
+            check=$(gh pr list -H $branch | wc -l)
+            test $check -ne 0 || gh pr create --title "$title" --body "$body"
+
+            cd ..
+          done
