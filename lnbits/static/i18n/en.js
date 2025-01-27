@@ -483,5 +483,14 @@ window.localisation.en = {
   http_request_methods: 'HTTP Request Methods',
   http_response_codes: 'HTTP Response Codes',
   request_details: 'Request Details',
-  http_request_details: 'HTTP Request Details'
+  http_request_details: 'HTTP Request Details',
+  payment_details: 'Payment Details',
+  payment_details_desc: 'Detailed information about the payment',
+  payments: 'Payments',
+  payment_show_internal: 'Show Internal Payments',
+  payment_chart_flow: 'Monthly Payment Flow',
+  payment_chart_status: 'Payment Status',
+  payment_chart_tx_per_wallet: 'Transactions per Wallet',
+  payment_details_back: 'Back to Payments',
+  payment_chart_tags: 'Payments by Tags'
 }
