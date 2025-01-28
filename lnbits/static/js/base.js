@@ -216,7 +216,9 @@ window.LNbits = {
         name: data.name,
         adminkey: data.adminkey,
         inkey: data.inkey,
-        currency: data.currency
+        currency: data.currency,
+        icon: data.icon,
+        color: data.color
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.floor(data.balance_msat / 1000)

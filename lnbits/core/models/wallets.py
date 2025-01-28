@@ -34,6 +34,8 @@ class Wallet(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: Optional[str] = None
     balance_msat: int = Field(default=0, no_database=True)
+    icon: str = "flash_on"
+    color: str = "primary"
 
     @property
     def balance(self) -> int:

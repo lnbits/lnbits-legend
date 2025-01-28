@@ -13,20 +13,20 @@
     >
       <q-item-section side>
         <q-avatar
-          size="md"
+          size="lg"
+          :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+          :class="g.wallet && g.wallet.id === walletRec.id ? '' : 'disabled'"
           :color="
             g.wallet && g.wallet.id === walletRec.id
-              ? $q.dark.isActive
-                ? 'primary'
-                : 'primary'
-              : 'grey-5'
+              ? walletRec.color
+              : walletRec.color
+          "
+          :icon="
+            g.wallet && g.wallet.id === walletRec.id
+              ? walletRec.icon
+              : walletRec.icon
           "
         >
-          <q-icon
-            name="flash_on"
-            :size="$q.dark.isActive ? '21px' : '20px'"
-            :color="$q.dark.isActive ? 'blue-grey-10' : 'grey-3'"
-          ></q-icon>
         </q-avatar>
       </q-item-section>
       <q-item-section>
