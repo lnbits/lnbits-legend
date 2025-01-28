@@ -133,6 +133,18 @@ A Greenlight invite code or Greenlight partner certificate/key can be used to re
 - `BREEZ_GREENLIGHT_DEVICE_KEY`: /path/to/breezsdk/device.pem or Base64/Hex
 - `BREEZ_GREENLIGHT_DEVICE_CERT`: /path/to/breezsdk/device.crt or Base64/Hex
 
+### Breez Liquid SDK
+
+This funding source leverages the [Breez SDK - Liquid](https://sdk-doc-liquid.breez.technology/) to manage all Lightning payments via submarine swaps on the Liquid network. To get started, simply provide a mnemonic seed phrase. The easiest way to generate one is by using a liquid wallet, such as [Blockstream Green](https://blockstream.com/green/). Once generated, you can copy the seed to your environment variable or enter it in the admin UI.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BreezLiquidSdkWallet**
+- `BREEZ_LIQUID_SEED`: ...
+
+Each submarine swap incurs service and on-chain fees. To account for these, you may need to increase the reserve fee in the admin UI by navigating to **Settings -> Funding**, or by setting the following environment variables:
+
+- `LNBITS_RESERVE_FEE_MIN`: ...
+- `LNBITS_RESERVE_FEE_PERCENT`: ...
+
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000

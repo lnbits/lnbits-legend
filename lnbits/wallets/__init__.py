@@ -11,6 +11,7 @@ from .alby import AlbyWallet
 from .blink import BlinkWallet
 from .boltz import BoltzWallet
 from .breez import BreezSdkWallet
+from .breez_liquid import BreezLiquidSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 
@@ -58,6 +59,7 @@ __all__ = [
     "BlinkWallet",
     "BoltzWallet",
     "BreezSdkWallet",
+    "BreezLiquidSdkWallet",
     "ClicheWallet",
     "CoreLightningWallet",
     "CLightningWallet",
