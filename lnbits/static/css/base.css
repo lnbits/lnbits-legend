@@ -573,3 +573,15 @@ video {
 .q-dialog__inner--minimized {
   padding: 12px;
 }
+
+.editable-price input {
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  font-size: 3rem;
+  margin: 0 auto;
+}
+.editable-price input::-webkit-outer-spin-button,
+.editable-price input ::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}

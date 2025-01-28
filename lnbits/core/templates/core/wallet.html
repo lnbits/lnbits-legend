@@ -402,39 +402,68 @@
               <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
             </p>
             {% if LNBITS_DENOMINATION != 'sats' %}
-            <q-input
-              filled
-              dense
-              v-model.number="receive.data.amount"
-              :label="$t('amount')+' ({{LNBITS_DENOMINATION}}) *'"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              :min="receive.minMax[0]"
-              :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
-            ></q-input>
+            <q-card-section class="flex justify-center q-pa-none q-my-xl">
+              <q-input
+                borderless
+                class="editable-price"
+                v-model.number="receive.data.amount"
+                mask="#.##"
+                fill-mask="0"
+                reverse-fill-mask
+                :min="receive.minMax[0]"
+                :max="receive.minMax[1]"
+                :readonly="receive.lnurl && receive.lnurl.fixed"
+                inputmode="numeric"
+              ></q-input>
+            </q-card-section>
+            <q-separator></q-separator>
             {% else %}
-            <q-select
-              filled
-              dense
-              v-model="receive.unit"
-              type="text"
-              :label="$t('unit')"
-              :options="receive.units"
-            ></q-select>
-            <q-input
-              ref="setAmount"
-              filled
-              :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
-              inputmode="numeric"
-              dense
-              v-model.number="receive.data.amount"
-              :label="$t('amount') + ' (' + receive.unit + ') *'"
-              :min="receive.minMax[0]"
-              :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
-            ></q-input>
+            <q-card-section class="flex justify-center q-pa-none q-my-xl">
+              <div><span v-text="receiveDisplayFormatted"></span></div>
+              <div class="full-width text-center row">
+                <div class="col-2">
+                  <span
+                    style="font-size: 2.5rem"
+                    class="text-grey-5 text-weight-light"
+                    v-if="receive.unit != 'sat'"
+                    v-text="currencySymbol"
+                  ></span>
+                </div>
+                <q-input
+                  ref="setAmount"
+                  borderless
+                  class="col editable-price"
+                  :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
+                  inputmode="numeric"
+                  v-model.number="receive.data.amount"
+                  :min="receive.minMax[0]"
+                  :max="receive.minMax[1]"
+                  :readonly="receive.lnurl && receive.lnurl.fixed"
+                  error-message="Not a valid amount"
+                  :error="!isValid"
+                >
+                </q-input>
+                <div class="col-2 self-end">
+                  <span
+                    style="font-size: 2rem"
+                    class="text-weight-light text-grey-5"
+                    v-if="receive.unit === 'sat'"
+                    >sat</span
+                  >
+                </div>
+              </div>
+            </q-card-section>
+            <q-separator></q-separator>
+            <q-card-section class="q-pa-none q-mt-lg">
+              <q-select
+                dense
+                filled
+                v-model="receive.unit"
+                type="text"
+                :label="$t('unit')"
+                :options="receive.units"
+              ></q-select>
+            </q-card-section>
             {% endif %}
 
             <q-input
