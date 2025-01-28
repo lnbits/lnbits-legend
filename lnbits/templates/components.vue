@@ -16,8 +16,16 @@
           size="lg"
           :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
           :class="g.wallet && g.wallet.id === walletRec.id ? '' : 'disabled'"
-          :color="walletRec.color"
-          :icon="walletRec.icon"
+          :color="
+            g.wallet && g.wallet.id === walletRec.id
+              ? walletRec.color
+              : walletRec.color
+          "
+          :icon="
+            g.wallet && g.wallet.id === walletRec.id
+              ? walletRec.icon
+              : walletRec.icon
+          "
         >
         </q-avatar>
       </q-item-section>

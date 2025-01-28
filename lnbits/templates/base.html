@@ -234,8 +234,8 @@
                   ? ''
                   : 'disabled'
                   "
-                        :icon="wallet.icon"
-                        :color="wallet.color"
+                        :color="g.wallet && g.wallet.id === wallet.id ? wallet.color : wallet.color"
+                        :icon="g.wallet && g.wallet.id === wallet.id ? wallet.icon : wallet.icon"
                       >
                       </q-avatar>
                       <div
