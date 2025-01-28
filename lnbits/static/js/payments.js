@@ -17,12 +17,13 @@ window.PaymentsPageLogic = {
       paymentsTable: {
         columns: [
           {
-            name: 'wallet_id',
+            name: 'created_at',
             align: 'left',
-            label: 'Wallet (ID)',
-            field: 'wallet_id',
-            sortable: false
+            label: 'Created At',
+            field: 'created_at',
+            sortable: true
           },
+
           {
             name: 'amount',
             align: 'left',
@@ -36,13 +37,6 @@ window.PaymentsPageLogic = {
             label: 'Fee',
             field: 'fee',
             sortable: true
-          },
-          {
-            name: 'memo',
-            align: 'left',
-            label: 'Memo',
-            field: 'memo',
-            sortable: false
           },
           {
             name: 'status',
@@ -59,18 +53,26 @@ window.PaymentsPageLogic = {
             sortable: false
           },
           {
+            name: 'memo',
+            align: 'left',
+            label: 'Memo',
+            field: 'memo',
+            sortable: false
+          },
+          {
+            name: 'wallet_id',
+            align: 'left',
+            label: 'Wallet (ID)',
+            field: 'wallet_id',
+            sortable: false
+          },
+
+          {
             name: 'payment_hash',
             align: 'left',
             label: 'Payment Hash',
             field: 'payment_hash',
             sortable: false
-          },
-          {
-            name: 'created_at',
-            align: 'left',
-            label: 'Created At',
-            field: 'created_at',
-            sortable: true
           }
         ],
         pagination: {
@@ -114,6 +116,7 @@ window.PaymentsPageLogic = {
           if (p.extra && p.extra.tag) {
             p.tag = p.extra.tag
           }
+          p.timeFrom = moment(p.created_at).fromNow()
           return p
         })
         this.searchOptions.status = Array.from(
