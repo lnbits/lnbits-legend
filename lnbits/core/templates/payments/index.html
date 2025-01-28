@@ -128,7 +128,12 @@
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 <div v-if="col.name == 'created_at'">
-                  <span v-text="props.row.timeFrom"></span>
+                  <div>
+                    <q-tooltip anchor="top middle">
+                      <span v-text="formatDate(props.row.created_at)"></span>
+                    </q-tooltip>
+                    <span v-text="props.row.timeFrom"> </span>
+                  </div>
                 </div>
                 <div
                   v-else-if="['wallet_id', 'payment_hash'].includes(col.name)"
