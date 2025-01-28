@@ -205,23 +205,30 @@
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
         <div v-if="!mobileSimple" class="col-12 col-md-5 q-gutter-y-md">
-          <q-card >
+          <q-card>
             <q-card-section class="q-pb-xs">
               <div class="row items-center">
-  
                 <q-avatar
-                size="lg"
-                :icon="g.wallet.icon"
-                :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-                :color="g.wallet.color"
-              >
-              </q-avatar>
-                <q-btn @click="icon.show = true" round color="grey-5" text-color="black" size="xs" icon="add" style="position: relative; left: -20px; bottom: -10px;"></q-btn>
+                  size="lg"
+                  :icon="g.wallet.icon"
+                  :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                  :color="g.wallet.color"
+                >
+                </q-avatar>
+                <q-btn
+                  @click="icon.show = true"
+                  round
+                  color="grey-5"
+                  text-color="black"
+                  size="xs"
+                  icon="add"
+                  style="position: relative; left: -20px; bottom: -10px"
+                ></q-btn>
                 <div class="text-subtitle1 q-mt-none q-mb-none">
-                {{ SITE_TITLE }} Wallet:
-                <strong><em v-text="g.wallet.name"></em></strong>
-            </div>
-          </div>
+                  {{ SITE_TITLE }} Wallet:
+                  <strong><em v-text="g.wallet.name"></em></strong>
+                </div>
+              </div>
             </q-card-section>
             <q-card-section class="q-pa-none">
               <q-separator></q-separator>
@@ -399,53 +406,50 @@
         </div>
       </div>
 
-      <q-dialog
-      v-model="icon.show"
-      position="top"
-    >
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="setIcon" class="q-gutter-md">
-        <div class="q-gutter-sm q-pa-sm flex flex-wrap justify-center">
-          <!-- Loop through all icons -->
-          <q-btn
-            v-for="(thisIcon, index) in icon.options"
-            :key="index"
-            @click="setSelectedIcon(thisIcon)"
-            round
-            text-color="black"
-            :color="icon.data.icon === thisIcon ? icon.data.color || 'primary' : 'grey-5'"
-            size="md"
-            :icon="thisIcon"
-            class="q-mb-sm"
-          ></q-btn>
-        </div>
-        <div class="q-pa-sm flex justify-between items-center">
-          <div class="flex q-pl-lg">
-            <!-- Color options -->
-            <q-btn
-              v-for="(color, index) in icon.colorOptions"
-              :key="'color-' + index"
-              @click="setSelectedColor(color)"
-              round
-              :color="color"
-              size="xs"
-              style="width: 24px; height: 24px; min-width: 24px; padding: 0;"
-              class="q-mr-xs"
-            ></q-btn>
-          </div>
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="!icon.data.icon"
-            type="submit"
-          >
-            Save Icon
-          </q-btn>
-        </div>
-      </q-form>
-    </q-card>
-    </q-dialog>
-    
+      <q-dialog v-model="icon.show" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <q-form @submit="setIcon" class="q-gutter-md">
+            <div class="q-gutter-sm q-pa-sm flex flex-wrap justify-center">
+              <!-- Loop through all icons -->
+              <q-btn
+                v-for="(thisIcon, index) in icon.options"
+                :key="index"
+                @click="setSelectedIcon(thisIcon)"
+                round
+                text-color="black"
+                :color="icon.data.icon === thisIcon ? icon.data.color || 'primary' : 'grey-5'"
+                size="md"
+                :icon="thisIcon"
+                class="q-mb-sm"
+              ></q-btn>
+            </div>
+            <div class="q-pa-sm flex justify-between items-center">
+              <div class="flex q-pl-lg">
+                <!-- Color options -->
+                <q-btn
+                  v-for="(color, index) in icon.colorOptions"
+                  :key="'color-' + index"
+                  @click="setSelectedColor(color)"
+                  round
+                  :color="color"
+                  size="xs"
+                  style="width: 24px; height: 24px; min-width: 24px; padding: 0"
+                  class="q-mr-xs"
+                ></q-btn>
+              </div>
+              <q-btn
+                unelevated
+                color="primary"
+                :disable="!icon.data.icon"
+                type="submit"
+              >
+                Save Icon
+              </q-btn>
+            </div>
+          </q-form>
+        </q-card>
+      </q-dialog>
+
       <q-dialog
         v-model="receive.show"
         position="top"

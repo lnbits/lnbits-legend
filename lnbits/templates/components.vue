@@ -13,16 +13,13 @@
     >
       <q-item-section side>
         <q-avatar
-              size="lg"
-              :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-              :class="g.wallet && g.wallet.id === walletRec.id
-                  ? ''
-                  : 'disabled'
-              "
-              :color="walletRec.color"
-              :icon="walletRec.icon"
-            >
-            </q-avatar>
+          size="lg"
+          :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+          :class="g.wallet && g.wallet.id === walletRec.id ? '' : 'disabled'"
+          :color="walletRec.color"
+          :icon="walletRec.icon"
+        >
+        </q-avatar>
       </q-item-section>
       <q-item-section>
         <q-item-label lines="1"

@@ -29,6 +29,7 @@
     <link async="async" rel="manifest" href="{{ web_manifest }}" />
     {% endif %} {% block head_scripts %}{% endblock %}
   </head>
+
   <body data-theme="bitcoin">
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
@@ -227,16 +228,15 @@
                   <q-card-section>
                     <div class="row items-center">
                       <q-avatar
-                  size="lg"
-                  :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-                  :class="g.wallet && g.wallet.id === wallet.id
+                        size="lg"
+                        :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                        :class="g.wallet && g.wallet.id === wallet.id
                   ? ''
                   : 'disabled'
                   "
-                  :icon="wallet.icon"
-                  :color="wallet.color"
-                    >
-                    </q-avatar>
+                        :icon="wallet.icon"
+                        :color="wallet.color"
+                      >
                       </q-avatar>
                       <div
                         class="text-h6 q-pl-md"
@@ -317,39 +317,39 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <script type="text/javascript">
-            const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
-            const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-            const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-            const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-            const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-            const USE_DEFAULT_REACTION = {{ USE_DEFAULT_REACTION | tojson }}
-            const USE_DEFAULT_THEME = {{ USE_DEFAULT_THEME | tojson }}
-            const USE_DEFAULT_BORDER = {{ USE_DEFAULT_BORDER | tojson }}
-            const USE_DEFAULT_GRADIENT = {{ USE_DEFAULT_GRADIENT | lower | tojson }}
-            const USE_DEFAULT_BGIMAGE = "{{ USE_DEFAULT_BGIMAGE or None | tojson }}"
-            if (themes && themes.length) {
-              window.allowedThemes = themes.map(str => str.trim())
-            }
-            window.langs = [
-              { value: 'en', label: 'English', display: '🇬🇧 EN' },
-              { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
-              { value: 'es', label: 'Español', display: '🇪🇸 ES' },
-              { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
-              { value: 'cn', label: '中文', display: '🇨🇳 CN' },
-              { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
-              { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
-              { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
-              { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
-              { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
-              { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
-              { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
-              { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
-              { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
-              { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
-              { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
-              { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
-            ]
-            window.LOCALE = 'en'
+      const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
+      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
+      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
+      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
+      const USE_DEFAULT_REACTION = {{ USE_DEFAULT_REACTION | tojson }}
+      const USE_DEFAULT_THEME = {{ USE_DEFAULT_THEME | tojson }}
+      const USE_DEFAULT_BORDER = {{ USE_DEFAULT_BORDER | tojson }}
+      const USE_DEFAULT_GRADIENT = {{ USE_DEFAULT_GRADIENT | lower | tojson }}
+      const USE_DEFAULT_BGIMAGE = "{{ USE_DEFAULT_BGIMAGE or None | tojson }}"
+      if (themes && themes.length) {
+        window.allowedThemes = themes.map(str => str.trim())
+      }
+      window.langs = [
+        { value: 'en', label: 'English', display: '🇬🇧 EN' },
+        { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
+        { value: 'es', label: 'Español', display: '🇪🇸 ES' },
+        { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
+        { value: 'cn', label: '中文', display: '🇨🇳 CN' },
+        { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
+        { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
+        { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
+        { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
+        { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
+        { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
+        { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
+        { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
+        { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
+        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
+        { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
+        { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
+      ]
+      window.LOCALE = 'en'
       window.dateFormat = 'YYYY-MM-DD HH:mm'
       window.i18n = new VueI18n.createI18n({
         locale: window.LOCALE,
