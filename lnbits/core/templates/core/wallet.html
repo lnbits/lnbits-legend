@@ -415,6 +415,22 @@
               :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% else %}
+            <q-input
+              class="q-mx-auto"
+              ref="setAmount"
+              :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
+              inputmode="numeric"
+              v-model.number="receive.data.amount"
+              :min="receive.minMax[0]"
+              :max="receive.minMax[1]"
+              :readonly="receive.lnurl && receive.lnurl.fixed"
+              style="font-size: 3rem; height: 5rem; width: 70%"
+              type="number"
+            >
+              <template v-slot:before>
+                <span v-text="receive.unit"></span> </template
+            ></q-input>
+
             <q-select
               filled
               dense
@@ -423,18 +439,7 @@
               :label="$t('unit')"
               :options="receive.units"
             ></q-select>
-            <q-input
-              ref="setAmount"
-              filled
-              :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
-              inputmode="numeric"
-              dense
-              v-model.number="receive.data.amount"
-              :label="$t('amount') + ' (' + receive.unit + ') *'"
-              :min="receive.minMax[0]"
-              :max="receive.minMax[1]"
-              :readonly="receive.lnurl && receive.lnurl.fixed"
-            ></q-input>
+
             {% endif %}
 
             <q-input
