@@ -212,8 +212,8 @@ window.WalletPageLogic = {
       this.icon.data.color = selectedColor
     },
     setIcon() {
-      console.log(this.icon.data)
       this.updateWallet(this.icon.data)
+      this.icon.show = false
     },
     createInvoice() {
       this.receive.status = 'loading'
