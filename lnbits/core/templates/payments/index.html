@@ -77,7 +77,6 @@
         </template> -->
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 <q-input
                   v-if="['wallet_id', 'payment_hash', 'memo'].includes(col.name)"
@@ -113,9 +112,11 @@
           </template>
           <template v-slot:body="props">
             <q-tr auto-width :props="props">
-              <q-td auto-width>
+              <!-- <q-td auto-width>
 
-                <div>
+              </q-td> -->
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                <div v-if="col.name == 'status'">
                   <q-tooltip
                     ><span v-text="$t('payment_details')"></span
                   ></q-tooltip>
@@ -142,9 +143,7 @@
                     class="cursor-pointer"
                   ></q-icon>
                 </div>
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                <div v-if="col.name == 'created_at'">
+                <div v-else-if="col.name == 'created_at'">
                   <div>
                     <q-tooltip anchor="top middle">
                       <span v-text="formatDate(props.row.created_at)"></span>
