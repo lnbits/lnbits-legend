@@ -227,20 +227,16 @@
                   <q-card-section>
                     <div class="row items-center">
                       <q-avatar
-                        size="lg"
-                        :color="
-              g.wallet && g.wallet.id === wallet.id
-                ? $q.dark.isActive
-                  ? 'primary'
-                  : 'primary'
-                : 'grey-5'
-            "
-                      >
-                        <q-icon
-                          name="flash_on"
-                          :size="$q.dark.isActive ? '21px' : '20px'"
-                          :color="$q.dark.isActive ? 'black' : 'grey-3'"
-                        ></q-icon>
+                  size="lg"
+                  :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                  :class="g.wallet && g.wallet.id === wallet.id
+                  ? ''
+                  : 'disabled'
+                  "
+                  :icon="wallet.icon"
+                  :color="wallet.color"
+                    >
+                    </q-avatar>
                       </q-avatar>
                       <div
                         class="text-h6 q-pl-md"
