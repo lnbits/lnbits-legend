@@ -114,17 +114,34 @@
           <template v-slot:body="props">
             <q-tr auto-width :props="props">
               <q-td auto-width>
-                <q-btn
-                  icon="description"
-                  size="sm"
-                  flat
-                  class="cursor-pointer q-mr-xs"
-                  @click="showDetailsToggle(props.row)"
-                >
+
+                <div>
                   <q-tooltip
                     ><span v-text="$t('payment_details')"></span
                   ></q-tooltip>
-                </q-btn>
+                  <q-icon
+                    @click="showDetailsToggle(props.row)"
+                    v-if="props.row.status === 'success'"
+                    size="14px"
+                    :name="props.row.amount < 0 ? 'call_made' : 'call_received'"
+                    :color="props.row.amount < 0 ? 'pink' : 'green'"
+                    class="cursor-pointer"
+                  ></q-icon>
+                  <q-icon
+                    v-else-if="props.row.status === 'pending'"
+                    @click="showDetailsToggle(props.row)"
+                    name="settings_ethernet"
+                    color="grey"
+                    class="cursor-pointer"
+                  ></q-icon>
+                  <q-icon
+                    v-else
+                    @click="showDetailsToggle(props.row)"
+                    name="warning"
+                    color="yellow"
+                    class="cursor-pointer"
+                  ></q-icon>
+                </div>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 <div v-if="col.name == 'created_at'">

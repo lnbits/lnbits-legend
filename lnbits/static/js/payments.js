@@ -17,6 +17,13 @@ window.PaymentsPageLogic = {
       paymentsTable: {
         columns: [
           {
+            name: 'status',
+            align: 'left',
+            label: 'Status',
+            field: 'status',
+            sortable: false
+          },
+          {
             name: 'created_at',
             align: 'left',
             label: 'Created At',
@@ -25,10 +32,10 @@ window.PaymentsPageLogic = {
           },
 
           {
-            name: 'amount',
+            name: 'amountFormatted',
             align: 'left',
             label: 'Amount',
-            field: 'amount',
+            field: 'amountFormatted',
             sortable: true
           },
           {
@@ -38,13 +45,7 @@ window.PaymentsPageLogic = {
             field: 'fee',
             sortable: true
           },
-          {
-            name: 'status',
-            align: 'left',
-            label: 'Status',
-            field: 'status',
-            sortable: false
-          },
+
           {
             name: 'tag',
             align: 'left',
@@ -117,6 +118,10 @@ window.PaymentsPageLogic = {
             p.tag = p.extra.tag
           }
           p.timeFrom = moment(p.created_at).fromNow()
+
+          p.amountFormatted = new Intl.NumberFormat(window.LOCALE).format(
+            p.amount / 1000
+          )
           return p
         })
         this.searchOptions.status = Array.from(
