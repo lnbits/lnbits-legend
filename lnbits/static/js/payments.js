@@ -30,12 +30,18 @@ window.PaymentsPageLogic = {
             field: 'created_at',
             sortable: true
           },
-
           {
             name: 'amountFormatted',
-            align: 'left',
+            align: 'right',
             label: 'Amount',
             field: 'amountFormatted',
+            sortable: true
+          },
+          {
+            name: 'amountFiat',
+            align: 'right',
+            label: 'Fiat',
+            field: 'amountFiat',
             sortable: true
           },
           {
@@ -119,9 +125,16 @@ window.PaymentsPageLogic = {
           }
           p.timeFrom = moment(p.created_at).fromNow()
 
-          p.amountFormatted = new Intl.NumberFormat(window.LOCALE).format(
-            p.amount / 1000
-          )
+          p.amountFormatted =
+            new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
+            ' sats'
+          if (p.extra?.wallet_fiat_amount) {
+            p.amountFiat = this.formatCurrency(
+              p.extra.wallet_fiat_amount,
+              p.extra.wallet_fiat_currency
+            )
+          }
+
           return p
         })
         this.searchOptions.status = Array.from(
@@ -156,6 +169,14 @@ window.PaymentsPageLogic = {
     },
     formatDate(dateString) {
       return LNbits.utils.formatDateString(dateString)
+    },
+    formatCurrency(amount, currency) {
+      try {
+        return LNbits.utils.formatCurrency(amount, currency)
+      } catch (e) {
+        console.error(e)
+        return `${amount} ???`
+      }
     },
     shortify(value) {
       valueLength = (value || '').length
