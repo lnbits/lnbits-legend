@@ -127,6 +127,7 @@ async def create_invoice(
         checking_id,
         payment_request,
         error_message,
+        fees_msats,
     ) = await funding_source.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
@@ -150,6 +151,7 @@ async def create_invoice(
         memo=memo,
         extra=extra,
         webhook=webhook,
+        fee=abs(fees_msats or 0),
     )
 
     payment = await create_payment(

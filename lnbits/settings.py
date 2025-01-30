@@ -287,7 +287,8 @@ class FeeSettings(LNbitsSettings):
             return 0
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
-        return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+        _max = max(int(reserve_min), int(abs(amount_msat) * reserve_percent / 100.0))
+        return _max
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
@@ -520,6 +521,11 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_use_trampoline: bool = Field(default=True)
 
 
+class BreezLiquidSdkFundingSource(LNbitsSettings):
+    breez_liquid_api_key: Optional[str] = Field(default=None)
+    breez_liquid_seed: Optional[str] = Field(default=None)
+
+
 class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: Optional[str] = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: Optional[str] = Field(default=None)
@@ -551,6 +557,7 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
+    BreezLiquidSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
@@ -814,6 +821,7 @@ class SuperUserSettings(LNbitsSettings):
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
+            "BreezLiquidSdkWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",

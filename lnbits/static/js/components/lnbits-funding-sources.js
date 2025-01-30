@@ -195,6 +195,14 @@ window.app.component('lnbits-funding-sources', {
             breez_greenlight_device_cert: 'Greenlight Device Cert',
             breez_greenlight_invite_code: 'Greenlight Invite Code'
           }
+        ],
+        [
+          'BreezLiquidSdkWallet',
+          'Breez Liquid SDK',
+          {
+            breez_liquid_api_key: 'Breez API Key',
+            breez_liquid_seed: 'Liquid seed phrase'
+          }
         ]
       ]
     }
