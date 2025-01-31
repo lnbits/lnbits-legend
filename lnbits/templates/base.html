@@ -205,9 +205,26 @@
                 width: 100%;
                 overflow-x: auto;
                 overflow-y: hidden;
+                mask-image: linear-gradient(
+                  to right,
+                  hsl(0 0% 0% / 1) 80%,
+                  hsl(0 0% 0% / 0)
+                );
               "
             >
               <div class="row no-wrap q-gutter-md q-pr-md">
+                <q-card
+                  class="wallet-list-card q-pa-md"
+                  clickable
+                  @click="null"
+                >
+                  <div class="flex flex-center column text-center">
+                    <q-icon name="add" size="3rem"></q-icon>
+                    <div>
+                      <span v-text="$t('add_wallet')"></span>
+                    </div>
+                  </div>
+                </q-card>
                 <q-card
                   v-for="wallet in g.user.wallets"
                   :key="wallet.id"
