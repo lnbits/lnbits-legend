@@ -487,5 +487,7 @@ window.localisation.en = {
   http_request_methods: 'HTTP Request Methods',
   http_response_codes: 'HTTP Response Codes',
   request_details: 'Request Details',
-  http_request_details: 'HTTP Request Details'
+  http_request_details: 'HTTP Request Details',
+  view_list: 'View wallets as list',
+  view_column: 'View wallets as rows'
 }

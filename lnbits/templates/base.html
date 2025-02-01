@@ -170,18 +170,27 @@
           show-if-above
           :elevated="$q.screen.lt.md"
         >
-          <q-item-label
-            :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
-            class="q-item__label q-item__label--header"
-            header
-            v-text="$t('wallets')"
-          ></q-item-label>
-          <q-btn
-            flat
-            :icon=" walletFlip ? 'keyboard_arrow_right' : 'keyboard_arrow_down'"
-            class="absolute-top-right"
-            @click="flipWallets($q.screen.lt.md)"
-          ></q-btn>
+        <q-item>
+          <q-item-section>
+            <q-item-label
+              :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
+              class="q-item__label q-item__label--header q-pa-none"
+              header
+              v-text="$t('wallets')"
+            ></q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-btn
+              flat
+              :icon=" walletFlip ? 'view_list' : 'view_column'"
+              color="grey"
+              class=""
+              @click="flipWallets($q.screen.lt.md)"
+            >
+          <q-tooltip
+            ><span v-text="walletFlip ? $t('view_list') : $t('view_column')"></span></q-tooltip>
+          </q-btn>
+        </q-item>
           <lnbits-wallet-list
             v-if="!walletFlip"
             :balance="balance"
