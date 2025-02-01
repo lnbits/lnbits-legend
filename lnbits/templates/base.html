@@ -213,17 +213,53 @@
               "
             >
               <div class="row no-wrap q-gutter-md q-pr-md">
-                <q-card
-                  class="wallet-list-card q-pa-md"
-                  clickable
-                  @click="null"
-                >
-                  <div class="flex flex-center column text-center">
-                    <q-icon name="add" size="3rem"></q-icon>
+                <q-card class="wallet-list-card">
+                  <q-card-section
+                    class="flex flex-center column full-height text-center"
+                  >
                     <div>
-                      <span v-text="$t('add_wallet')"></span>
+                      <q-btn
+                        round
+                        color="primary"
+                        icon="add"
+                        @click="showAddWalletDialog.show = true"
+                      >
+                        <q-tooltip
+                          ><span v-text="$t('add_wallet')"></span
+                        ></q-tooltip>
+                      </q-btn>
+                      <q-dialog
+                        v-model="showAddWalletDialog.show"
+                        persistent
+                        @hide="showAddWalletDialog = {show: false}"
+                      >
+                        <q-card style="min-width: 350px">
+                          <q-card-section>
+                            <div class="text-h6">Wallet name</div>
+                          </q-card-section>
+
+                          <q-card-section class="q-pt-none">
+                            <q-input
+                              dense
+                              v-model="showAddWalletDialog.name"
+                              autofocus
+                              @keyup.enter="submitAddWallet()"
+                            ></q-input>
+                          </q-card-section>
+
+                          <q-card-actions align="right" class="text-primary">
+                            <q-btn flat label="Cancel" v-close-popup></q-btn>
+                            <q-btn
+                              flat
+                              label="Add wallet"
+                              v-close-popup
+                              @click="submitAddWallet()"
+                            ></q-btn>
+                          </q-card-actions>
+                        </q-card>
+                      </q-dialog>
                     </div>
-                  </div>
+                  </q-card-section>
                 </q-card>
                 <q-card
                   v-for="wallet in g.user.wallets"
