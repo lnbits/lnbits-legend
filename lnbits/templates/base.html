@@ -16,6 +16,9 @@
         src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
           format('woff2');
       }
+      .q-scrollarea__container {
+        padding-top: 2px;
+      }
     </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
