@@ -677,7 +677,7 @@ window.windowMixin = {
         borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
       }
       if (this.borderChoice == 'no-border') {
-        borderStyleCSS = `box-shadow: none; border: none;`
+        borderStyleCSS = `box-shadow: none !important; border: none;`
       }
       if (this.borderChoice == 'retro-border') {
         borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
