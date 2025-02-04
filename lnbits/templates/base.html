@@ -16,8 +16,12 @@
         src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
           format('woff2');
       }
-      .q-scrollarea__container {
-        /* padding-top: 2px; */
+      .wallet-list-card {
+        margin-top: 1px;
+        margin-right: 1rem;
+      }
+      .wallet-list-card:first-child{
+        margin-left: 1px;
       }
     </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
@@ -228,7 +232,6 @@
                 <q-card class="wallet-list-card">
                   <q-card-section
                     class="flex flex-center column full-height text-center"
-                    style="padding-left: 1px;"
                   >
                     <div>
                       <q-btn
