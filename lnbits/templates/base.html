@@ -282,7 +282,9 @@
                   style="text-decoration: none"
                   :style="
         g.wallet && g.wallet.id === wallet.id
-          ? `width: 250px; text-decoration: none; cursor: pointer;`
+          ? `width: 250px; text-decoration: none; cursor: pointer; background-color: ${
+              $q.dark.isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'
+            } !important;`
           : 'width: 250px; text-decoration: none; border: 0px; cursor: pointer;'
       "
                   :class="{
