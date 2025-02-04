@@ -131,10 +131,20 @@ const routes = [
     path: '/wallet',
     name: 'Wallet',
     component: DynamicComponent,
-    props: route => ({
-      fetchUrl: `/wallet${route.query.wal ? `?wal=${route.query.wal}` : ''}`,
-      scripts: ['/static/js/wallet.js']
-    })
+    props: route => {
+      let fetchUrl = '/wallet'
+      if (Object.keys(route.query).length > 0) {
+        fetchUrl += '?'
+        for (const [key, value] of Object.entries(route.query)) {
+          fetchUrl += `${key}=${value}&`
+        }
+        fetchUrl = fetchUrl.slice(0, -1) // remove last &
+      }
+      return {
+        fetchUrl,
+        scripts: ['/static/js/wallet.js']
+      }
+    }
   },
   {
     path: '/admin',

@@ -209,7 +209,6 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
-
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
@@ -417,23 +416,21 @@ async def hex_to_uuid4(hex_value: str):
 
 
 @generic_router.get("/lnurlwallet", response_class=RedirectResponse)
-async def lnurlwallet(request: Request):
+async def lnurlwallet(request: Request, lightning: str = ""):
     """
     If a user doesn't have a Lightning Network wallet and scans the LNURLw QR code with
     their smartphone camera, or a QR scanner app, they can follow the link provided to
     claim their satoshis and get an instant LNbits wallet! lnbits/withdraw docs
     """
 
-    lightning_param = request.query_params.get("lightning")
-    if not lightning_param:
+    if not lightning:
         return {"status": "ERROR", "reason": "lightning parameter not provided."}
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = lnurl_decode(lightning_param)
+    lnurl = lnurl_decode(lightning)
 
     async with httpx.AsyncClient() as client:
-
         res1 = await client.get(lnurl, timeout=2)
         res1.raise_for_status()
         data1 = res1.json()
@@ -448,17 +445,17 @@ async def lnurlwallet(request: Request):
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
         account = await create_user_account()
-        wallet = await create_wallet(user_id=account.id)
-        _, payment_request = await create_invoice(
+        wallet = account.wallets[0]
+        payment = await create_invoice(
             wallet_id=wallet.id,
             amount=data1.get("maxWithdrawable") / 1000,
             memo=data1.get("defaultDescription", "lnurl wallet withdraw"),
         )
         url = data1.get("callback")
-        params = {"k1": data1.get("k1"), "pr": payment_request}
+        params = {"k1": data1.get("k1"), "pr": payment.bolt11}
         callback = url + ("&" if urlparse(url).query else "?") + urlencode(params)
 
-        res2 = await client.get(callback, timeout=2)
+        res2 = await client.get(callback, timeout=5)
         res2.raise_for_status()
 
     return RedirectResponse(
