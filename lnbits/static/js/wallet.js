@@ -141,6 +141,23 @@ window.WalletPageLogic = {
     },
     wallet() {
       return this.g.wallet
+    },
+    currencySymbol() {
+      return LNbits.utils
+        .formatCurrency(0, this.receive.unit)
+        .replace(/[\d.\s]/g, '')
+        .trim()
+    },
+    isValid() {
+      if (!this.receive.data.amount) return true
+      return (
+        this.receive.data.amount >= this.receive.minMax[0] &&
+        this.receive.data.amount <= this.receive.minMax[1] &&
+        !isNaN(this.receive.data.amount) &&
+        this.receive.data.amount > 0 &&
+        !isNaN(parseFloat(this.receive.data.amount)) &&
+        /^\d*\.?\d*$/.test(this.receive.data.amount)
+      )
     }
   },
   methods: {
@@ -174,10 +191,12 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
-      this.receive.unit = 'sat'
+      this.receive.unit = this.g.wallet.currency ?? 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
-      this.focusInput('setAmount')
+      this.$nextTick(() => {
+        this.focusInput('setAmount')
+      })
     },
     onReceiveDialogHide() {
       if (this.hasNfc) {
