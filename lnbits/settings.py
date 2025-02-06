@@ -215,7 +215,6 @@ class InstalledExtensionsSettings(LNbitsSettings):
 
 
 class ExchangeHistorySettings(LNbitsSettings):
-
     lnbits_exchange_rate_history: list[dict] = Field(default=[])
 
     def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
@@ -250,6 +249,9 @@ class ThemesSettings(LNbitsSettings):
         ]
     )
     lnbits_custom_logo: Optional[str] = Field(default=None)
+    lnbits_custom_image: Optional[str] = Field(
+        default="/static/images/logos/lnbits.svg"
+    )
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
         default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
@@ -272,7 +274,6 @@ class OpsSettings(LNbitsSettings):
 
 
 class FeeSettings(LNbitsSettings):
-
     lnbits_reserve_fee_min: int = Field(default=2000)
     lnbits_reserve_fee_percent: float = Field(default=1.0)
     lnbits_service_fee: float = Field(default=0)

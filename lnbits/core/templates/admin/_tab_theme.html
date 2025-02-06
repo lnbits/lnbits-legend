@@ -74,8 +74,8 @@
           ></q-input>
         </div>
       </div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-4">
+      <div class="row q-col-gutter-md q-mt-md">
+        <div class="col-12 col-md-6">
           <p><span v-text="$t('ui_custom_badge')"></span></p>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-8">
@@ -96,6 +96,17 @@
               ></q-select>
             </div>
           </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <p><span v-text="$t('ui_custom_image')"></span></p>
+          <q-input
+            filled
+            type="text"
+            tip="Custom Image"
+            v-model.trim="formData.lnbits_custom_image"
+            :label="$t('ui_custom_image_label')"
+            :hint="$t('ui_custom_image_hint')"
+          ></q-input>
         </div>
       </div>
       <br />

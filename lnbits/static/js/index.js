@@ -9,7 +9,9 @@ window.app = Vue.createApp({
         description: ''
       },
       isUserAuthorized: false,
-      authAction: 'login',
+      authAction: Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
+        ? 'login'
+        : 'register',
       authMethod: 'username-password',
       usr: '',
       username: '',
@@ -18,7 +20,9 @@ window.app = Vue.createApp({
       password: '',
       passwordRepeat: '',
       walletName: '',
-      signup: false
+      signup: false,
+      slide: 1,
+      autoplay: true
     }
   },
   computed: {
@@ -170,15 +174,10 @@ window.app = Vue.createApp({
         message: 'Processing...',
         icon: null
       })
-    },
-    validateUsername(val) {
-      const usernameRegex = new RegExp(
-        '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
-      )
-      return usernameRegex.test(val)
     }
   },
   created() {
+    console.log(Quasar.LocalStorage.getItem('lnbits.disclaimerShown'))
     this.description = SITE_DESCRIPTION
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {

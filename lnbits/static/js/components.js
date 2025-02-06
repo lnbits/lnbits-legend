@@ -498,3 +498,123 @@ window.app.component('lnbits-update-balance', {
     }
   }
 })
+
+window.app.component('user-id-only', {
+  template: '#user-id-only',
+  mixins: [window.windowMixin],
+  props: {
+    allowed_new_users: Boolean,
+    authAction: String,
+    authMethod: String,
+    usr: String,
+    wallet: String
+  },
+  data() {
+    return {
+      user: this.usr,
+      walletName: this.wallet
+    }
+  },
+  methods: {
+    showLogin(method) {
+      this.$emit('show-login', method)
+    },
+    showRegister(method) {
+      this.$emit('show-register', method)
+    },
+    loginUsr() {
+      this.$emit('update:user', this.user)
+      this.$emit('login-usr')
+    },
+    createWallet() {
+      this.$emit('update:wallet', this.walletName)
+      this.$emit('create-wallet')
+    }
+  },
+  computed: {
+    showInstantLogin() {
+      // do not show if authmethod is 'username-password' and authAction is 'register'
+      return (
+        this.authMethod !== 'username-password' ||
+        this.authAction !== 'register'
+      )
+    }
+  },
+  created() {}
+})
+
+window.app.component('username-password', {
+  template: '#username-password',
+  mixins: [window.windowMixin],
+  props: {
+    allowed_new_users: Boolean,
+    authMethods: Array,
+    authAction: String,
+    username: String,
+    password_1: String,
+    password_2: String,
+    resetKey: String
+  },
+  data() {
+    return {
+      oauth: [
+        'nostr-auth-nip98',
+        'google-auth',
+        'github-auth',
+        'keycloak-auth'
+      ],
+      username: this.userName,
+      password: this.password_1,
+      passwordRepeat: this.password_2,
+      reset_key: this.resetKey
+    }
+  },
+  methods: {
+    login() {
+      this.$emit('update:userName', this.username)
+      this.$emit('update:password_1', this.password)
+      this.$emit('login')
+    },
+    register() {
+      this.$emit('update:userName', this.username)
+      this.$emit('update:password_1', this.password)
+      this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('register')
+    },
+    reset() {
+      this.$emit('update:resetKey', this.reset_key)
+      this.$emit('update:passeord_1', this.password)
+      this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('reset')
+    },
+    validateUsername(val) {
+      const usernameRegex = new RegExp(
+        '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
+      )
+      return usernameRegex.test(val)
+    }
+  },
+  computed: {
+    showOauth() {
+      return this.oauth.some(m => this.authMethods.includes(m))
+    }
+  },
+  created() {
+    console.log('username-password created', this.passwordRepeat)
+  }
+})
+
+window.app.component('separator-text', {
+  template: '#separator-text',
+  props: {
+    text: String,
+    uppercase: {
+      type: Boolean,
+      default: false
+    },
+    color: {
+      type: String,
+      default: 'grey'
+    }
+  }
+})

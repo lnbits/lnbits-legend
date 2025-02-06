@@ -744,7 +744,6 @@ window.windowMixin = {
         )
         .onOk(async () => {
           try {
-            this.$q.localStorage.remove('lnbits.disclaimerShown')
             await LNbits.api.logout()
             window.location = '/'
           } catch (e) {

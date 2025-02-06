@@ -270,6 +270,7 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',
+  signin_with_oauth: 'or Login with',
   signin_with_nostr: 'Continue with Nostr',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
@@ -458,6 +459,9 @@ window.localisation.en = {
   denomination_hint: 'The name for the FakeWallet token',
   ui_qr_code_logo: 'QR Code Logo',
   ui_qr_code_logo_hint: 'URL to logo image in QR code',
+  ui_custom_image: 'Custom Image',
+  ui_custom_image_label: 'URL to custom image',
+  ui_custom_image_hint: 'Image showed at homepage/login',
   ui_custom_badge: 'Custom Badge',
   ui_custom_badge_label:
     "Custom Badge 'USE WITH CAUTION - LNbits wallet is still in BETA'",

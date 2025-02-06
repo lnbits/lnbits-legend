@@ -847,18 +847,18 @@ window.WalletPageLogic = {
     }
   },
   mounted() {
-    if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
+    if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
-      this.$q.localStorage.set('lnbits.disclaimerShown', true)
-      this.$q.localStorage.set('lnbits.reactions', 'confettiTop')
+      Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
+      Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
     }
-    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
-      this.isPrioritySwapped = this.$q.localStorage.getItem(
+    if (Quasar.LocalStorage.getItem('lnbits.isPrioritySwapped')) {
+      this.isPrioritySwapped = Quasar.LocalStorage.getItem(
         'lnbits.isPrioritySwapped'
       )
     } else {
       this.isPrioritySwapped = false
-      this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
+      Quasar.LocalStorage.setItem('lnbits.isPrioritySwapped', false)
     }
   }
 }
