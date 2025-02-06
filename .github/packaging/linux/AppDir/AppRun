@@ -1,0 +1,81 @@
+#!/bin/sh
+LAUNCH_DIR="$PWD" 
+
+# Define persistent storage for extracted LNbits
+PERSISTENT_DIR="$HOME/.local/share/lnbits"
+
+# Remove existing LNbits directory before extraction
+if [ -d "$PERSISTENT_DIR" ]; then
+    echo "Removing existing LNbits directory..."
+    rm -rf "$PERSISTENT_DIR"
+fi
+
+# Ensure the persistent directory exists
+mkdir -p "$PERSISTENT_DIR"
+
+# Extract LNbits from the AppImage if not already extracted
+echo "Extracting LNbits to disk for better performance..."
+cp -r "$APPDIR/usr/lnbits"/* "$PERSISTENT_DIR/"
+chmod +x "$PERSISTENT_DIR/dist/lnbits"
+
+# Check if the directory exists, and create it if it doesn't
+if [ ! -d "$LAUNCH_DIR/lnbits/database" ]; then
+    mkdir -p "$LAUNCH_DIR/lnbits/database"
+    echo "Created database directory at $LAUNCH_DIR/lnbits/database"
+fi
+
+if [ ! -d "$LAUNCH_DIR/lnbits/extensions" ]; then
+    mkdir -p "$LAUNCH_DIR/lnbits/extensions"
+    echo "Created extensions directory at $LAUNCH_DIR/lnbits/extensions"
+fi
+
+cd "$PERSISTENT_DIR"
+
+# Export the directory as an environment variable for the app
+LNBITS_DATA_FOLDER="${LNBITS_DATA_FOLDER:-$LAUNCH_DIR/lnbits/database}"
+LNBITS_EXTENSIONS_PATH="${LNBITS_EXTENSIONS_PATH:-$LAUNCH_DIR/lnbits/extensions}"
+export LNBITS_DATA_FOLDER
+export LNBITS_EXTENSIONS_PATH
+export LNBITS_ADMIN_UI=true
+
+# Define the LNbits URL
+URL="http://0.0.0.0:5000"
+
+"./dist/lnbits" "$@" &
+LNBITS_PID=$!
+
+# Wait for LNbits to be ready before showing the popup
+sleep 3
+CLOSED=false
+
+# Function to stop LNbits gracefully
+kill_lnbits() {
+    LN_PIDS=$(lsof -t -i:5000 2>/dev/null)  # Capture all PIDs
+    if [ -n "$LN_PIDS" ]; then
+        echo "Stopping LNbits (PIDs: $LN_PIDS)..."
+        kill -2 $LN_PIDS  # Send SIGINT to all processes on port 5000
+        CLOSED=true
+    fi
+}
+
+# Show a GUI with a clickable link to open the browser
+if command -v zenity >/dev/null 2>&1; then
+    while [ "$CLOSED" = false ]; do
+        zenity --info --title="LNbits" --width=400 --text="<b>LNbits is running.</b>\n\n<a href='$URL'>$URL</a>\n\nClick 'Close Server' to stop LNbits." --ok-label="Close Server"
+        kill_lnbits
+        sleep 1
+    done
+elif command -v yad >/dev/null 2>&1; then
+    while [ "$CLOSED" = false ]; do
+        yad --title="LNbits" --width=400 --text="<b>LNbits is running.</b>\n\n<a href='$URL'>$URL</a>\n\nClick 'Close Server' to stop LNbits." --button="Close Server":0
+        kill_lnbits
+        sleep 1
+    done
+else
+    echo "No GUI tool found. LNbits is running at $URL"
+fi
+
+# Ensure the script doesn't hang after closing
+if ps -p $LNBITS_PID >/dev/null 2>&1; then
+    wait $LNBITS_PID 2>/dev/null || true
+fi

@@ -1,0 +1,179 @@
+name: Build LNbits AppImage DMG
+
+on:
+  release:
+    types: [published]
+
+jobs:
+
+  build-linux-package:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+        shell: bash
+
+      # Step 3: Clone LNbits Repository
+      - name: Clone LNbits
+        run: |
+          mv .github/packaging packaging
+          mkdir -p packaging/linux/AppDir/usr
+          git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
+        shell: bash
+
+      # Step 4: Make the AppImage Asset
+      - name: Make Asset
+        run: |
+          cd packaging/linux/AppDir/usr/lnbits
+          git checkout main
+          poetry install --main
+          poetry run pip install pyinstaller
+
+          # Build the LNbits binary
+          poetry run pyinstaller --onefile --name lnbits --collect-all lnbits --collect-all sqlalchemy --collect-all aiosqlite --hidden-import=passlib.handlers.bcrypt $(poetry run which lnbits)
+          cd ../../../../..
+          chmod +x packaging/linux/AppDir/AppRun
+          chmod +x packaging/linux/AppDir/lnbits.desktop
+          chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
+
+          find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'dist' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          TAG_NAME=${{ github.event.release.tag_name }}
+          APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
+          ./appimagetool-x86_64.AppImage --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" packaging/linux/AppDir "$APPIMAGE_NAME"
+          chmod +x "$APPIMAGE_NAME"
+          echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
+        shell: bash
+
+      # Step 5: Upload Linux Release Asset
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.APPIMAGE_NAME }}
+          asset_name: ${{ env.APPIMAGE_NAME }}
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macosARM-package:
+    runs-on: macos-latest
+    steps:          
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+
+      # Step 3: Clone LNbits Repository
+      - name: build Asse
+        run: |
+          mv .github/packaging packaging
+          mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git checkout main
+          python3 -m venv --copies lnbits_env
+          source lnbits_env/bin/activate
+          poetry install --main
+          deactivate
+          LC_ALL=C find lnbits_env/bin -type f -exec sed -i '' '/^#!/ s|^#!.*python.*$|#!/bin/bash\nexec "$(dirname "$0")/python" "$@"|' {} +
+          TAG_NAME=${{ github.event.release.tag_name }}
+          DMG_NAME="LNbits-${TAG_NAME}_arm.dmg"
+          cd ../../../../../
+          chmod +x macos/LNbits.app/Contents/MacOS/launch.sh
+          find macos/LNbits.app/Contents/MacOS/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'lnbits_env' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+          hdiutil create -volname "LNbits Installer" -srcfolder macos/LNbits.app -ov -format UDZO "macos/$DMG_NAME"
+          echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
+        shell: bash
+
+      # Step 4: Upload macOS Release Asset
+      - name: Upload macOS Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: "packaging/macos/${{ env.DMG_NAME }}"
+          asset_name: "${{ env.DMG_NAME }}"
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macosX86-package:
+    runs-on: macos-13  # Specify macOS-13 runner
+    steps:          
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          wget https://www.python.org/ftp/python/3.12.8/python-3.12.8-macos11.pkg
+          sudo installer -pkg python-3.12.8-macos11.pkg -target /
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+
+      # Step 3: Clone LNbits Repository
+      - name: build Asse
+        run: |
+          mv .github/packaging packaging
+          mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git checkout main
+          python3 -m venv --copies lnbits_env
+          source lnbits_env/bin/activate
+          poetry install --main
+          deactivate
+          LC_ALL=C find lnbits_env/bin -type f -exec sed -i '' '/^#!/ s|^#!.*python.*$|#!/bin/bash\nexec "$(dirname "$0")/python" "$@"|' {} +
+          TAG_NAME=${{ github.event.release.tag_name }}
+          DMG_NAME="LNbits-${TAG_NAME}_x86.dmg"
+          cd ../../../../../
+          chmod +x macos/LNbits.app/Contents/MacOS/launch.sh
+          find macos/LNbits.app/Contents/MacOS/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'lnbits_env' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+          hdiutil create -volname "LNbits Installer" -srcfolder macos/LNbits.app -ov -format UDZO "macos/$DMG_NAME"
+          echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
+        shell: bash
+
+      # Step 4: Upload macOS Release Asset
+      - name: Upload macOS Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: "packaging/macos/${{ env.DMG_NAME }}"
+          asset_name: "${{ env.DMG_NAME }}"
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

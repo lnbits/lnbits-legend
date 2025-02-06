@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=LNbits
+Exec=lnbits
+Icon=lnbits
+Type=Application
+Categories=X-Bitcoin;X-LightningNetwork;X-Finance;Network;
