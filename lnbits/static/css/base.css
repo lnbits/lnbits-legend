@@ -532,6 +532,9 @@ video {
   word-break: break-word;
 }
 
+.q-card {
+  border-radius: 10px;
+}
 .q-card code {
   overflow-wrap: break-word;
 }

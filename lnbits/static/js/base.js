@@ -466,6 +466,7 @@ window.windowMixin = {
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
+      showAddWalletDialog: {show: false},
       borderSelection: null,
       gradientSelection: null,
       themeSelection: null,
@@ -500,6 +501,23 @@ window.windowMixin = {
         this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    submitAddWallet() {
+      if (
+        this.showAddWalletDialog.name &&
+        this.showAddWalletDialog.name.length > 0
+      ) {
+        LNbits.api.createWallet(
+          this.g.user.wallets[0],
+          this.showAddWalletDialog.name
+        )
+        this.showAddWalletDialog = {show: false}
+      } else {
+        this.$q.notify({
+          message: 'Please enter a name for the wallet',
+          color: 'negative'
+        })
+      }
     },
     simpleMobile() {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
