@@ -63,14 +63,14 @@ const DynamicComponent = {
         }
 
         //housecleaning, remove old component
-        //const previousRouteName =
-        //  this.$router.currentRoute.value.meta.previousRouteName
-        //if (
-        //  previousRouteName &&
-        //  window.app._context.components[previousRouteName]
-        //) {
-        //  delete window.app._context.components[previousRouteName]
-        //}
+        const previousRouteName =
+          this.$router.currentRoute.value.meta.previousRouteName
+        if (
+          previousRouteName &&
+          window.app._context.components[previousRouteName]
+        ) {
+          delete window.app._context.components[previousRouteName]
+        }
 
         //load component logic
         const logicKey = `${this.$route.name}PageLogic`
@@ -94,13 +94,7 @@ const DynamicComponent = {
           template: html // Use the fetched HTML as the template
         })
         delete window[logicKey] //dont need this anymore
-        console.log(
-          `Component '${this.$route.name}' loaded. Keys: ${this.keys}`
-        )
-        if (!this.keys.includes(this.$route.name)) {
-          this.keys.push(this.$route.name)
-          this.$forceUpdate()
-        }
+        this.$forceUpdate()
       } catch (error) {
         console.error('Error loading dynamic content:', error)
       } finally {
