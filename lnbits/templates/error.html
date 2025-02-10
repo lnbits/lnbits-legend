@@ -1,51 +1,48 @@
-{% extends "public.html" %} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-    <q-card class="q-pa-lg">
-      <q-card-section class="q-pa-none">
-        <center>
-          <h3 class="q-my-none">Error</h3>
-          <br />
-          <q-icon
-            name="warning"
-            class="text-grey"
-            style="font-size: 20rem"
-          ></q-icon>
+{% extends "public.html" %} {% block page_container %}
+<q-page-container>
+  <q-page
+    class="q-px-md q-py-lg content-center"
+    :class="{'q-px-lg': $q.screen.gt.xs}"
+  >
+    {% block page %}
+    <div class="fullscreen text-center q-pa-md flex flex-center">
+      <div>
+        <div class="error-code" v-text="statusCode"></div>
 
-          <h5 class="q-my-none">{{ err }}</h5>
+        <div class="error-message" v-text="message"></div>
 
-          <br />
-          <div class="row">
-            <div class="col">
-              <q-btn
-                @click="goBack"
-                color="grey"
-                outline
-                label="Back"
-                style="width: 100%"
-              ></q-btn>
-            </div>
-            <div class="col">
-              <q-btn
-                @click="goHome"
-                color="grey"
-                outline
-                label="Home"
-                style="width: 100%"
-              ></q-btn>
-            </div>
-          </div>
-        </center>
-      </q-card-section>
-    </q-card>
-  </div>
-</div>
-
+        <div class="q-mt-xl">
+          <q-btn color="primary" @click="goHome" label="Go Home"></q-btn>
+          <span class="q-mx-md">OR</span>
+          <q-btn color="primary" @click="goBack" label="Go Back"></q-btn>
+        </div>
+      </div>
+    </div>
+    {% endblock %}
+  </q-page>
+</q-page-container>
 {% endblock %} {% block scripts %}
+<style>
+  .error-code {
+    font-size: clamp(15vh, 20vw, 30vh);
+  }
+
+  .error-message {
+    font-size: clamp(1.5rem, calc(1.5 / 10 * 20vw), 3.75rem);
+    font-weight: 300;
+    opacity: 0.4;
+  }
+</style>
 <script>
   window.app = Vue.createApp({
     el: '#vue',
     mixins: [window.windowMixin],
+    data() {
+      return {
+        err: null,
+        statusCode: null
+      }
+    },
     methods: {
       goBack: function () {
         window.history.back()
@@ -55,7 +52,9 @@
       }
     },
     created() {
-      console.log('Error page loaded.')
+      this.err = '{{ err }}'
+      this.statusCode = '{{ status_code }}' || 404
+      this.message = '{{ message }}' || 'Page not found'
     }
   })
 </script>
