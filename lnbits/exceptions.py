@@ -26,9 +26,16 @@ class InvoiceError(Exception):
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response
+
     if not request.headers:
         return None
-    if "text/html" not in request.headers.get("accept", ""):
+
+    # Check a few common browser agents, also not fail proof
+    browser_agents = ["Mozilla", "Chrome", "Safari"]
+    is_browser = any(
+        agent in request.headers.get("user-agent", "") for agent in browser_agents
+    )
+    if "text/html" not in request.headers.get("accept", "") or not is_browser:
         return None
 
     if (
@@ -49,7 +56,14 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     )
 
     return template_renderer().TemplateResponse(
-        request, "error.html", {"err": f"Error: {exc!s}"}, status_code
+        request,
+        "error.html",
+        {
+            "err": f"Error: {exc!s}",
+            "status_code": int(status_code),
+            "message": str(exc).split(":")[-1].strip(),
+        },
+        status_code,
     )
 
 
