@@ -82,7 +82,11 @@ class InstalledExtensionMiddleware:
             return HTMLResponse(
                 status_code=status_code,
                 content=template_renderer()
-                .TemplateResponse(Request(scope), "error.html", {"err": msg})
+                .TemplateResponse(
+                    Request(scope),
+                    "error.html",
+                    {"err": msg, "status_code": status_code, "message": msg},
+                )
                 .body,
             )
 
@@ -114,7 +118,6 @@ class ExtensionsRedirectMiddleware:
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-
     def __init__(self, app: ASGIApp, audit_queue: asyncio.Queue) -> None:
         super().__init__(app)
         self.audit_queue = audit_queue
