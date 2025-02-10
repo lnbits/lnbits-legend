@@ -11,14 +11,19 @@
 
         <div class="error-message" v-text="message"></div>
 
-        <div class="q-mt-xl">
+        <div
+          class="q-mx-auto q-mt-lg justify-center"
+          style="width: max-content"
+        >
           <q-btn
             v-if="isExtension"
             color="primary"
             @click="goToExtension"
             label="Go To Extension"
+            class="q-mb-lg full-width"
           ></q-btn>
-          <q-btn v-else color="primary" @click="goHome" label="Go Home"></q-btn>
+          <br />
+          <q-btn color="primary" to="/" label="Go Home"></q-btn>
           <span class="q-mx-md">OR</span>
           <q-btn color="primary" @click="goBack" label="Go Back"></q-btn>
         </div>
