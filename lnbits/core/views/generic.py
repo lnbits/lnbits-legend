@@ -473,9 +473,9 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     )
 
 
-@generic_router.get("/{path}/", response_class=HTMLResponse)
-async def fallback_route(request: Request, path: Optional[str]):
-    print("fallback_route path", path)
+@generic_router.get("/{full_path:path}/", response_class=HTMLResponse)
+async def fallback_route(request: Request, full_path: Optional[str]):
+    path = full_path.split("/")[0] if full_path else ""
 
     status_code = HTTPStatus.NOT_FOUND
     message: str = "Page not found."
