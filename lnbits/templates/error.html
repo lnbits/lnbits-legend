@@ -5,7 +5,7 @@
     :class="{'q-px-lg': $q.screen.gt.xs}"
   >
     {% block page %}
-    <div class="fullscreen text-center q-pa-md flex flex-center">
+    <div class="text-center q-pa-md flex flex-center">
       <div>
         <div class="error-code" v-text="statusCode"></div>
 
@@ -64,7 +64,22 @@
       },
       goToExtension() {
         window.location.href = `/extensions#${this.extension}`
-      }
+      },
+      logOut() {
+        LNbits.utils
+          .confirmDialog(
+            'Do you really want to logout?'
+          )
+          .onOk( async () => {
+            try {
+              await LNbits.api.logout()
+              this.g.renderLogout = false
+              window.location = '/'
+            } catch (e) {
+              LNbits.utils.notifyApiError(e)
+            }
+          })
+    },
     },
     computed: {
       isExtension() {
@@ -78,6 +93,9 @@
       this.message = String({{ message | tojson }}) || 'Page not found'
       if (this.isExtension) {
         this.extension = this.message.match(/'([^']+)'/)[1]
+      }
+      if (this.statusCode == 401) {
+        this.g.renderLogout = true
       }
     }
   })
