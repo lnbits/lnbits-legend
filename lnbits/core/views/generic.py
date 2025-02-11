@@ -488,7 +488,7 @@ async def fallback_route(request: Request, path: Optional[str]):
         request,
         "error.html",
         {"status_code": int(status_code), "message": message},
-        status_code,
+        int(status_code),
     )
 
 
