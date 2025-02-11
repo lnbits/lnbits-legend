@@ -23,7 +23,7 @@
             class="q-mb-lg full-width"
           ></q-btn>
           <br />
-          <q-btn color="primary" to="/" label="Go Home"></q-btn>
+          <q-btn color="primary" href="/" label="Go Home"></q-btn>
           <span class="q-mx-md">OR</span>
           <q-btn color="primary" @click="goBack" label="Go Back"></q-btn>
         </div>
@@ -69,7 +69,7 @@
     computed: {
       isExtension() {
         if (this.statusCode != 403) return false
-        if (this.message.includes('User extension')) return true
+        if (this.message.startsWith('Extension ')) return true
       }
     },
     created() {

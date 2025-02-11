@@ -149,7 +149,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
     # list of all extension ids
-    lnbits_all_extensions_ids: set[str] = Field(default=[])
+    lnbits_installed_extensions_ids: set[str] = Field(default=[])
 
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
@@ -182,7 +182,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
 
-        self.lnbits_all_extensions_ids.add(ext_id)
+        self.lnbits_installed_extensions_ids.add(ext_id)
 
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
@@ -845,6 +845,8 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     # Remember the latest balance delta in order to compare with the current one
     latest_balance_delta_sats: int = Field(default=None)
+
+    lnbits_all_extensions_ids: set[str] = Field(default=[])
 
     @classmethod
     def readonly_fields(cls):

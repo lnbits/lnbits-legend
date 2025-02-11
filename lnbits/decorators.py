@@ -265,7 +265,7 @@ async def check_user_extension_access(
         ext_ids = await get_user_active_extensions_ids(user_id, conn=conn)
         if ext_id not in ext_ids:
             return SimpleStatus(
-                success=False, message=f"User extension '{ext_id}' not enabled."
+                success=False, message=f"Extension '{ext_id}' not enabled."
             )
 
     return SimpleStatus(success=True, message="OK")
