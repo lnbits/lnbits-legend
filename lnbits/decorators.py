@@ -28,6 +28,7 @@ from lnbits.core.models import (
     WalletTypeInfo,
 )
 from lnbits.db import Connection, Filter, Filters, TFilterModel
+from lnbits.helpers import path_segments
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
@@ -272,7 +273,7 @@ async def check_user_extension_access(
 
 
 async def _check_user_extension_access(user_id: str, path: str):
-    ext_id = _path_segments(path)[0]
+    ext_id = path_segments(path)[0]
     status = await check_user_extension_access(user_id, ext_id)
     if not status.success:
         raise HTTPException(
@@ -331,16 +332,9 @@ async def _check_account_api_access(
     if not acl:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid token id.")
 
-    path = "/" + "/".join(_path_segments(path)[:3])
+    path = "/" + "/".join(path_segments(path)[:3])
     endpoint = acl.get_endpoint(path)
     if not endpoint:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
     if not endpoint.supports_method(method):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
-
-
-def _path_segments(path: str) -> list[str]:
-    segments = path.split("/")
-    if segments[1] == "upgrades":
-        return segments[3:]
-    return segments[1:]

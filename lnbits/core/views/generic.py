@@ -473,24 +473,5 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     )
 
 
-@generic_router.get("/{full_path:path}/", response_class=HTMLResponse)
-async def fallback_route(request: Request, full_path: Optional[str]):
-    path = full_path.split("/")[0] if full_path else ""
-
-    status_code = HTTPStatus.NOT_FOUND
-    message: str = "Page not found."
-
-    if path in settings.lnbits_all_extensions_ids:
-        status_code = HTTPStatus.FORBIDDEN
-        message = f"Extension '{path}' not installed. Ask the admin to install it."
-
-    return template_renderer().TemplateResponse(
-        request,
-        "error.html",
-        {"status_code": int(status_code), "message": message},
-        int(status_code),
-    )
-
-
 def _is_ajax_request(request: Request):
     return request.headers.get("X-Requested-With", None) == "XMLHttpRequest"

@@ -8,7 +8,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from loguru import logger
 
-from .helpers import template_renderer
+from lnbits.settings import settings
+
+from .helpers import path_segments, template_renderer
 
 
 class PaymentError(Exception):
@@ -132,4 +134,23 @@ def register_exception_handlers(app: FastAPI):
         return JSONResponse(
             status_code=520,
             content={"detail": exc.message, "status": exc.status},
+        )
+
+    @app.exception_handler(404)
+    async def error_handler_404(request: Request, exc: Exception):
+        logger.warning(f"""{request["path"]} {exc}""")
+        path = path_segments(request["path"])[0]
+
+        status_code = HTTPStatus.NOT_FOUND
+        message: str = "Page not found."
+
+        if path in settings.lnbits_all_extensions_ids:
+            status_code = HTTPStatus.FORBIDDEN
+            message = f"Extension '{path}' not installed. Ask the admin to install it."
+
+        return template_renderer().TemplateResponse(
+            request,
+            "error.html",
+            {"status_code": int(status_code), "message": message},
+            int(status_code),
         )
