@@ -261,7 +261,7 @@ async def check_user_extension_access(
             success=False, message=f"User not authorized for extension '{ext_id}'."
         )
 
-    if settings.is_extension_id(ext_id):
+    if settings.is_installed_extension_id(ext_id):
         ext_ids = await get_user_active_extensions_ids(user_id, conn=conn)
         if ext_id not in ext_ids:
             return SimpleStatus(

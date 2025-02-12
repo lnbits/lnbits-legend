@@ -903,8 +903,8 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
     def is_admin_extension(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_admin_extensions
 
-    def is_extension_id(self, ext_id: str) -> bool:
-        return ext_id in self.lnbits_all_extensions_ids
+    def is_installed_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_installed_extensions_ids
 
 
 class SuperSettings(EditableSettings):
