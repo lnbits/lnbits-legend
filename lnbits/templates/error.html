@@ -73,7 +73,6 @@
           .onOk( async () => {
             try {
               await LNbits.api.logout()
-              this.g.renderLogout = false
               window.location = '/'
             } catch (e) {
               LNbits.utils.notifyApiError(e)
@@ -93,9 +92,6 @@
       this.message = String({{ message | tojson }}) || 'Page not found'
       if (this.isExtension) {
         this.extension = this.message.match(/'([^']+)'/)[1]
-      }
-      if (this.statusCode == 401) {
-        this.g.renderLogout = true
       }
     }
   })
