@@ -135,7 +135,7 @@ def register_exception_handlers(app: FastAPI):
     async def error_handler_404(request: Request, exc: HTTPException):
         logger.error(f"""404: {request["path"]} {exc.status_code}: {exc.detail}""")
         if not _is_browser_request(request):
-            return render_html_error(request, exc) or JSONResponse(
+            return JSONResponse(
                 status_code=exc.status_code,
                 content={"detail": exc.detail},
             )
