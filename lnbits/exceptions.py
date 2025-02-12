@@ -10,7 +10,7 @@ from loguru import logger
 
 from lnbits.settings import settings
 
-from .helpers import path_segments, template_renderer
+from .helpers import normalized_path, path_segments, template_renderer
 
 
 class PaymentError(Exception):
@@ -133,14 +133,16 @@ def register_exception_handlers(app: FastAPI):
 
     @app.exception_handler(404)
     async def error_handler_404(request: Request, exc: HTTPException):
-        logger.error(f"""404: {request["path"]} {exc.status_code}: {exc.detail}""")
+        full_path = request["path"]
+        logger.error(f"404: {full_path} {exc.status_code}: {exc.detail}")
+
         if not _is_browser_request(request):
             return JSONResponse(
                 status_code=exc.status_code,
                 content={"detail": exc.detail},
             )
 
-        path = path_segments(request["path"])[0]
+        path = path_segments(full_path)[0]
         status_code = HTTPStatus.NOT_FOUND
         message: str = "Page not found."
 
@@ -158,6 +160,9 @@ def register_exception_handlers(app: FastAPI):
 
 def _is_browser_request(request: Request) -> bool:
     # Check a few common browser agents, also not fail proof
+    if normalized_path(request).startswith("/api/"):
+        return False
+
     browser_agents = ["Mozilla", "Chrome", "Safari"]
     if any(agent in request.headers.get("user-agent", "") for agent in browser_agents):
         return True

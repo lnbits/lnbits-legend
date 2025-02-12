@@ -9,6 +9,7 @@ from urllib import request
 import jinja2
 import jwt
 import shortuuid
+from fastapi import Request
 from fastapi.routing import APIRoute
 from packaging import version
 from pydantic.schema import field_schema
@@ -312,3 +313,8 @@ def path_segments(path: str) -> list[str]:
     if segments[0] == "upgrades":
         return segments[2:]
     return segments[0:]
+
+
+def normalized_path(request: Request) -> str:
+    path = request["path"]
+    return "/" + "/".join(path_segments(path))
