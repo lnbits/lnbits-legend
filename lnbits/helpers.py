@@ -316,5 +316,4 @@ def path_segments(path: str) -> list[str]:
 
 
 def normalized_path(request: Request) -> str:
-    path = request["path"]
-    return "/" + "/".join(path_segments(path))
+    return "/" + "/".join(path_segments(request.url.path))
