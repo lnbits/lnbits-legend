@@ -32,12 +32,7 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     if not request.headers:
         return None
 
-    # Check a few common browser agents, also not fail proof
-    browser_agents = ["Mozilla", "Chrome", "Safari"]
-    is_browser = any(
-        agent in request.headers.get("user-agent", "") for agent in browser_agents
-    )
-    if "text/html" not in request.headers.get("accept", "") or not is_browser:
+    if not _is_browser_request(request):
         return None
 
     if (
@@ -137,10 +132,15 @@ def register_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(404)
-    async def error_handler_404(request: Request, exc: Exception):
-        logger.warning(f"""{request["path"]} {exc}""")
-        path = path_segments(request["path"])[0]
+    async def error_handler_404(request: Request, exc: HTTPException):
+        logger.error(f"""404: {request["path"]} {exc.status_code}: {exc.detail}""")
+        if not _is_browser_request(request):
+            return render_html_error(request, exc) or JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+            )
 
+        path = path_segments(request["path"])[0]
         status_code = HTTPStatus.NOT_FOUND
         message: str = "Page not found."
 
@@ -154,3 +154,15 @@ def register_exception_handlers(app: FastAPI):
             {"status_code": int(status_code), "message": message},
             int(status_code),
         )
+
+
+def _is_browser_request(request: Request) -> bool:
+    # Check a few common browser agents, also not fail proof
+    browser_agents = ["Mozilla", "Chrome", "Safari"]
+    if any(agent in request.headers.get("user-agent", "") for agent in browser_agents):
+        return True
+
+    if "text/html" in request.headers.get("accept", ""):
+        return True
+
+    return False
