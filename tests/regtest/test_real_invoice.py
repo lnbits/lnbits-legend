@@ -35,11 +35,13 @@ async def test_pay_real_invoice(
     )
     assert response.status_code < 300
     invoice = response.json()
+    print("invoice", invoice)
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
 
     await asyncio.sleep(1)
     data = from_wallet_ws.receive_json()
+    print("ws data", data)
     assert "wallet_balance" in data
     payment = Payment(**data["payment"])
     assert payment.payment_hash == invoice["payment_hash"]
