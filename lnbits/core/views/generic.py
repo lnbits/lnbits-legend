@@ -50,12 +50,9 @@ async def home(request: Request, lightning: str = ""):
 @generic_router.get("/first_install", response_class=HTMLResponse)
 async def first_install(request: Request):
     if not settings.first_install:
-        return template_renderer().TemplateResponse(
-            request,
-            "error.html",
-            {
-                "err": "Super user account has already been configured.",
-            },
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail="Super user account has already been configured.",
         )
     return template_renderer().TemplateResponse(
         request,
@@ -180,8 +177,9 @@ async def wallet(
         wallet = user.wallets[0]
 
     if not wallet or wallet.deleted:
-        return template_renderer().TemplateResponse(
-            request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet not found",
         )
     context = {
         "user": user.json(),

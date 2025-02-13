@@ -149,7 +149,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
     # list of all extension ids
-    lnbits_all_extensions_ids: set[str] = Field(default=[])
+    lnbits_installed_extensions_ids: set[str] = Field(default=[])
 
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
@@ -182,7 +182,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
 
-        self.lnbits_all_extensions_ids.add(ext_id)
+        self.lnbits_installed_extensions_ids.add(ext_id)
 
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
@@ -849,6 +849,8 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     # Remember the latest balance delta in order to compare with the current one
     latest_balance_delta_sats: int = Field(default=None)
 
+    lnbits_all_extensions_ids: set[str] = Field(default=[])
+
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
@@ -904,8 +906,8 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
     def is_admin_extension(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_admin_extensions
 
-    def is_extension_id(self, ext_id: str) -> bool:
-        return ext_id in self.lnbits_all_extensions_ids
+    def is_installed_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_installed_extensions_ids
 
 
 class SuperSettings(EditableSettings):

@@ -106,7 +106,7 @@
               <span>OFFLINE</span>
             </q-badge>
             <q-btn-dropdown
-              v-if="g.user"
+              v-if="g.user || isUserAuthorized"
               flat
               rounded
               size="sm"

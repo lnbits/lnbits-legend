@@ -16,6 +16,7 @@ from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
     send_payment_notification,
@@ -59,6 +60,13 @@ async def run_by_the_minute_tasks():
         if minute_counter % status_minutes == 0:
             try:
                 await _notify_server_status()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % 60 == 0:
+            try:
+                # initialize the list of all extensions
+                await InstallableExtension.get_installable_extensions()
             except Exception as ex:
                 logger.error(ex)
 

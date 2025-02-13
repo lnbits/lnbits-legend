@@ -8,7 +8,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from loguru import logger
 
-from .helpers import template_renderer
+from lnbits.settings import settings
+
+from .helpers import path_segments, template_renderer
 
 
 class PaymentError(Exception):
@@ -26,9 +28,11 @@ class InvoiceError(Exception):
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response
+
     if not request.headers:
         return None
-    if "text/html" not in request.headers.get("accept", ""):
+
+    if not _is_browser_request(request):
         return None
 
     if (
@@ -49,7 +53,14 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     )
 
     return template_renderer().TemplateResponse(
-        request, "error.html", {"err": f"Error: {exc!s}"}, status_code
+        request,
+        "error.html",
+        {
+            "err": f"Error: {exc!s}",
+            "status_code": int(status_code),
+            "message": str(exc).split(":")[-1].strip(),
+        },
+        status_code,
     )
 
 
@@ -119,3 +130,43 @@ def register_exception_handlers(app: FastAPI):
             status_code=520,
             content={"detail": exc.message, "status": exc.status},
         )
+
+    @app.exception_handler(404)
+    async def error_handler_404(request: Request, exc: HTTPException):
+        logger.error(f"404: {request.url.path} {exc.status_code}: {exc.detail}")
+
+        if not _is_browser_request(request):
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+            )
+
+        path = path_segments(request.url.path)[0]
+        status_code = HTTPStatus.NOT_FOUND
+        message: str = "Page not found."
+
+        if path in settings.lnbits_all_extensions_ids:
+            status_code = HTTPStatus.FORBIDDEN
+            message = f"Extension '{path}' not installed. Ask the admin to install it."
+
+        return template_renderer().TemplateResponse(
+            request,
+            "error.html",
+            {"status_code": int(status_code), "message": message},
+            int(status_code),
+        )
+
+
+def _is_browser_request(request: Request) -> bool:
+    # Check a few common browser agents, also not fail proof
+    if "api/v1" in request.url.path:
+        return False
+
+    browser_agents = ["Mozilla", "Chrome", "Safari"]
+    if any(agent in request.headers.get("user-agent", "") for agent in browser_agents):
+        return True
+
+    if "text/html" in request.headers.get("accept", ""):
+        return True
+
+    return False

@@ -586,7 +586,6 @@ class InstallableExtension(BaseModel):
         cls,
     ) -> list[InstallableExtension]:
         extension_list: list[InstallableExtension] = []
-        extension_id_list: list[str] = []
 
         for url in settings.lnbits_extensions_manifests:
             try:
@@ -607,7 +606,6 @@ class InstallableExtension(BaseModel):
                     meta.featured = ext.id in manifest.featured
                     ext.meta = meta
                     extension_list += [ext]
-                    extension_id_list += [ext.id]
 
                 for e in manifest.extensions:
                     release = ExtensionRelease.from_explicit_release(url, e)
@@ -623,10 +621,10 @@ class InstallableExtension(BaseModel):
                     meta.featured = ext.id in manifest.featured
                     ext.meta = meta
                     extension_list += [ext]
-                    extension_id_list += [e.id]
             except Exception as e:
                 logger.warning(f"Manifest {url} failed with '{e!s}'")
 
+        settings.lnbits_all_extensions_ids = {e.id for e in extension_list}
         return extension_list
 
     @classmethod
